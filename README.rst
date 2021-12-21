@@ -6,17 +6,14 @@ ruleminer
 .. image:: https://img.shields.io/pypi/v/ruleminer.svg
         :target: https://pypi.python.org/pypi/ruleminer
 
-.. image:: https://img.shields.io/travis/wjwillemse/ruleminer.svg
-        :target: https://travis-ci.com/wjwillemse/ruleminer
+.. image:: https://img.shields.io/badge/License-MIT-yellow.svg
+        :target: https://opensource.org/licenses/MIT
+        :alt: License: MIT
 
-.. image:: https://readthedocs.org/projects/ruleminer/badge/?version=latest
-        :target: https://ruleminer.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+        :target: https://github.com/psf/black
+        :alt: Code style: black
 
-
-.. image:: https://pyup.io/repos/github/wjwillemse/ruleminer/shield.svg
-     :target: https://pyup.io/repos/github/wjwillemse/ruleminer/
-     :alt: Updates
 
 **DISCLAIMER - BETA PHASE**
 
@@ -127,12 +124,16 @@ Examples
 Generating rules
 ----------------
 
-The expression::
+Evaluate the expression ::
+
+    if ({"T.*"} == ".*") then ({"TV.*"} > 0)
+
+with the insurance data DataFrame above::
 
     templates = [{'expression': 'if ({"T.*"} == ".*") then ({"TV.*"} > 0)'}]
     r = ruleminer.RuleMiner(templates=templates, data=df)
 
-will generated the following rules (available with r.rules)
+This will generate the following rules (available with r.rules):
 
 .. list-table:: Generated rules
    :widths: 20 40 20 20 20 15 15
@@ -250,5 +251,4 @@ The syntax of the template follows a grammar defined as follows:
 
   where "Type" is the name of the column in the DataFrame with the data
 
-* a *string* consists of a-z A-Z 0-9 _ . , * +
-
+* a *string* consists of a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
