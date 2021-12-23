@@ -136,7 +136,7 @@ With the code::
     
     r = ruleminer.RuleMiner(templates=templates, data=df)
 
-you can generate the rule metrics for this rule given the data in the DataFrame above (available with r.rules)::
+you can generate the rule metrics for this rule given the data in the DataFrame above (available with r.rules).
 
 .. list-table:: Generated rules
    :widths: 20 40 20 20 20 15 15
@@ -346,4 +346,3 @@ If you are using this in a Jupyter notebook you can add a the beginning::
                         level=logging.INFO)
 
 Info about the rule generating process with be displayed in the notebook.
-
