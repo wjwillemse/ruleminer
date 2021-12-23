@@ -22,7 +22,7 @@ ruleminer
 Python package to discover association rules in Pandas DataFrames.
 
 Installation
-============
+------------
 
 To install the package::
 
@@ -37,7 +37,7 @@ To use ruleminer in a project::
     import ruleminer
 
 Usage
-=====
+-----
 
 Suppose we have the following data.
 
@@ -138,7 +138,7 @@ With the code::
 
 you can generate the rule metrics for this rule given the data in the DataFrame above (available with r.rules).
 
-.. list-table:: Generated rules
+.. list-table:: Generated rules (1)
    :widths: 20 40 20 20 20 15 15
    :header-rows: 1
 
@@ -173,7 +173,7 @@ So, if you apply the following rule ::
 
 then the following rules are generated
 
-.. list-table:: Generated rules
+.. list-table:: Generated rules (2)
    :widths: 20 40 20 20 20 15 15
    :header-rows: 1
 
@@ -206,10 +206,10 @@ You can use rules without an if-clause, for example::
 The metrics for these rules are calculated as if the if-clause is always satisfied.
 
 Parameters
-==========
+----------
 
 Rule metrics
-------------
+~~~~~~~~~~~~
 
 Several rule metrics have been proposed in the past. You can add the metrics that you want as a parameter to the ruleminer, i.e.:: 
 
@@ -233,7 +233,7 @@ THe default metrics are 'abs support', 'abs exceptions' and 'confidence'.
 See for the definitions `Measures for Rules <https://mhahsler.github.io/arules/docs/measures#Measures_for_Rules>`_ from Michael Hahsler.
 
 Rule precision
---------------
+~~~~~~~~~~~~~~
 
 In many situations the equal-operator when used on quantitative data is too strict as small differences can occur that you do no want to consider as exceptions to the rule. For this you can define a decimal parameter inside the params dictionary by this ::
 
@@ -250,7 +250,7 @@ are translated to ::
 If no 'decimal' parameter is provided then the absolute difference should be exactly zero.
 
 Rule pruning
-============
+------------
 
 By using regex in column names, it will sometimes happen that rules are identical to other rules, except that they have a different ordering of columns. For example::
 
@@ -280,7 +280,7 @@ is identical to::
 and will therefore be pruned from the list if the latter rule is already in the list.
 
 Rule template grammar
-=====================
+---------------------
 
 The rule template describes the structure of the rule. Columns and quoted strings in the rule template can contain simple regular expressions.
 
@@ -337,7 +337,7 @@ The syntax of the template follows a grammar defined as follows:
 * a *string* consists of a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
 
 Debugging rules
-===============
+---------------
 
 If you are using this in a Jupyter notebook you can add a the beginning::
 
