@@ -6,3 +6,8 @@ History
 ------------------
 
 * First release on PyPI.
+
+0.1.1 (2021-11-23)
+------------------
+
+* Added more documentation to the README text
