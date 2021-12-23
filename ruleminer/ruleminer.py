@@ -412,8 +412,11 @@ def reformulate(expression: str="", params: dict={}):
         for idx, item in enumerate(expression):
             if isinstance(item, str) and (item in ["=="]):
                 if (not is_string(expression[idx-1])) and (not is_string(expression[idx+1])):
-                    decimal = params.get("decimal", 0)
-                    precision = 1.5*10**(-decimal)
+                    if 'decimal' in params.keys():
+                        decimal = params.get("decimal", 0)
+                        precision = 1.5*10**(-decimal)
+                    else:
+                        precision = 0
                     return "(abs("+reformulate(expression[idx-1], params)+"-"+reformulate(expression[idx+1], params)+") <= "+str(precision)+")"
         l = ""
         for item in expression:
