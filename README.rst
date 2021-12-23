@@ -22,7 +22,7 @@ ruleminer
 Python package to discover association rules in Pandas DataFrames.
 
 Installation
-------------
+============
 
 To install the package::
 
@@ -36,8 +36,10 @@ To use ruleminer in a project::
 
     import ruleminer
 
-Examples
---------
+Usage
+=====
+
+Suppose we have the following data.
 
 .. list-table:: Some insurance undertakings data
    :widths: 25 25 20 20 20 20 20
@@ -124,16 +126,52 @@ Examples
 Generating rules
 ----------------
 
-Evaluate the expression ::
+Take the rule::
 
-    if ({"T.*"} == ".*") then ({"TV.*"} > 0)
+    if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
 
-with the insurance data DataFrame above::
+With the code::
 
-    templates = [{'expression': 'if ({"T.*"} == ".*") then ({"TV.*"} > 0)'}]
+    templates = [{'expression': 'if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)'}]
+    
     r = ruleminer.RuleMiner(templates=templates, data=df)
 
-This will generate the following rules (available with r.rules):
+you can generate the rule metrics for this rule given the data in the DataFrame above (available with r.rules)::
+
+.. list-table:: Generated rules
+   :widths: 20 40 20 20 20 15 15
+   :header-rows: 1
+
+   * - id
+     - definition
+     - status
+     - abs support
+     - abs exceptions
+     - confidence
+     - encodings
+   * - 1
+     - if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
+     - None
+     - 5
+     - 0
+     - 1
+     - {}
+
+There are 5 lines in the data that support this rule. There are no exceptions (i.e. where the if-clause is satisfied, but not the then-clause), so this rule has confidence 1.
+
+You can define rule templates that contain regular expressions for column names and strings. The package will then generate rules that satisfy the rule template with matching column names and strings from the DataFrame. For example, given the data DataFrame above, column regex::
+
+    {"T.*"}
+
+will satisfy column names::
+
+    {"Type"}, {"TP-life"}, {"TP-nonlife"}
+
+So, if you apply the following rule ::
+
+    if ({"T.*"} == ".*") then ({"TP.*"} > 0)
+
+then the following rules are generated
 
 .. list-table:: Generated rules
    :widths: 20 40 20 20 20 15 15
@@ -147,31 +185,72 @@ This will generate the following rules (available with r.rules):
      - confidence
      - encodings
    * - 0
-     - if ({"Type"} == "non-life_insurer") then ({"TV-nonlife"} > 0)
+     - if ({"Type"} == "non-life_insurer") then ({"TP-nonlife"} > 0)
      - None
      - 4
      - 1
      - 0.8
      - {}
    * - 1
-     - if ({"Type"} == "life_insurer") then ({"TV-life"} > 0)
+     - if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
      - None
      - 5
      - 0
      - 1
      - {}
 
-You can define so-called rule templates that contain regular expressions for column names and strings. The package  will then generate rules that satisfy the rule template with matching column names and strings from the data DataFrame. For example, given the data DataFrame above, column regex::
+You can use rules without an if-clause, for example::
 
-    {"T.*"}
+    {"Assets"} > 0
 
-will satisfy column names::
+The metrics for these rules are calculated as if the if-clause is always satisfied.
 
-    {"Type"}, {"TP-life"}, {"TP-nonlife"}
+Parameters
+==========
 
+Rule metrics
+------------
+
+Several rule metrics have been proposed in the past. You can add the metrics that you want as a parameter to the ruleminer, i.e.:: 
+
+    params = {'metrics': ['added value', 'abs support', 'abs exceptions', 'confidence']}
+
+    r = ruleminer.RuleMiner(templates=templates, data=df, params=params)
+
+This will produce the desired metrics. Available metrics are:
+* abs support
+* abs exceptions
+* confidence
+* support
+* added value
+* casual confidence
+* casual support
+* conviction
+* lift
+
+THe default metrics are 'abs support', 'abs exceptions' and 'confidence'.
+
+See for the definitions `Measures for Rules <https://mhahsler.github.io/arules/docs/measures#Measures_for_Rules>`_ from Michael Hahsler.
+
+Rule precision
+--------------
+
+In many situations the equal-operator when used on quantitative data is too strict as small differences can occur that you do no want to consider as exceptions to the rule. For this you can define a decimal parameter inside the params dictionary by this ::
+
+    params={'decimal': 3}
+
+This means that comparisons like::
+
+    A==B
+
+are translated to ::
+
+    abs(A-B) <= 1.5*10**(-decimal)
+
+If no 'decimal' parameter is provided then the absolute difference should be exactly zero.
 
 Rule pruning
-------------
+============
 
 By using regex in column names, it will sometimes happen that rules are identical to other rules, except that they have a different ordering of columns. For example::
 
@@ -201,7 +280,7 @@ is identical to::
 and will therefore be pruned from the list if the latter rule is already in the list.
 
 Rule template grammar
----------------------
+=====================
 
 The rule template describes the structure of the rule. Columns and quoted strings in the rule template can contain simple regular expressions.
 
@@ -213,6 +292,10 @@ Examples::
 
     if ({".*"} > 0) then (({".*"} == 0) & ({".*"} > 0))
 
+    (({".*"} + {".*"} + {".*"}) == {".*"})
+
+    (min({".*"}, {".*"}) == {".*"})
+
 The syntax of the template follows a grammar defined as follows:
 
 * a *template* is of the form::
@@ -223,7 +306,7 @@ The syntax of the template follows a grammar defined as follows:
 
     cond_1
 
-* a *condition* is either a combination of *comparisons* with *logical operators* ('&', 'and', '|', 'or') and parenthesis::
+* a *condition* is either a combination of *comparisons* with *logical operators* ('&' and '|') and parenthesis::
 
     ( comp_1 & comp_2 | comp_3 )
 
@@ -237,7 +320,7 @@ The syntax of the template follows a grammar defined as follows:
 
 * a *term* can be a *number* (e.g. 3.1415 or 9), *quoted string* (a string with single or double quotes), or a *function of columns*
 
-* a *function of columns* is either a prefix operator (min, max, abs or sum, in lower or uppercase) on one or more *columns*, and of the form, for example::
+* a *function of columns* is either a prefix operator (min, max or abs, in lower or uppercase) on one or more *columns*, and of the form, for example::
 
     min(col_1, col_2, col_3)
 
@@ -252,3 +335,15 @@ The syntax of the template follows a grammar defined as follows:
   where "Type" is the name of the column in the DataFrame with the data
 
 * a *string* consists of a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
+
+Debugging rules
+===============
+
+If you are using this in a Jupyter notebook you can add a the beginning::
+
+    logging.basicConfig(stream=sys.stdout, 
+                        format='%(asctime)s %(message)s',
+                        level=logging.INFO)
+
+Info about the rule generating process with be displayed in the notebook.
+
