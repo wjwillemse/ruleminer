@@ -19,7 +19,7 @@ LOGIC_OP = one_of("& |")
 COMPA_OP = one_of(">= > <= < != ==")
 PREFIX_OP = one_of("min max abs MIN MAX ABS")
 NUMBER = Combine(Word(nums) + "." + Word(nums)) | Word(nums)
-STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']")+" "
+STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']") + " "
 COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
 QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
 
