@@ -123,10 +123,10 @@ Suppose we have the following data.
      - 200
      - 199.99
 
-Generating rules
-----------------
+Calculating metrics
+-------------------
 
-Take the rule::
+Take for example the rule::
 
     if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
 
@@ -158,6 +158,9 @@ you can generate the rule metrics for this rule given the data in the DataFrame 
      - {}
 
 There are 5 lines in the data that support this rule. There are no exceptions (i.e. where the if-clause is satisfied, but not the then-clause), so this rule has confidence 1.
+
+Generating rules
+----------------
 
 You can define rule templates that contain regular expressions for column names and strings. The package will then generate rules that satisfy the rule template with matching column names and strings from the DataFrame. For example, given the data DataFrame above, column regex::
 
@@ -228,7 +231,7 @@ This will produce the desired metrics. Available metrics are:
 * conviction
 * lift
 
-THe default metrics are 'abs support', 'abs exceptions' and 'confidence'.
+The default metrics are 'abs support', 'abs exceptions' and 'confidence'.
 
 See for the definitions `Measures for Rules <https://mhahsler.github.io/arules/docs/measures#Measures_for_Rules>`_ from Michael Hahsler.
 
