@@ -23,6 +23,7 @@ from ruleminer.const import RULE_VARIABLES
 from ruleminer.const import ENCODINGS
 from ruleminer.const import DUNDER_DF
 from ruleminer.parser import RULE_SYNTAX
+from ruleminer.encodings import encodings_definitions
 
 
 class RuleMiner:
@@ -67,6 +68,25 @@ class RuleMiner:
                 "min": np.minimum,
                 "abs": np.abs,
             }
+
+            def get_encodings():
+                for item in encodings_definitions:
+                    exec(encodings_definitions[item])
+                encodings = {
+                    encodings[item]: locals()[item]
+                    for item in encodings_definitions.keys()
+                }
+                return encodings
+            encodings = metapattern.get("encodings", None)
+            if encodings is not None:
+                encodings_code = get_encodings()
+                for c in self.data.columns:
+                    if c in encodings.keys():
+                        self.data[c] = eval(
+                            str(encodings[c]) + "(s)",
+                            encodings_code,
+                            {"s": self.data[c]},
+                        )
 
         if templates is not None:
             self.templates = templates
@@ -344,7 +364,7 @@ class RuleMiner:
         return None
 
 
-def prune_expressions(expressions: list = [], params: dict={}):
+def prune_expressions(expressions: list = [], params: dict = {}):
     """ """
     pruned_expressions = []
     sorted_expressions = []
@@ -402,31 +422,45 @@ def flatten_and_sort(expression):
                     count += 1
                 else:
                     l += flatten_and_sort(item)
-        return "("+l+")"
+        return "(" + l + ")"
 
 
-def reformulate(expression: str="", params: dict={}):
+def reformulate(expression: str = "", params: dict = {}):
     if isinstance(expression, str):
         return expression
     else:
         for idx, item in enumerate(expression):
             if isinstance(item, str) and (item in ["=="]):
-                if (not is_string(expression[idx-1])) and (not is_string(expression[idx+1])):
-                    if 'decimal' in params.keys():
+                if (not is_string(expression[idx - 1])) and (
+                    not is_string(expression[idx + 1])
+                ):
+                    if "decimal" in params.keys():
                         decimal = params.get("decimal", 0)
-                        precision = 1.5*10**(-decimal)
+                        precision = 1.5 * 10 ** (-decimal)
                     else:
                         precision = 0
-                    return "(abs("+reformulate(expression[idx-1], params)+"-"+reformulate(expression[idx+1], params)+") <= "+str(precision)+")"
+                    return (
+                        "(abs("
+                        + reformulate(expression[idx - 1], params)
+                        + "-"
+                        + reformulate(expression[idx + 1], params)
+                        + ") <= "
+                        + str(precision)
+                        + ")"
+                    )
         l = ""
         for item in expression:
             l += reformulate(item, params)
-        return "("+l+")"
+        return "(" + l + ")"
 
 
 def is_column(s):
-    return len(s) > 4 and ((s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}"))
+    return len(s) > 4 and (
+        (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
+    )
 
 
 def is_string(s):
-    return len(s) > 2 and ((s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'"))
+    return len(s) > 2 and (
+        (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
+    )
