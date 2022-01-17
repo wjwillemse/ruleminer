@@ -69,24 +69,24 @@ class RuleMiner:
                 "abs": np.abs,
             }
 
-            def get_encodings():
-                for item in encodings_definitions:
-                    exec(encodings_definitions[item])
-                encodings = {
-                    encodings[item]: locals()[item]
-                    for item in encodings_definitions.keys()
-                }
-                return encodings
-            encodings = metapattern.get("encodings", None)
-            if encodings is not None:
-                encodings_code = get_encodings()
-                for c in self.data.columns:
-                    if c in encodings.keys():
-                        self.data[c] = eval(
-                            str(encodings[c]) + "(s)",
-                            encodings_code,
-                            {"s": self.data[c]},
-                        )
+            # def get_encodings():
+            #     for item in encodings_definitions:
+            #         exec(encodings_definitions[item])
+            #     encodings = {
+            #         encodings[item]: locals()[item]
+            #         for item in encodings_definitions.keys()
+            #     }
+            #     return encodings
+            # encodings = metapattern.get("encodings", None)
+            # if encodings is not None:
+            #     encodings_code = get_encodings()
+            #     for c in self.data.columns:
+            #         if c in encodings.keys():
+            #             self.data[c] = eval(
+            #                 str(encodings[c]) + "(s)",
+            #                 encodings_code,
+            #                 {"s": self.data[c]},
+            #             )
 
         if templates is not None:
             self.templates = templates
