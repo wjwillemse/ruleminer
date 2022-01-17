@@ -240,6 +240,12 @@ class RuleMiner:
             rule_metrics = metrics.calculate_metrics(
                 results=rule_output, metrics=self.metrics
             )
+            logger.debug(
+                "Candidate expression "
+                + expression
+                + " has rule metrics "
+                + str(rule_metrics)
+            )
             if self.apply_filter(metrics=rule_metrics):
                 self.add_rule(
                     rule_id=len(self.rules.index),
