@@ -78,7 +78,7 @@ class TestRuleminer(unittest.TestCase):
             '(min({"f"}, {"d"})>0) & ({"d"} == "s")', parse_all=True
         ).as_list()
         expected = [
-            [["min", ['{"f"}', '{"d"}'], ">", "0"], "&", ['{"d"}', "==", '"s"']]
+            [["min", ['{"f"}', ',', '{"d"}'], ">", "0"], "&", ['{"d"}', "==", '"s"']]
         ]
         self.assertTrue(actual == expected)
 
