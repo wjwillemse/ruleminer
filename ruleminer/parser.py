@@ -11,7 +11,7 @@ from ruleminer.const import DUNDER_DF
 AND = one_of(["AND", "and", "&"])
 OR = one_of(["OR", "or", "|"])
 NOT = one_of(["NOT", "~"])
-SEP = Literal(",").suppress()
+SEP = Literal(",")
 
 QUOTE = Literal("'") | Literal('"')
 ARITH_OP = one_of("+ - * /")

@@ -395,6 +395,10 @@ def flatten_and_sort(expression):
                 + "".join(sorted([flatten_and_sort(item) for item in expression[1:]]))
                 + ")"
             )
+        elif all(
+            [is_string(item) or is_column(item) or item == "," for item in expression]
+        ):
+            return "".join(sorted(expression))
         else:
             # find elements to sort, sort then and add sorted to string
             idx_to_sort = set()
@@ -402,10 +406,12 @@ def flatten_and_sort(expression):
                 if isinstance(item, str) and (item in ["==", "!="]):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
-                if isinstance(item, str) and (item == "*"):
+                elif isinstance(item, str) and (item == "*"):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
-                if isinstance(item, str) and (item == "+") and ("*" not in expression):
+                elif (
+                    isinstance(item, str) and (item == "+") and ("*" not in expression)
+                ):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
                 elif isinstance(item, str) and (item == "&"):
@@ -436,20 +442,26 @@ def reformulate(expression: str = "", params: dict = {}):
         return expression
     else:
         for idx, item in enumerate(expression):
-            if isinstance(item, str) and (item in ["=="]):
-                if (not is_string(expression[idx - 1])) and (
-                    not is_string(expression[idx + 1])
+            if (
+                "decimal" in params.keys()
+                and isinstance(item, str)
+                and (item in ["=="])
+            ):
+                if not (
+                    is_string(expression[idx - 1]) and len(expression[:idx]) == 1
+                ) and (
+                    not (
+                        is_string(expression[idx + 1])
+                        and len(expression[idx + 1 :]) == 1
+                    )
                 ):
-                    if "decimal" in params.keys():
-                        decimal = params.get("decimal", 0)
-                        precision = 1.5 * 10 ** (-decimal)
-                    else:
-                        precision = 0
+                    decimal = params.get("decimal", 0)
+                    precision = 1.5 * 10 ** (-decimal)
                     return (
                         "(abs("
-                        + reformulate(expression[idx - 1], params)
+                        + reformulate(expression[:idx], params)
                         + "-"
-                        + reformulate(expression[idx + 1], params)
+                        + reformulate(expression[idx + 1 :], params)
                         + ") <= "
                         + str(precision)
                         + ")"
