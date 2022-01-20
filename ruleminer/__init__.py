@@ -2,7 +2,7 @@
 
 __author__ = """Willem Jan Willemse"""
 __email__ = "w.j.willemse@xs4all.nl"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from .ruleminer import *
 from .utils import *

@@ -11,3 +11,8 @@ History
 ------------------
 
 * Added more documentation to the README text
+
+0.1.2 (2022-1-20)
+------------------
+
+* Bug fixes wrt some complex expressions
