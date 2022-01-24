@@ -10,7 +10,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=7.0', 'pandas', 'pyparsing']
+requirements = ['Click>=7.0', 'pandas', 'pyparsing>=3.0.0']
 
 test_requirements = [ ]
 
