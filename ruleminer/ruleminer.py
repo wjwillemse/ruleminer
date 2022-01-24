@@ -312,13 +312,13 @@ class RuleMiner:
         encodings: dict = {},
     ):
         """ """
-        row = pd.Series(
-            [rule_id, rule_group, rule_def, rule_status]
+        row = pd.DataFrame(
+            data=[[rule_id, rule_group, rule_def, rule_status]
             + [rule_metrics[metric] for metric in self.metrics]
-            + [encodings],
-            index=self.rules.columns,
+            + [encodings]],
+            columns=self.rules.columns,
         )
-        self.rules = self.rules.append(row, ignore_index=True)
+        self.rules = pd.concat([self.rules, row], ignore_index=True)
 
     def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices):
         """ """
@@ -344,7 +344,7 @@ class RuleMiner:
             data = pd.DataFrame(columns=self.results.columns, data=data)
             data["indices"] = co_indices
 
-            self.results = self.results.append(data, ignore_index=True)
+            self.results = pd.concat([self.results, data], ignore_index=True)
 
         if nex > 0:
             data = [
@@ -365,7 +365,7 @@ class RuleMiner:
 
             data["indices"] = ex_indices
 
-            self.results = self.results.append(data, ignore_index=True)
+            self.results = pd.concat([self.results, data], ignore_index=True)
 
         return None
 
