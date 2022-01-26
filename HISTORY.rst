@@ -16,3 +16,8 @@ History
 ------------------
 
 * Bug fixes wrt some complex expressions
+
+0.1.3 (2022-1-26)
+------------------
+
+* Optimized rule generation process
