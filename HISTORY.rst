@@ -21,3 +21,8 @@ History
 ------------------
 
 * Optimized rule generation process
+
+0.1.4 (2022-1-26)
+------------------
+
+* Evaluated columns in then part are now dependent on if part of rule
