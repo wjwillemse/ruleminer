@@ -181,6 +181,10 @@ class RuleMiner:
                 str(self.data.index.names[level])
             ] = self.data.index.get_level_values(level=level)
 
+        regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
+        if regex_condition.search(template_expression) is None:
+            template_expression = "if () then " + template_expression
+
         try:
             parsed = RULE_SYNTAX.parse_string(template_expression).as_list()
         except:
@@ -200,23 +204,22 @@ class RuleMiner:
             )
             for col in template_column_values
         ]
-        cartesian_product = utils.Cartesian(v)
-
+        cartesian_product = itertools.product(*v)
         # determine candidate rules
         candidates = []
         for substitution_set in cartesian_product:
-            candidate_expression = self.substitute(
-                expression=template_expression,
-                column_values=template_column_values,
-                substitutions=substitution_set,
+            candidate_parsed, _, _, _, _ = self.substitute_list(
+                expression=parsed,
+                columns=[item[0] for item in template_column_values],
+                values=[item[1] for item in template_column_values],
+                column_substitutions=[item[0] for item in substitution_set],
+                value_substitutions=[
+                    item[1] if len(item) > 1 else None for item in substitution_set
+                ],
             )
-            regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
-            rule = regex_condition.search(candidate_expression)
-            if rule is None:
-                candidate_expression = "if () then " + candidate_expression
+            candidates.append(candidate_parsed)
 
-            candidates.append(candidate_expression)
-
+        candidates_before_pruning = len(candidates)
         candidates = prune_expressions(expressions=candidates, params=self.params)
         logger.info(
             "Template expression "
@@ -226,7 +229,7 @@ class RuleMiner:
             + " column(s), "
             + str(len([t for t in template_column_values if t[1] is not None]))
             + " string value(s), and "
-            + str(len(cartesian_product))
+            + str(candidates_before_pruning)
             + " possible expressions ("
             + str(len(candidates))
             + " after pruning)"
@@ -275,16 +278,78 @@ class RuleMiner:
                     self.search_column_value(item, column_value)
         return column_value
 
-    def substitute(
-        self, expression: str = "", column_values: list = [], substitutions: list = []
+    # def substitute(
+    #     self, expression: str = "", column_values: list = [], substitutions: list = []
+    # ):
+    #     for idx, col in enumerate(column_values):
+    #         # replace only first occurrence in string
+    #         expression = expression.replace(
+    #             col[0], '{"' + substitutions[idx][0] + '"}', 1
+    #         )
+    #         if len(substitutions[idx]) > 1:
+    #             expression = expression.replace(
+    #                 col[1], '"' + substitutions[idx][1] + '"', 1
+    #             )
+    #     return expression
+
+    def substitute_list(
+        self,
+        expression: str = "",
+        columns: list = [],
+        values: list = [],
+        column_substitutions: list = [],
+        value_substitutions: list = [],
     ):
-        result = expression
-        for idx, col in enumerate(column_values):
-            # replace only first occurrence in string
-            result = result.replace(col[0], '{"' + substitutions[idx][0] + '"}', 1)
-            if len(substitutions[idx]) > 1:
-                result = result.replace(col[1], '"' + substitutions[idx][1] + '"', 1)
-        return result
+        if isinstance(expression, str):
+            if columns != [] and columns[0] in expression:
+                # replace only first occurrence in string
+                expression = expression.replace(
+                    columns[0], '{"' + column_substitutions[0] + '"}', 1
+                )
+                return (
+                    expression,
+                    columns[1:],
+                    values,
+                    column_substitutions[1:],
+                    value_substitutions,
+                )
+            elif values != [] and values[0] is not None and values[0] in expression:
+                expression = expression.replace(
+                    values[0], '"' + value_substitutions[0] + '"', 1
+                )
+                return (
+                    expression,
+                    columns,
+                    values[1:],
+                    column_substitutions,
+                    value_substitutions[1:],
+                )
+            else:
+                return (
+                    expression,
+                    columns,
+                    values,
+                    column_substitutions,
+                    value_substitutions,
+                )
+        else:
+            r = []
+            for item in expression:
+                (
+                    item_s,
+                    columns,
+                    values,
+                    column_substitutions,
+                    value_substitutions,
+                ) = self.substitute_list(
+                    expression=item,
+                    columns=columns,
+                    values=values,
+                    column_substitutions=column_substitutions,
+                    value_substitutions=value_substitutions,
+                )
+                r.append(item_s)
+            return r, columns, values, column_substitutions, value_substitutions
 
     def apply_filter(self, metrics: dict = {}):
         """
@@ -313,9 +378,11 @@ class RuleMiner:
     ):
         """ """
         row = pd.DataFrame(
-            data=[[rule_id, rule_group, rule_def, rule_status]
-            + [rule_metrics[metric] for metric in self.metrics]
-            + [encodings]],
+            data=[
+                [rule_id, rule_group, rule_def, rule_status]
+                + [rule_metrics[metric] for metric in self.metrics]
+                + [encodings]
+            ],
             columns=self.rules.columns,
         )
         self.rules = pd.concat([self.rules, row], ignore_index=True)
@@ -375,9 +442,12 @@ def prune_expressions(expressions: list = [], params: dict = {}):
     pruned_expressions = []
     sorted_expressions = []
     for expression in expressions:
-        parsed = RULE_SYNTAX.parse_string(expression).as_list()
+        # parsed = RULE_SYNTAX.parse_string(expression).as_list()
+        parsed = expression
         sorted_expression = flatten_and_sort(parsed)[1:-1]
         reformulated = reformulate(parsed, params)[1:-1]
+        # print(sorted_expression)
+        # print(reformulated)
         if sorted_expression not in sorted_expressions:
             pruned_expressions.append(reformulated)
             sorted_expressions.append(sorted_expression)
