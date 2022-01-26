@@ -131,6 +131,16 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
     return python_expressions
 
 
+def python_code_for_columns(expression: str = ""):
+    """ """
+    def to_numpy(s: str = ""):
+        """Function to replace the column names by a numpy expressions"""
+        return s.replace(
+            "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
+        ).replace("}", ")]")
+    return {"X": (DUNDER_DF + "[(" + to_numpy(expression) + ")]").replace("[()]", "")}
+
+
 def add_brackets(s: str):
     """
     Add brackets around expressions with & and |
