@@ -66,9 +66,11 @@ class RuleMiner:
                 "MAX": np.maximum,
                 "MIN": np.minimum,
                 "ABS": np.abs,
+                "QUANTILE": np.quantile,
                 "max": np.maximum,
                 "min": np.minimum,
                 "abs": np.abs,
+                "quantile": np.quantile
             }
 
             # def get_encodings():
@@ -123,6 +125,7 @@ class RuleMiner:
 
         self.setup_results_dataframe()
 
+        # add temporary index columns (to allow rules based on index data)
         for level in range(len(self.data.index.names)):
             self.data[
                 str(self.data.index.names[level])
@@ -216,7 +219,7 @@ class RuleMiner:
                 ],
             )
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
-            df_eval = self.evaluate_code(expressions=df_code)["X"]
+            df_eval = self.evaluate_code(expressions=df_code)['X']
             if df_eval is not None:
                 then_part_column_values = self.search_column_value(then_part, [])
                 then_part_substitutions = [
@@ -273,7 +276,7 @@ class RuleMiner:
                 candidates.append(candidate_parsed)
         logger.info("Candidates determined")
         candidates_before_pruning = len(candidates)
-        candidates = prune_expressions(expressions=candidates, params=self.params)
+        candidates = self.prune_expressions(expressions=candidates, params=self.params)
         logger.info(
             "Template expression "
             + template_expression
@@ -494,20 +497,65 @@ class RuleMiner:
         return None
 
 
-def prune_expressions(expressions: list = [], params: dict = {}):
-    """ """
-    pruned_expressions = []
-    sorted_expressions = []
-    for expression in expressions:
-        sorted_expression = flatten_and_sort(expression)[1:-1]
-        reformulated = reformulate(expression, params)[1:-1]
-        if sorted_expression not in sorted_expressions:
-            pruned_expressions.append(reformulated)
-            sorted_expressions.append(sorted_expression)
-    return pruned_expressions
+    def prune_expressions(self, expressions: list = [], params: dict = {}):
+        """ """
+        pruned_expressions = []
+        sorted_expressions = []
+        for expression in expressions:
+            sorted_expression = flatten_and_sort(expression)[1:-1]
+            reformulated = self.reformulate(expression, params)[1:-1]
+            if sorted_expression not in sorted_expressions:
+                pruned_expressions.append(reformulated)
+                sorted_expressions.append(sorted_expression)
+        return pruned_expressions
+
+    def reformulate(self, expression: str = "", params: dict = {}):
+        if isinstance(expression, str):
+            return expression
+        else:
+            for idx, item in enumerate(expression):
+                if (
+                    "decimal" in params.keys()
+                    and isinstance(item, str)
+                    and (item in ["=="])
+                ):
+                    if not (
+                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
+                    ) and (
+                        not (
+                            is_string(expression[idx + 1])
+                            and len(expression[idx + 1 :]) == 1
+                        )
+                    ):
+                        decimal = params.get("decimal", 0)
+                        precision = 1.5 * 10 ** (-decimal)
+                        return (
+                            "(abs("
+                            + self.reformulate(expression[:idx], params)
+                            + "-"
+                            + self.reformulate(expression[idx + 1 :], params)
+                            + ") <= "
+                            + str(precision)
+                            + ")"
+                        )
+                if params.get("evaluate_quantile", False) and isinstance(item, str) and item.lower() == "quantile":
+                    l = ""
+                    for item in expression[:idx]:
+                        l += self.reformulate(item, params)
+                    quantile_code = {"X": (parser.to_numpy(flatten(expression[idx:idx+2]))).replace("[()]", "")}
+                    quantile_result = self.evaluate_code(expressions=quantile_code)['X']
+                    l += str(np.round(quantile_result, 8))
+                    for item in expression[idx+2:]:
+                        l += self.reformulate(item, params)
+                    return "(" + l + ")"
+
+            l = ""
+            for item in expression:
+                l += self.reformulate(item, params)
+            return "(" + l + ")"
 
 
-def flatten_and_sort(expression):
+def flatten_and_sort(expression: str = ""):
     if isinstance(expression, str):
         return expression
     else:
@@ -559,7 +607,6 @@ def flatten_and_sort(expression):
                     l += flatten_and_sort(item)
         return "(" + l + ")"
 
-
 def flatten(expression):
     if isinstance(expression, str):
         return expression
@@ -567,42 +614,6 @@ def flatten(expression):
         l = ""
         for item in expression:
             l += flatten(item)
-        return "(" + l + ")"
-
-
-
-def reformulate(expression: str = "", params: dict = {}):
-    if isinstance(expression, str):
-        return expression
-    else:
-        for idx, item in enumerate(expression):
-            if (
-                "decimal" in params.keys()
-                and isinstance(item, str)
-                and (item in ["=="])
-            ):
-                if not (
-                    is_string(expression[idx - 1]) and len(expression[:idx]) == 1
-                ) and (
-                    not (
-                        is_string(expression[idx + 1])
-                        and len(expression[idx + 1 :]) == 1
-                    )
-                ):
-                    decimal = params.get("decimal", 0)
-                    precision = 1.5 * 10 ** (-decimal)
-                    return (
-                        "(abs("
-                        + reformulate(expression[:idx], params)
-                        + "-"
-                        + reformulate(expression[idx + 1 :], params)
-                        + ") <= "
-                        + str(precision)
-                        + ")"
-                    )
-        l = ""
-        for item in expression:
-            l += reformulate(item, params)
         return "(" + l + ")"
 
 

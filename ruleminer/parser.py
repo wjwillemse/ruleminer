@@ -17,7 +17,7 @@ QUOTE = Literal("'") | Literal('"')
 ARITH_OP = one_of("+ - * /")
 LOGIC_OP = one_of("& |")
 COMPA_OP = one_of(">= > <= < != ==")
-PREFIX_OP = one_of("min max abs MIN MAX ABS")
+PREFIX_OP = one_of("min max abs quantile MIN MAX ABS QUANTILE")
 NUMBER = Combine(Word(nums) + "." + Word(nums)) | Word(nums)
 STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']") + " "
 COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
@@ -66,12 +66,6 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
 
     if_part = rule.group(1).strip()
     then_part = rule.group(2).strip()
-
-    def to_numpy(s: str = ""):
-        """Function to replace the column names by a numpy expressions"""
-        return s.replace(
-            "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
-        ).replace("}", ")]")
 
     python_expressions = {}
     for variable in required:
@@ -131,15 +125,16 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
     return python_expressions
 
 
+def to_numpy(s: str = ""):
+    """Function to replace the column names by a numpy expressions"""
+    return s.replace(
+        "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
+    ).replace("}", ")]")
+
+
 def python_code_for_columns(expression: str = ""):
     """ """
-    def to_numpy(s: str = ""):
-        """Function to replace the column names by a numpy expressions"""
-        return s.replace(
-            "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
-        ).replace("}", ")]")
     return {"X": (DUNDER_DF + "[(" + to_numpy(expression) + ")]").replace("[()]", "")}
-
 
 def add_brackets(s: str):
     """

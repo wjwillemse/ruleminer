@@ -39,8 +39,6 @@ To use ruleminer in a project::
 Usage
 -----
 
-Suppose we have the following data.
-
 .. list-table:: Some insurance undertakings data
    :widths: 25 25 20 20 20 20 20
    :header-rows: 1
@@ -126,7 +124,7 @@ Suppose we have the following data.
 Calculating metrics
 -------------------
 
-Take for example the rule::
+Take the rule::
 
     if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
 
@@ -136,7 +134,7 @@ With the code::
     
     r = ruleminer.RuleMiner(templates=templates, data=df)
 
-you can generate the rule metrics for this rule given the data in the DataFrame above (available with r.rules).
+you can generate the rule metrics of this rule given the data in the DataFrame above (available with r.rules).
 
 .. list-table:: Generated rules (1)
    :widths: 20 40 20 20 20 15 15
@@ -157,12 +155,12 @@ you can generate the rule metrics for this rule given the data in the DataFrame 
      - 1
      - {}
 
-There are 5 lines in the data that support this rule. There are no exceptions (i.e. where the if-clause is satisfied, but not the then-clause), so this rule has confidence 1.
+There are 5 rows in the data that support this rule. There are no exceptions (i.e. where the if-clause is satisfied, but not the then-clause), so this rule has confidence 1.
 
 Generating rules
 ----------------
 
-You can define rule templates that contain regular expressions for column names and strings. The package will then generate rules that satisfy the rule template with matching column names and strings from the DataFrame. For example, given the data DataFrame above, column regex::
+You can define rule templates that contain regular expressions for column names and strings. The package will then generate rules that satisfy the rule template with matching column names and strings from the DataFrame. For example column regex::
 
     {"T.*"}
 
@@ -221,19 +219,37 @@ Several rule metrics have been proposed in the past. You can add the metrics tha
     r = ruleminer.RuleMiner(templates=templates, data=df, params=params)
 
 This will produce the desired metrics. Available metrics are:
-* abs support
-* abs exceptions
+
+* abs support (the absolute number of rows that satisfy the rule)
+
+* abs exceptions (the absolute number of rows that do no satisfy the rule)
+
 * confidence
+
 * support
+
 * added value
+
 * casual confidence
+
 * casual support
+
 * conviction
+
 * lift
 
 The default metrics are 'abs support', 'abs exceptions' and 'confidence'.
 
 See for the definitions `Measures for Rules <https://mhahsler.github.io/arules/docs/measures#Measures_for_Rules>`_ from Michael Hahsler.
+
+Metric filters
+~~~~~~~~~~~~~~
+
+If you want to select only rules that satisfy a certain metric threshold then you can use
+
+params = {"filter" : {"confidence": 0.75, "abs support": 10}}
+
+The default metric filter is: {"confidence": 0.5, "abs support": 2}
 
 Rule precision
 ~~~~~~~~~~~~~~
@@ -251,6 +267,33 @@ are translated to ::
     abs(A-B) <= 1.5*10**(-decimal)
 
 If no 'decimal' parameter is provided then the absolute difference should be exactly zero.
+
+Evaluating results within rules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suppose you want to use an expression with a quantile::
+
+    ({"Own funds"} <= quantile({"Own funds"}, 0.95))
+
+Then you can choose to evaluate the quantile based on the dataset on which the rules were generated or not with::
+
+    params = {'evaluate_quantile': True}
+
+This would produce the rule ::
+
+    if () then ({"Own funds"}<=755.0)
+
+If you use ::
+
+    params = {'evaluate_quantile': False}
+
+then this would produce ::
+
+    if () then ({"Own funds"}<=quantile({"Own funds"},0.95))
+
+In this case the quantile is re-evaluated each time based when the rule is evaluated and the outcome will depend on the current dataset. 
+
+The default is False (quantiles within rules are not evaluated).
 
 Rule pruning
 ------------
@@ -280,7 +323,7 @@ is identical to::
 
     ((({"1"}+{"2"})=={"0"}) & ({"4"}>{"3"}))
 
-and will therefore be pruned from the list if the latter rule is already in the list.
+and will therefore be pruned from the list if the first rule is already in the list.
 
 Rule template grammar
 ---------------------
@@ -298,6 +341,8 @@ Examples::
     (({".*"} + {".*"} + {".*"}) == {".*"})
 
     (min({".*"}, {".*"}) == {".*"})
+
+    ({"Own funds"} <= quantile({"Own funds"}, 0.95))
 
 The syntax of the template follows a grammar defined as follows:
 
@@ -323,7 +368,7 @@ The syntax of the template follows a grammar defined as follows:
 
 * a *term* can be a *number* (e.g. 3.1415 or 9), *quoted string* (a string with single or double quotes), or a *function of columns*
 
-* a *function of columns* is either a prefix operator (min, max or abs, in lower or uppercase) on one or more *columns*, and of the form, for example::
+* a *function of columns* is either a prefix operator (min, max, quantile, or abs, in lower or uppercase) on one or more *columns*, and of the form, for example::
 
     min(col_1, col_2, col_3)
 
@@ -348,4 +393,4 @@ If you are using this in a Jupyter notebook you can add a the beginning::
                         format='%(asctime)s %(message)s',
                         level=logging.INFO)
 
-Info about the rule generating process with be displayed in the notebook.
+Information about the rule generating process with be displayed in the notebook. Set the debug level to logging.DEBUG is you want more results.
