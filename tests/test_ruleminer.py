@@ -195,49 +195,130 @@ class TestRuleminer(unittest.TestCase):
         expected = '(((({"0"}+{"2"})=={"1"})&({"4"}>{"3"})))'
         self.assertTrue(actual == expected)
 
-    # def test_24(self):
+    def test_24(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{'expression': 'if ({".*"} == ".*") then ({"TP.*"} > 0)'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+                data = [
+                    [0, 0, 'if({"Type"}=="life_insurer")then({"TP-life"}>0)','', 5, 0, 1.0, {}],
+                    [1, 0, 'if({"Type"}=="non-life_insurer")then({"TP-nonlife"}>0)','', 4, 1, 0.8, {}]], 
+                columns = [ruleminer.RULE_ID, 
+                ruleminer.RULE_GROUP, 
+                ruleminer.RULE_DEF, 
+                ruleminer.RULE_STATUS, 
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.ENCODINGS])
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
 
 
-    #     df = pd.DataFrame(
-    #         columns=[
-    #             "Name",
-    #             "Type",
-    #             "Assets",
-    #             "TV-life",
-    #             "TV-nonlife",
-    #             "Own_funds",
-    #             "Excess",
-    #         ],
-    #         data=[
-    #             ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
-    #             ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
-    #             ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
-    #             ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
-    #             ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
-    #             ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
-    #             ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
-    #             ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
-    #             ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
-    #             ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
-    #         ],
-    #     )
+    def test_25(self):
 
-    #     templates = [{'expression': 'if ({".*"} == ".*") then ({"TV.*"} > 0)'}]
-    #     actual = ruleminer.RuleMiner(templates=templates, data=df).rules
-    #     expected = pd.DataFrame(
-    #             data = [
-    #                 [0, 0, 'if ({"Type"} == "non-life_insurer") then ({"TV-nonlife"} > 0)','', 4, 1, 0.8, {}],
-    #                 [1, 0, 'if ({"Type"} == "life_insurer") then ({"TV-life"} > 0)','', 5, 0, 1.0, {}]], 
-    #             columns = [ruleminer.RULE_ID, 
-    #             ruleminer.RULE_GROUP, 
-    #             ruleminer.RULE_DEF, 
-    #             ruleminer.RULE_STATUS, 
-    #             ruleminer.ABSOLUTE_SUPPORT,
-    #             ruleminer.ABSOLUTE_EXCEPTIONS,
-    #             ruleminer.CONFIDENCE,
-    #             ruleminer.ENCODINGS])
-    #     pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
 
+        templates = [{'expression': '({"Own_funds"} <= quantile({"Own_funds"}, 0.95))'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df,
+                                     params = {'evaluate_quantile': True}).rules
+        expected = pd.DataFrame(
+                data = [
+                    [0, 0, 'if () then ({"Own_funds"}<=755.0)', '', 9, 1, 0.9, {}]],
+                columns = [ruleminer.RULE_ID, 
+                ruleminer.RULE_GROUP, 
+                ruleminer.RULE_DEF, 
+                ruleminer.RULE_STATUS, 
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.ENCODINGS])
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_26(self):
+
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{'expression': '({"Own_funds"} <= quantile({"Own_funds"}, 0.95))'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+                data = [
+                    [0, 0, 'if () then ({"Own_funds"}<=quantile({"Own_funds"},0.95))', '', 9, 1, 0.9, {}]],
+                columns = [ruleminer.RULE_ID, 
+                ruleminer.RULE_GROUP, 
+                ruleminer.RULE_DEF, 
+                ruleminer.RULE_STATUS, 
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.ENCODINGS])
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""
     #     templates = ["template"]
