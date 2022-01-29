@@ -542,7 +542,7 @@ class RuleMiner:
                     l = ""
                     for item in expression[:idx]:
                         l += self.reformulate(item, params)
-                    quantile_code = {"X": (parser.to_numpy(flatten(expression[idx:idx+2]))).replace("[()]", "")}
+                    quantile_code = parser.python_code_for_intermediate(flatten(expression[idx:idx+2]))
                     quantile_result = self.evaluate_code(expressions=quantile_code)['X']
                     l += str(np.round(quantile_result, 8))
                     for item in expression[idx+2:]:
