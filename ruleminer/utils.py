@@ -24,7 +24,7 @@ def evaluate_column_regex(
         col for col in df.columns if re.match(column_regex[2:-2], col) is not None
     ]
     for column in columns_found:
-        combinations = set()
+        combinations = list()
         if value_regex is not None and value_regex[0] != "{":
             value_list = []
             for value in df[column].unique():
@@ -37,8 +37,10 @@ def evaluate_column_regex(
                     if r is not None:
                         value_list.append(value)
             for value in value_list:
-                combinations.add((column, value))
+                if (column, value) not in combinations:
+                    combinations.append((column, value))
         else:
-            combinations.add((column,))
+            if (column,) not in combinations:
+                combinations.append((column,))
         results.extend(combinations)
     return results

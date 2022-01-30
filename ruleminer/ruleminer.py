@@ -190,7 +190,7 @@ class RuleMiner:
 
         # if the template expression is not a if then rule then it is changed into a if then rule
         try: 
-            template_expression, if_part, then_part = self.split_rule(expression=template_expression)
+            parsed, if_part, then_part = self.split_rule(expression=template_expression)
         except:
             logger.error(
                 'Parsing error in expression "' + str(template_expression) + '"'
@@ -238,16 +238,6 @@ class RuleMiner:
 
         # print(cartesian_product)
 
-        try:
-            parsed = RULE_SYNTAX.parse_string(template_expression).as_list()
-        except:
-            logger.error(
-                'Parsing error in expression "' + str(template_expression) + '"'
-            )
-            return None
-
-        logger.info("Parsed template: " + str(parsed))
-
         # s_template_column_values = self.search_column_value(parsed, [])
         # v = [
         #     utils.evaluate_column_regex(
@@ -281,10 +271,6 @@ class RuleMiner:
             "Template expression "
             + template_expression
             + " has "
-            # + str(len([t for t in template_column_values]))
-            # + " column(s), "
-            # + str(len([t for t in template_column_values if t[1] is not None]))
-            # + " string value(s), and "
             + str(candidates_before_pruning)
             + " possible expressions ("
             + str(len(candidates))
@@ -345,7 +331,8 @@ class RuleMiner:
             expression = "if () then " + expression
             if_part = ""
             then_part = RULE_SYNTAX.parse_string(expression).as_list()
-        return expression, if_part, then_part
+        parsed = RULE_SYNTAX.parse_string(expression).as_list()
+        return parsed, if_part, then_part
 
     # def substitute(
     #     self, expression: str = "", column_values: list = [], substitutions: list = []
