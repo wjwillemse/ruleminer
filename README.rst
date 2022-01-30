@@ -206,6 +206,24 @@ You can use rules without an if-clause, for example::
 
 The metrics for these rules are calculated as if the if-clause is always satisfied.
 
+Rule examples
+~~~~~~~~~~~~~
+
+The following rules can be applied to the data above::
+
+    {"Assets"} > 0
+
+    if ({"Type"} == ".*") then ({".*"} > 0)
+
+    if ({".*"} > 0) then (({".*"} == 0) & ({".*"} > 0))
+
+    (({".*"} + {".*"} + {".*"}) == {".*"})
+
+    (min({".*"}, {".*"}) == {".*"})
+
+    ({"Own funds"} <= quantile({"Own funds"}, 0.95))
+
+
 Parameters
 ----------
 
@@ -329,20 +347,6 @@ Rule template grammar
 ---------------------
 
 The rule template describes the structure of the rule. Columns and quoted strings in the rule template can contain simple regular expressions.
-
-Examples::
-
-    {"Assets"} > 0
-
-    if ({"Type"} == "life insurer") then ({".*"} > 0)
-
-    if ({".*"} > 0) then (({".*"} == 0) & ({".*"} > 0))
-
-    (({".*"} + {".*"} + {".*"}) == {".*"})
-
-    (min({".*"}, {".*"}) == {".*"})
-
-    ({"Own funds"} <= quantile({"Own funds"}, 0.95))
 
 The syntax of the template follows a grammar defined as follows:
 
