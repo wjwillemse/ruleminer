@@ -26,3 +26,8 @@ History
 ------------------
 
 * Evaluated columns in then part are now dependent on if part of rule
+
+0.1.5 (2022-1-30)
+------------------
+
+* Rule with quantiles added (including evaluating intermediate results)
