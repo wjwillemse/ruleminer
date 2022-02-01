@@ -32,7 +32,7 @@ History
 
 * Rule with quantiles added (including evaluating intermediate results)
 
-0.1.6 (2022-2-1)
-------------------
+0.1.6 and 0.1.7 (2022-2-1)
+--------------------------
 
 * A number of optimization in rule generation process

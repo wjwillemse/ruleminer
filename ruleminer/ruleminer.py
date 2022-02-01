@@ -196,8 +196,7 @@ class RuleMiner:
             )
             return None
 
-        pruned_expressions = []
-        sorted_expressions = []
+        sorted_expressions = {}
 
         candidates = []
         if_part_column_values = self.search_column_value(if_part, [])
@@ -209,15 +208,10 @@ class RuleMiner:
             )
             for col in if_part_column_values
         ]
-        logger.info(
-            "Template expression (if-part) "
-            + str(if_part)
-            + " has "
-            + str(len(if_part_substitutions))
-            + " possible expressions)"
-        )
-
         if_part_substitutions = itertools.product(*if_part_substitutions)
+        logger.info(
+            "Expression for if-part ("+str(if_part)+") generated"
+        )
         for if_part_substitution in if_part_substitutions:
             candidate, _, _, _, _ = self.substitute_list(
                 expression=if_part,
@@ -262,8 +256,8 @@ class RuleMiner:
                     )
                     sorted_expression = flatten_and_sort(candidate_parsed)[1:-1]
                     reformulated_expression = self.reformulate(candidate_parsed)[1:-1]
-                    if sorted_expression not in sorted_expressions:
-                        sorted_expressions.append(sorted_expression)
+                    if sorted_expression not in sorted_expressions.keys():
+                        sorted_expressions[sorted_expression] = True
                         rule_code = parser.python_code(
                             expression=reformulated_expression,
                             required=self.required_variables,
