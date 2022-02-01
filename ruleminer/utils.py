@@ -20,17 +20,23 @@ def evaluate_column_regex(
     Util function to retrieve values of dataframe satisfying a regex
     """
     results = list()
+    compiled_column_regex = re.compile(column_regex[2:-2])
     columns_found = [
-        col for col in df.columns if re.match(column_regex[2:-2], col) is not None
+        col for col in df.columns if compiled_column_regex.fullmatch(col) is not None
     ]
+    # if there is a value_regex then we compile it in advance
+    if value_regex is not None and value_regex[0] != "{":
+        compiled_value_regex = re.compile(value_regex[1:-1])
+    else:
+        compiled_value_regex = None
     for column in columns_found:
         combinations = list()
-        if value_regex is not None and value_regex[0] != "{":
+        if compiled_value_regex is not None:
             value_list = []
             for value in df[column].unique():
                 if isinstance(value, str):
                     try:
-                        r = re.match(value_regex[1:-1], value)
+                        r = compiled_value_regex.fullmatch(value)
                     except:
                         logging.error("Error evaluating regex: " + value_regex[1:-1])
                         return results
