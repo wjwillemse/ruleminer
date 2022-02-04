@@ -128,6 +128,8 @@ Take the rule::
 
     if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
 
+This rule says: if an insurer reports for column "Type" (noted by the curved brackets) the value "life_insurer" then the value of the column "TP-life" should be higher than zero. 
+
 With the code::
 
     templates = [{'expression': 'if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)'}]
@@ -255,6 +257,8 @@ This will produce the desired metrics. Available metrics are:
 * conviction
 
 * lift
+
+* rule power factor
 
 The default metrics are 'abs support', 'abs exceptions' and 'confidence'.
 

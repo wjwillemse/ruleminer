@@ -36,3 +36,8 @@ History
 --------------------------
 
 * A number of optimization in rule generation process
+
+0.1.8 (2022-2-3)
+--------------------------
+
+* Rule power factor metric added

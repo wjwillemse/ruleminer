@@ -209,9 +209,7 @@ class RuleMiner:
             for col in if_part_column_values
         ]
         if_part_substitutions = itertools.product(*if_part_substitutions)
-        logger.info(
-            "Expression for if-part ("+str(if_part)+") generated"
-        )
+        logger.info("Expression for if-part (" + str(if_part) + ") generated")
         for if_part_substitution in if_part_substitutions:
             candidate, _, _, _, _ = self.substitute_list(
                 expression=if_part,

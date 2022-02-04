@@ -12,6 +12,7 @@ CONVICTION = "conviction"
 COSINE = "cosine"
 CONFIRMED_CONFIDENCE = "confirmed confidence"
 LIFT = "lift"
+RULE_POWER_FACTOR = "rule power factor"
 
 RULE_ID = "rule_id"
 RULE_GROUP = "rule_group"
