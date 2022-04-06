@@ -16,7 +16,7 @@ SEP = Literal(",")
 QUOTE = Literal("'") | Literal('"')
 ARITH_OP = one_of("+ - * /")
 LOGIC_OP = one_of("& |")
-COMPA_OP = one_of(">= > <= < != ==")
+COMPA_OP = one_of(">= > <= < != == in")
 PREFIX_OP = one_of("min max abs quantile MIN MAX ABS QUANTILE")
 NUMBER = Combine(Word(nums) + "." + Word(nums)) | Word(nums)
 STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']") + " "
@@ -26,11 +26,18 @@ QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
 PARL = Literal("(").suppress()
 PARR = Literal(")").suppress()
 
+# STRING_2 = srange(r"[a-zA-Z0-9_.,:;*+-/\\?|@#$%^&']") + " "
+# COLUMN_VARIABLE = (PARL+Literal("?P<")+Word(STRING_2)+Literal(">")+COLUMN+PARR) | (PARL+Literal("?P=")+Word(STRING_2)+PARR)
+
 ARITH_COLUMNS = Group((COLUMN | NUMBER) + (ARITH_OP + (COLUMN | NUMBER))[1, ...])
 COLUMNS = (PARL + ARITH_COLUMNS + PARR) | ARITH_COLUMNS | COLUMN | NUMBER
 PREFIX_COLUMN = PREFIX_OP + Group(PARL + COLUMNS + (SEP + COLUMNS)[0, ...] + PARR)
+QUOTED_STRING_LIST = Group(
+    Literal("[") + QUOTED_STRING + (SEP + QUOTED_STRING)[0, ...] + Literal("]")
+)
 
-TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING
+# TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST | COLUMN_VARIABLE
+TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST
 
 COMP_EL = TERM + COMPA_OP + TERM
 COMP = Group((PARL + COMP_EL + PARR))
@@ -71,19 +78,19 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
     for variable in required:
         if variable == "X":
             python_expressions["X"] = (
-                DUNDER_DF + "." + r_type + "[(" + to_numpy(if_part) + ")]"
+                DUNDER_DF + "." + r_type + "[(" + replace_columns(if_part) + ")]"
             )
         elif variable == "~X":
             python_expressions["~X"] = (
-                DUNDER_DF + "." + r_type + "[~(" + to_numpy(if_part) + ")]"
+                DUNDER_DF + "." + r_type + "[~(" + replace_columns(if_part) + ")]"
             )
         elif variable == "Y":
             python_expressions["Y"] = (
-                DUNDER_DF + "." + r_type + "[(" + to_numpy(then_part) + ")]"
+                DUNDER_DF + "." + r_type + "[(" + replace_columns(then_part) + ")]"
             )
         elif variable == "~Y":
             python_expressions["~Y"] = (
-                DUNDER_DF + "." + r_type + "[~(" + to_numpy(then_part) + ")]"
+                DUNDER_DF + "." + r_type + "[~(" + replace_columns(then_part) + ")]"
             )
         elif variable == "X and Y":
             python_expressions[variable] = (
@@ -91,9 +98,9 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
                 + "."
                 + r_type
                 + "[("
-                + to_numpy(if_part)
+                + replace_columns(if_part)
                 + ") & ("
-                + to_numpy(then_part)
+                + replace_columns(then_part)
                 + ")]"
             )
         elif variable == "X and ~Y":
@@ -102,9 +109,9 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
                 + "."
                 + r_type
                 + "[("
-                + to_numpy(if_part)
+                + replace_columns(if_part)
                 + ") & ~("
-                + to_numpy(then_part)
+                + replace_columns(then_part)
                 + ")]"
             )
         elif variable == "~X and ~Y":
@@ -113,9 +120,9 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
                 + "."
                 + r_type
                 + "[~("
-                + to_numpy(if_part)
+                + replace_columns(if_part)
                 + ") & ~("
-                + to_numpy(then_part)
+                + replace_columns(then_part)
                 + ")]"
             )
     for e in python_expressions.keys():
@@ -125,21 +132,32 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
     return python_expressions
 
 
-def to_numpy(s: str = ""):
-    """Function to replace the column names by a numpy expressions"""
-    return s.replace(
-        "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
-    ).replace("}", ")]")
+def replace_columns(s: str = ""):
+    """Function to replace the column names by a numpy expressions
+
+    Numpy approach:
+    {"A"} is rewritten to __df__.values[:, __df__.columns.get_loc("A")]
+
+    Pandas approach:
+    {"A"} is rewritten to __df__["A"]
+
+    """
+    # return s.replace(
+    #     "{", DUNDER_DF + ".values[:, " + DUNDER_DF + ".columns.get_loc("
+    # ).replace("}", ")]")
+    return s.replace("{", DUNDER_DF + "[").replace("}", "]")
 
 
 def python_code_for_columns(expression: str = ""):
     """ """
-    return {"X": (DUNDER_DF + "[(" + to_numpy(expression) + ")]").replace("[()]", "")}
+    return {
+        "X": (DUNDER_DF + "[(" + replace_columns(expression) + ")]").replace("[()]", "")
+    }
 
 
 def python_code_for_intermediate(expression: str = ""):
     """ """
-    return {"X": (to_numpy(expression)).replace("[()]", "")}
+    return {"X": (replace_columns(expression)).replace("[()]", "")}
 
 
 def add_brackets(s: str):

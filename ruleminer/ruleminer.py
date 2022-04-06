@@ -201,12 +201,8 @@ class RuleMiner:
         candidates = []
         if_part_column_values = self.search_column_value(if_part, [])
         if_part_substitutions = [
-            utils.evaluate_column_regex(
-                df=self.data,
-                column_regex=col[0],
-                value_regex=col[1],
-            )
-            for col in if_part_column_values
+            utils.generate_substitutions(df=self.data, column_value=column_value)
+            for column_value in if_part_column_values
         ]
         if_part_substitutions = itertools.product(*if_part_substitutions)
         logger.info("Expression for if-part (" + str(if_part) + ") generated")
@@ -216,21 +212,15 @@ class RuleMiner:
                 columns=[item[0] for item in if_part_column_values],
                 values=[item[1] for item in if_part_column_values],
                 column_substitutions=[item[0] for item in if_part_substitution],
-                value_substitutions=[
-                    item[1] if len(item) > 1 else None for item in if_part_substitution
-                ],
+                value_substitutions=[item[1] for item in if_part_substitution],
             )
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)["X"]
             if df_eval is not None:
                 then_part_column_values = self.search_column_value(then_part, [])
                 then_part_substitutions = [
-                    utils.evaluate_column_regex(
-                        df=df_eval,
-                        column_regex=col[0],
-                        value_regex=col[1],
-                    )
-                    for col in then_part_column_values
+                    utils.generate_substitutions(df=df_eval, column_value=column_value)
+                    for column_value in then_part_column_values
                 ]
                 if if_part_substitution != ():
                     expression_substitutions = [
@@ -248,9 +238,7 @@ class RuleMiner:
                         columns=[item[0] for item in template_column_values],
                         values=[item[1] for item in template_column_values],
                         column_substitutions=[item[0] for item in substitution],
-                        value_substitutions=[
-                            item[1] if len(item) > 1 else None for item in substitution
-                        ],
+                        value_substitutions=[item[1] for item in substitution],
                     )
                     sorted_expression = flatten_and_sort(candidate_parsed)[1:-1]
                     reformulated_expression = self.reformulate(candidate_parsed)[1:-1]
