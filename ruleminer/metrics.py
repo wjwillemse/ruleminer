@@ -18,7 +18,7 @@ METRICS = {
     ABSOLUTE_EXCEPTIONS: ["X and ~Y"],
     CONFIDENCE: ["X", "X and Y"],
     SUPPORT: ["X", "~X"],
-    ADDED_VALUE: ["X", "Y", "~Y", "X and Y"],  # conf(X⇒Y) − supp(Y)
+    ADDED_VALUE: ["X", "~X", "X and Y"],  # conf(X⇒Y) − supp(Y)
     CASUAL_CONFIDENCE: ["X", "X and Y", "~X", "~X and ~Y"],
     CONVICTION: ["X", "Y", "~Y", "X and Y"],
     LIFT: ["X", "Y", "~Y", "X and Y"],
