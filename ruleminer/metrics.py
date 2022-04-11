@@ -17,7 +17,7 @@ METRICS = {
     ABSOLUTE_SUPPORT: ["X and Y"],
     ABSOLUTE_EXCEPTIONS: ["X and ~Y"],
     CONFIDENCE: ["X", "X and Y"],
-    SUPPORT: ["Y", "~Y"],
+    SUPPORT: ["X", "~X"],
     ADDED_VALUE: ["X", "Y", "~Y", "X and Y"],  # conf(X⇒Y) − supp(Y)
     CASUAL_CONFIDENCE: ["X", "X and Y", "~X", "~X and ~Y"],
     CONVICTION: ["X", "Y", "~Y", "X and Y"],
@@ -67,10 +67,10 @@ def calculate_metrics(results: dict = {}, metrics: list = []):
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == SUPPORT:
-            if results["Y"] is not None and results["~Y"] is not None:
-                if len(results["Y"]) + len(results["~Y"]) != 0:
-                    calculated_metrics[metric] = len(results["Y"]) / (
-                        len(results["Y"]) + len(results["~Y"])
+            if results["X"] is not None and results["~X"] is not None:
+                if len(results["X"]) + len(results["~X"]) != 0:
+                    calculated_metrics[metric] = len(results["X"]) / (
+                        len(results["X"]) + len(results["~X"])
                     )
                 else:
                     calculated_metrics[metric] = np.nan
@@ -80,18 +80,16 @@ def calculate_metrics(results: dict = {}, metrics: list = []):
             if (
                 results["X"] is not None
                 and results["X and Y"] is not None
-                and results["Y"] is not None
-                and results["~Y"] is not None
+                and results["~X"] is not None
             ):
                 if (
                     len(results["X"]) != 0
-                    and (len(results["Y"]) + len(results["~Y"])) != 0
                 ):
                     calculated_metrics[metric] = len(results["X and Y"]) / len(
                         results["X"]
                     )
-                    calculated_metrics[metric] -= len(results["Y"]) / (
-                        len(results["Y"]) + len(results["~Y"])
+                    calculated_metrics[metric] -= len(results["X"]) / (
+                        len(results["X"]) + len(results["~X"])
                     )
                 else:
                     calculated_metrics[metric] = np.nan

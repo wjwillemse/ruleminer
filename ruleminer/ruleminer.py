@@ -250,7 +250,7 @@ class RuleMiner:
                             r_type="values",
                         )
                         rule_output = self.evaluate_code(
-                            expressions=rule_code, dataframe=df_eval
+                            expressions=rule_code, dataframe=self.data
                         )
                         rule_metrics = metrics.calculate_metrics(
                             results=rule_output, metrics=self.metrics
