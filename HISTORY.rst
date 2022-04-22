@@ -41,3 +41,8 @@ History
 --------------------------
 
 * Rule power factor metric added
+
+0.1.11 (2022-4-22)
+--------------------------
+
+* Optimizations: metric calculations are done with boolean masks of DataFrame
