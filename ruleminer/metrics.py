@@ -17,12 +17,12 @@ METRICS = {
     ABSOLUTE_SUPPORT: ["X and Y"],
     ABSOLUTE_EXCEPTIONS: ["X and ~Y"],
     CONFIDENCE: ["X", "X and Y"],
-    SUPPORT: ["X", "~X", "X and Y"],
-    ADDED_VALUE: ["X", "Y", "~Y", "X and Y"],  # conf(X⇒Y) − supp(Y)
+    SUPPORT: ["N", "X and Y"],
+    ADDED_VALUE: ["N", "X", "Y", "X and Y"],
     CASUAL_CONFIDENCE: ["X", "~X", "X and Y", "~X and ~Y"],
-    CONVICTION: ["X", "Y", "~Y", "X and Y"],
-    LIFT: ["X", "Y", "~Y", "X and Y"],
-    RULE_POWER_FACTOR: ["X", "~X", "X and Y"],
+    CONVICTION: ["N", "X", "Y", "X and Y"],
+    LIFT: ["N", "X", "Y", "X and Y"],
+    RULE_POWER_FACTOR: ["N", "X", "X and Y"],
 }
 
 
@@ -42,145 +42,106 @@ def metrics(metrics: list = []):
     return [metric for metric in metrics if metric in METRICS.keys()]
 
 
-def calculate_metrics(results: dict = {}, metrics: list = []):
+def calculate_metrics(len_results: dict = {}, metrics: list = []):
     """ """
     calculated_metrics = {}
     for metric in metrics:
         if metric == ABSOLUTE_SUPPORT:
-            if results["X and Y"] is not None:
-                calculated_metrics[metric] = len(results["X and Y"])
-            else:
-                calculated_metrics[metric] = np.nan
+            # n(X and Y)
+            calculated_metrics[metric] = len_results.get("X and Y", np.nan)
         elif metric == ABSOLUTE_EXCEPTIONS:
-            if results["X and ~Y"] is not None:
-                calculated_metrics[metric] = len(results["X and ~Y"])
-            else:
-                calculated_metrics[metric] = np.nan
+            # n(X and ~Y)
+            calculated_metrics[metric] = len_results.get("X and ~Y", np.nan)
         elif metric == CONFIDENCE:
-            if results["X"] is not None and results["X and Y"] is not None:
-                if len(results["X"]) != 0:
-                    calculated_metrics[metric] = len(results["X and Y"]) / len(
-                        results["X"]
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # conf(X->Y) = n(X and Y) / n(X)
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] = len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("X", np.nan)
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == SUPPORT:
-            if (
-                results["X"] is not None 
-               and results["~X"] is not None
-               and results["X and Y"] is not None
-            ):
-                if len(results["X"]) + len(results["~X"]) != 0:
-                    calculated_metrics[metric] = len(results["X and Y"]) / (
-                        len(results["X"]) + len(results["~X"])
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # n(X) / n
+            if len_results.get("N", np.nan) != 0:
+                calculated_metrics[metric] = len_results.get("X and Y", np.nan) / (
+                    len_results.get("N", np.nan)
+                )
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == ADDED_VALUE:
-            if (
-                results["X"] is not None
-                and results["X and Y"] is not None
-                and results["Y"] is not None
-                and results["~Y"] is not None
-            ):
-                if (
-                    len(results["X"]) != 0
-                ):
-                    calculated_metrics[metric] = len(results["X and Y"]) / len(
-                        results["X"]
-                    )
-                    calculated_metrics[metric] -= len(results["Y"]) / (
-                        len(results["Y"]) + len(results["~Y"])
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # conf(X->Y) - supp(Y)
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] = len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("X", np.nan)
+            else:
+                calculated_metrics[metric] = np.nan
+            if len_results.get("N", np.nan) != 0:
+                calculated_metrics[metric] -= len_results.get("Y", np.nan) / (
+                    len_results.get("N", np.nan)
+                )
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == CASUAL_CONFIDENCE:
-            if (
-                results["X"] is not None
-                and results["X and Y"] is not None
-                and results["~X"] is not None
-                and results["~X and ~Y"] is not None
-            ):
-                if len(results["X"]) != 0 and len(results["~X"]) != 0:
-                    calculated_metrics[metric] = (
-                        0.5 * len(results["X and Y"]) / len(results["X"])
-                    )
-                    calculated_metrics[metric] += (
-                        0.5 * len(results["~X and ~Y"]) / len(results["~X"])
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # 0.5 * conf(X->Y) + 0.5 * conf(~X->~Y)
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] = (
+                    0.5
+                    * len_results.get("X and Y", np.nan)
+                    / len_results.get("X", np.nan)
+                )
+            else:
+                calculated_metrics[metric] = np.nan
+            if len_results.get("~X", np.nan) != 0:
+                calculated_metrics[metric] += (
+                    0.5
+                    * len_results.get("~X and ~Y", np.nan)
+                    / len_results.get("~X", np.nan)
+                )
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == CONVICTION:
-            if (
-                results["X"] is not None
-                and results["X and Y"] is not None
-                and results["Y"] is not None
-                and results["~Y"] is not None
-            ):
-                if (
-                    len(results["X"]) != 0
-                    and (len(results["Y"]) + len(results["~Y"])) != 0
-                    and (1 - len(results["X and Y"]) / len(results["X"])) != 0
-                ):
-                    calculated_metrics[metric] = 1 - len(results["Y"]) / (
-                        len(results["Y"]) + len(results["~Y"])
-                    )
-                    calculated_metrics[metric] /= 1 - len(results["X and Y"]) / len(
-                        results["X"]
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # (1-supp(Y)) / (1-conf(X->Y))
+            if len_results.get("N", np.nan) != 0:
+                calculated_metrics[metric] = 1 - (
+                    len_results.get("Y", np.nan) / len_results.get("N", np.nan)
+                )
+            else:
+                calculated_metrics[metric] = np.nan
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] /= 1 - len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("X", np.nan)
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == LIFT:
-            if (
-                results["X"] is not None
-                and results["X and Y"] is not None
-                and results["Y"] is not None
-                and results["~Y"] is not None
+            # conf(X->Y) / supp(Y)
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] = len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("X", np.nan)
+            else:
+                calculated_metrics[metric] = np.nan
+            if (len_results.get("N", np.nan) != 0) and (
+                len_results.get("Y", np.nan) != 0
             ):
-                if (
-                    len(results["X"]) != 0
-                    and (len(results["Y"]) + len(results["~Y"])) != 0
-                    and (len(results["Y"]) / (len(results["Y"]) + len(results["~Y"])))
-                    != 0
-                ):
-                    calculated_metrics[metric] = len(results["X and Y"]) / len(
-                        results["X"]
-                    )
-                    calculated_metrics[metric] /= len(results["Y"]) / (
-                        len(results["Y"]) + len(results["~Y"])
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+                calculated_metrics[metric] /= len_results.get(
+                    "Y", np.nan
+                ) / len_results.get("N", np.nan)
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == RULE_POWER_FACTOR:
-            if (
-                results["X"] is not None
-                and results["~X"] is not None
-                and results["X and Y"] is not None
-            ):
-                if (
-                    len(results["X"]) != 0
-                ):
-                    calculated_metrics[metric] = (
-                        len(results["X and Y"])
-                        / (len(results["X"]) + len(results["~X"]))
-                        * len(results["X and Y"])
-                        / len(results["X"])
-                    )
-                else:
-                    calculated_metrics[metric] = np.nan
+            # supp(X->Y) * conf(X->Y)
+            if len_results.get("N", np.nan) != 0:
+                calculated_metrics[metric] = len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("N", np.nan)
             else:
                 calculated_metrics[metric] = np.nan
-
+            if len_results.get("X", np.nan) != 0:
+                calculated_metrics[metric] *= len_results.get(
+                    "X and Y", np.nan
+                ) / len_results.get("X", np.nan)
+            else:
+                calculated_metrics[metric] = np.nan
     return calculated_metrics

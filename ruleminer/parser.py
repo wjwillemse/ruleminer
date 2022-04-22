@@ -76,55 +76,85 @@ def python_code(expression: str = "", required: list = [], r_type: str = "values
 
     python_expressions = {}
     for variable in required:
+        if variable == "N":
+            if r_type == "values":
+                python_expressions[variable] = "len("+DUNDER_DF+".values)"
+            else:
+                python_expressions[variable] = (DUNDER_DF + "." + r_type
+                )
         if variable == "X":
-            python_expressions["X"] = (
-                DUNDER_DF + "." + r_type + "[(" + replace_columns(if_part) + ")]"
-            )
+            if r_type == "values":
+                if if_part == "()":
+                    python_expressions[variable] = "len("+DUNDER_DF+".index)"
+                else:
+                    python_expressions[variable] = "("+replace_columns(if_part)+").sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF + "." + r_type + "[(" + replace_columns(if_part) + ")]"
+                )
         elif variable == "~X":
-            python_expressions["~X"] = (
-                DUNDER_DF + "." + r_type + "[~(" + replace_columns(if_part) + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "(~("+replace_columns(if_part)+")).sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF + "." + r_type + "[~(" + replace_columns(if_part) + ")]"
+                )
         elif variable == "Y":
-            python_expressions["Y"] = (
-                DUNDER_DF + "." + r_type + "[(" + replace_columns(then_part) + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "("+replace_columns(then_part)+").sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF + "." + r_type + "[(" + replace_columns(then_part) + ")]"
+                )
         elif variable == "~Y":
-            python_expressions["~Y"] = (
-                DUNDER_DF + "." + r_type + "[~(" + replace_columns(then_part) + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "(~("+replace_columns(then_part)+")).sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF + "." + r_type + "[~(" + replace_columns(then_part) + ")]"
+                )
         elif variable == "X and Y":
-            python_expressions[variable] = (
-                DUNDER_DF
-                + "."
-                + r_type
-                + "[("
-                + replace_columns(if_part)
-                + ") & ("
-                + replace_columns(then_part)
-                + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "(("+replace_columns(if_part)+") & ("+replace_columns(then_part)+ ")).sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF
+                    + "."
+                    + r_type
+                    + "[("
+                    + replace_columns(if_part)
+                    + ") & ("
+                    + replace_columns(then_part)
+                    + ")]"
+                )
         elif variable == "X and ~Y":
-            python_expressions[variable] = (
-                DUNDER_DF
-                + "."
-                + r_type
-                + "[("
-                + replace_columns(if_part)
-                + ") & ~("
-                + replace_columns(then_part)
-                + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "(("+replace_columns(if_part)+") & ~("+replace_columns(then_part)+ ")).sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF
+                    + "."
+                    + r_type
+                    + "[("
+                    + replace_columns(if_part)
+                    + ") & ~("
+                    + replace_columns(then_part)
+                    + ")]"
+                )
         elif variable == "~X and ~Y":
-            python_expressions[variable] = (
-                DUNDER_DF
-                + "."
-                + r_type
-                + "[~("
-                + replace_columns(if_part)
-                + ") & ~("
-                + replace_columns(then_part)
-                + ")]"
-            )
+            if r_type == "values":
+                python_expressions[variable] = "(~("+replace_columns(if_part)+") & ~("+replace_columns(then_part)+ ")).sum()"
+            else:
+                python_expressions[variable] = (
+                    DUNDER_DF
+                    + "."
+                    + r_type
+                    + "[~("
+                    + replace_columns(if_part)
+                    + ") & ~("
+                    + replace_columns(then_part)
+                    + ")]"
+                )
     for e in python_expressions.keys():
         python_expressions[e] = python_expressions[e].replace("[(())]", "")
         python_expressions[e] = python_expressions[e].replace("(()) & ", "")

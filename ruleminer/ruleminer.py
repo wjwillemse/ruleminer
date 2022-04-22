@@ -141,8 +141,11 @@ class RuleMiner:
                 expression=expression, required=required_variables, r_type="index"
             )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
+            len_results = {
+                key: len(results[key]) for key in results if results[key] is not None
+            }
             rule_metrics = metrics.calculate_metrics(
-                results=results,
+                len_results=len_results,
                 metrics=[ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE],
             )
             self.add_results(idx, rule_metrics, results["X and Y"], results["X and ~Y"])
@@ -249,11 +252,11 @@ class RuleMiner:
                             required=self.required_variables,
                             r_type="values",
                         )
-                        rule_output = self.evaluate_code(
+                        len_results = self.evaluate_code(
                             expressions=rule_code, dataframe=self.data
                         )
                         rule_metrics = metrics.calculate_metrics(
-                            results=rule_output, metrics=self.metrics
+                            len_results=len_results, metrics=self.metrics
                         )
                         logger.debug(
                             "Candidate expression "
@@ -380,7 +383,7 @@ class RuleMiner:
             try:
                 variables[key] = eval(expressions[key], encodings, dict_values)
             except:
-                variables[key] = None
+                variables[key] = np.nan
         return variables
 
     def add_rule(
