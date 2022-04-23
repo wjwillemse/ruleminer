@@ -7,14 +7,15 @@ import re
 import numpy as np
 import pyparsing
 
-from ruleminer import utils
 from ruleminer import parser
-from ruleminer import metrics
+from ruleminer.utils import generate_substitutions
+from ruleminer.metrics import metrics
+from ruleminer.metrics import required_variables
+from ruleminer.metrics import calculate_metrics
 from ruleminer.const import CONFIDENCE
 from ruleminer.const import ABSOLUTE_SUPPORT
 from ruleminer.const import ABSOLUTE_EXCEPTIONS
 from ruleminer.const import ADDED_VALUE
-
 from ruleminer.const import RULE_ID
 from ruleminer.const import RULE_GROUP
 from ruleminer.const import RULE_DEF
@@ -22,12 +23,22 @@ from ruleminer.const import RULE_STATUS
 from ruleminer.const import RULE_VARIABLES
 from ruleminer.const import ENCODINGS
 from ruleminer.const import DUNDER_DF
-from ruleminer.parser import RULE_SYNTAX
+from ruleminer.const import VAR_X_AND_Y
+from ruleminer.const import VAR_X_AND_NOT_Y
+from ruleminer.const import VAR_Z
 from ruleminer.encodings import encodings_definitions
 
 
 class RuleMiner:
-    """ """
+    """
+    The RuleMiner object contains rules and data
+
+    It used three basic functions:
+    - update (rule expressions, rules or data)
+    - generate (rules from rule expressions and data)
+    - evaluate (results from rule)
+
+    """
 
     def __init__(
         self,
@@ -55,8 +66,8 @@ class RuleMiner:
         self.metrics = self.params.get(
             "metrics", [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
         )
-        self.metrics = metrics.metrics(self.metrics)
-        self.required_variables = metrics.required_variables(self.metrics)
+        self.metrics = metrics(self.metrics)
+        self.required_variables = required_variables(self.metrics)
         self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
 
         if data is not None:
@@ -119,8 +130,8 @@ class RuleMiner:
 
     def evaluate(self):
         """ """
-        assert self.rules is not None, "Uable to evaluate data, no rules defined."
-        assert self.data is not None, "Uable to evaluate data, no data defined."
+        assert self.rules is not None, "Unable to evaluate data, no rules defined."
+        assert self.data is not None, "Unable to evaluate data, no data defined."
 
         self.setup_results_dataframe()
 
@@ -132,23 +143,23 @@ class RuleMiner:
 
         for idx in self.rules.index:
 
-            required_variables = metrics.required_variables(
+            required_variables = required_variables(
                 [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
-            rule_code = parser.python_code(
-                expression=expression, required=required_variables, r_type="index"
+            rule_code = parser.python_code_index(
+                expression=expression, required=required_variables
             )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
                 key: len(results[key]) for key in results if results[key] is not None
             }
-            rule_metrics = metrics.calculate_metrics(
+            rule_metrics = calculate_metrics(
                 len_results=len_results,
                 metrics=[ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE],
             )
-            self.add_results(idx, rule_metrics, results["X and Y"], results["X and ~Y"])
+            self.add_results(idx, rule_metrics, results[VAR_X_AND_Y], results[VAR_X_AND_NOT_Y])
 
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
@@ -173,11 +184,13 @@ class RuleMiner:
         self.results = pd.DataFrame(
             columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
             + [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
-            + ["result", "indices"]
+            + [RESULT, INDICES]
         )
 
     def generate_rules(self, template: dict):
-        """ """
+        """
+        Main function to generate rules from data given a rule template
+        """
         logger = logging.getLogger(__name__)
 
         group = template.get("group", 0)
@@ -204,7 +217,7 @@ class RuleMiner:
         candidates = []
         if_part_column_values = self.search_column_value(if_part, [])
         if_part_substitutions = [
-            utils.generate_substitutions(df=self.data, column_value=column_value)
+            generate_substitutions(df=self.data, column_value=column_value)
             for column_value in if_part_column_values
         ]
         if_part_substitutions = itertools.product(*if_part_substitutions)
@@ -218,11 +231,11 @@ class RuleMiner:
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
-            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)["X"]
+            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[VAR_Z]
             if df_eval is not None:
                 then_part_column_values = self.search_column_value(then_part, [])
                 then_part_substitutions = [
-                    utils.generate_substitutions(df=df_eval, column_value=column_value)
+                    generate_substitutions(df=df_eval, column_value=column_value)
                     for column_value in then_part_column_values
                 ]
                 if if_part_substitution != ():
@@ -247,15 +260,14 @@ class RuleMiner:
                     reformulated_expression = self.reformulate(candidate_parsed)[1:-1]
                     if sorted_expression not in sorted_expressions.keys():
                         sorted_expressions[sorted_expression] = True
-                        rule_code = parser.python_code(
+                        rule_code = parser.python_code_lengths(
                             expression=reformulated_expression,
-                            required=self.required_variables,
-                            r_type="values",
+                            required=self.required_variables
                         )
                         len_results = self.evaluate_code(
                             expressions=rule_code, dataframe=self.data
                         )
-                        rule_metrics = metrics.calculate_metrics(
+                        rule_metrics = calculate_metrics(
                             len_results=len_results, metrics=self.metrics
                         )
                         logger.debug(
@@ -298,13 +310,13 @@ class RuleMiner:
         condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
         rule_parts = condition.search(expression)
         if rule_parts is not None:
-            if_part = RULE_SYNTAX.parse_string(rule_parts.group(1)).as_list()
-            then_part = RULE_SYNTAX.parse_string(rule_parts.group(2)).as_list()
+            if_part = parser.RULE_SYNTAX.parse_string(rule_parts.group(1)).as_list()
+            then_part = parser.RULE_SYNTAX.parse_string(rule_parts.group(2)).as_list()
         else:
             expression = "if () then " + expression
             if_part = ""
-            then_part = RULE_SYNTAX.parse_string(expression).as_list()
-        parsed = RULE_SYNTAX.parse_string(expression).as_list()
+            then_part = parser.RULE_SYNTAX.parse_string(expression).as_list()
+        parsed = parser.RULE_SYNTAX.parse_string(expression).as_list()
         return parsed, if_part, then_part
 
     def substitute_list(
@@ -395,7 +407,9 @@ class RuleMiner:
         rule_metrics: dict = {},
         encodings: dict = {},
     ):
-        """ """
+        """
+        Function to add a rule with info to the discovered rule list
+        """
         row = pd.DataFrame(
             data=[
                 [rule_id, rule_group, rule_def, rule_status]
@@ -407,7 +421,9 @@ class RuleMiner:
         self.rules = pd.concat([self.rules, row], ignore_index=True)
 
     def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices):
-        """ """
+        """
+        Function to add a result to the results list
+        """
 
         nco = len(co_indices if co_indices is not None else [])
         nex = len(ex_indices if ex_indices is not None else [])
@@ -428,7 +444,7 @@ class RuleMiner:
             ] * nco
 
             data = pd.DataFrame(columns=self.results.columns, data=data)
-            data["indices"] = co_indices
+            data[INDICES] = co_indices
             self.results = pd.concat([self.results, data], ignore_index=True)
 
         if nex > 0:
@@ -447,12 +463,13 @@ class RuleMiner:
             ] * nex
 
             data = pd.DataFrame(columns=self.results.columns, data=data)
-            data["indices"] = ex_indices
+            data[INDICES] = ex_indices
             self.results = pd.concat([self.results, data], ignore_index=True)
 
         return None
 
     def reformulate(self, expression: str = ""):
+        """ """
         if isinstance(expression, str):
             return expression
         else:
@@ -494,7 +511,7 @@ class RuleMiner:
                     )
                     quantile_result = self.evaluate_code(
                         expressions=quantile_code, dataframe=self.data
-                    )["X"]
+                    )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
                     for item in expression[idx + 2 :]:
                         l += self.reformulate(item)
@@ -507,6 +524,7 @@ class RuleMiner:
 
 
 def flatten_and_sort(expression: str = ""):
+    """ """
     if isinstance(expression, str):
         return expression
     else:
@@ -560,6 +578,7 @@ def flatten_and_sort(expression: str = ""):
 
 
 def flatten(expression):
+    """ """
     if isinstance(expression, str):
         return expression
     else:
@@ -570,12 +589,14 @@ def flatten(expression):
 
 
 def is_column(s):
+    """ """
     return len(s) > 4 and (
         (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
     )
 
 
 def is_string(s):
+    """ """
     return len(s) > 2 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
     )
