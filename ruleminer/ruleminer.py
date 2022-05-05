@@ -21,6 +21,8 @@ from ruleminer.const import RULE_GROUP
 from ruleminer.const import RULE_DEF
 from ruleminer.const import RULE_STATUS
 from ruleminer.const import RULE_VARIABLES
+from ruleminer.const import RESULT
+from ruleminer.const import INDICES
 from ruleminer.const import ENCODINGS
 from ruleminer.const import DUNDER_DF
 from ruleminer.const import VAR_X_AND_Y
@@ -67,7 +69,7 @@ class RuleMiner:
             "metrics", [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
         )
         self.metrics = metrics(self.metrics)
-        self.required_variables = required_variables(self.metrics)
+        self.required_vars = required_variables(self.metrics)
         self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
 
         if data is not None:
@@ -143,13 +145,13 @@ class RuleMiner:
 
         for idx in self.rules.index:
 
-            required_variables = required_variables(
+            required_vars = required_variables(
                 [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
             rule_code = parser.python_code_index(
-                expression=expression, required=required_variables
+                expression=expression, required=required_vars
             )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
@@ -262,7 +264,7 @@ class RuleMiner:
                         sorted_expressions[sorted_expression] = True
                         rule_code = parser.python_code_lengths(
                             expression=reformulated_expression,
-                            required=self.required_variables
+                            required=self.required_vars
                         )
                         len_results = self.evaluate_code(
                             expressions=rule_code, dataframe=self.data
