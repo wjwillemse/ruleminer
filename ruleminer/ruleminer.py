@@ -234,7 +234,7 @@ class RuleMiner:
             )
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[VAR_Z]
-            if df_eval is not None:
+            if not isinstance(df_eval, float): # then it is nan
                 then_part_column_values = self.search_column_value(then_part, [])
                 then_part_substitutions = [
                     generate_substitutions(df=df_eval, column_value=column_value)
