@@ -17,7 +17,7 @@ SEP = Literal(",")
 QUOTE = Literal("'") | Literal('"')
 ARITH_OP = one_of("+ - * /")
 LOGIC_OP = one_of("& |")
-COMPA_OP = one_of(">= > <= < != == in")
+COMPA_OP = one_of(">= > <= < != == .isin")
 PREFIX_OP = one_of("min max abs quantile MIN MAX ABS QUANTILE")
 NUMBER = Combine(Word(nums) + "." + Word(nums)) | Word(nums)
 STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']") + " "
@@ -34,7 +34,7 @@ ARITH_COLUMNS = Group((COLUMN | NUMBER) + (ARITH_OP + (COLUMN | NUMBER))[1, ...]
 COLUMNS = (PARL + ARITH_COLUMNS + PARR) | ARITH_COLUMNS | COLUMN | NUMBER
 PREFIX_COLUMN = PREFIX_OP + Group(PARL + COLUMNS + (SEP + COLUMNS)[0, ...] + PARR)
 QUOTED_STRING_LIST = Group(
-    Literal("[") + QUOTED_STRING + (SEP + QUOTED_STRING)[0, ...] + Literal("]")
+    PARL + Literal("[") + QUOTED_STRING + (SEP + QUOTED_STRING)[0, ...] + Literal("]") + PARR
 )
 
 # TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST | COLUMN_VARIABLE
