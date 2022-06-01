@@ -19,8 +19,8 @@ ARITH_OP = one_of("+ - * /")
 LOGIC_OP = one_of("& |")
 COMPA_OP = one_of(">= > <= < != == .isin")
 PREFIX_OP = one_of("min max abs quantile MIN MAX ABS QUANTILE")
-NUMBER = Combine(Word(nums) + "." + Word(nums)) | Word(nums)
-STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&()']") + " "
+NUMBER = Combine(Optional("-")+Word(nums) + "." + Word(nums)) | (Optional("-")+Word(nums))
+STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&']") + " "
 COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
 QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
 
