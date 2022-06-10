@@ -80,8 +80,11 @@ def tree_to_expressions(tree, features, target):
 def fit_ensemble_and_extract_expressions(df: pd.DataFrame = None,
                                          target: str = None,
                                          random_state: int = 0,
-                                         max_depth: int = 1,
-                                         n_estimators: int = 10):
+                                         max_depth: int = 2,
+                                         n_estimators: int = 10,
+                                         min_samples_split: int = 2, 
+                                         min_samples_leaf: int = 1,
+                                         min_weight_fraction_leaf: float = 0.0):
     
     features = [col for col in df.columns if col != target]
     X = df[features]
@@ -94,7 +97,12 @@ def fit_ensemble_and_extract_expressions(df: pd.DataFrame = None,
         base, estimator = DecisionTreeClassifier, AdaBoostClassifier
 
     regressor = estimator(
-        base_estimator = base(random_state=random_state, max_depth=max_depth),
+        base_estimator = base(
+            random_state=random_state, 
+            max_depth=max_depth,
+            min_samples_split=min_samples_split, 
+            min_samples_leaf=min_samples_leaf,
+            min_weight_fraction_leaf=min_weight_fraction_leaf),
         n_estimators=n_estimators,
         random_state=random_state)
     regressor = regressor.fit(X, Y)
@@ -106,7 +114,10 @@ def fit_ensemble_and_extract_expressions(df: pd.DataFrame = None,
 def fit_dataframe_to_ensemble(df: pd.DataFrame = None,
                  random_state: int = 0,
                  max_depth: int = 1,
-                 n_estimators: int = 10):
+                 n_estimators: int = 10,
+                 min_samples_split: int = 2, 
+                 min_samples_leaf: int = 1,
+                 min_weight_fraction_leaf: float = 0.0):
     
     """
     fit and extract from an ensemble
@@ -115,11 +126,14 @@ def fit_dataframe_to_ensemble(df: pd.DataFrame = None,
     for target in df.columns:
         
         ensemble_expressions = fit_ensemble_and_extract_expressions(
-            df,
+            df=df,
             target = target,
             random_state = random_state,
             max_depth = max_depth,
-            n_estimators = n_estimators)
+            n_estimators = n_estimators,
+            min_samples_split=min_samples_split, 
+            min_samples_leaf=min_samples_leaf,
+            min_weight_fraction_leaf=min_weight_fraction_leaf)
         
         for expressions in ensemble_expressions:
             for sol in expressions:
