@@ -21,6 +21,8 @@ ruleminer
 
 Python package to discover association rules in Pandas DataFrames.
 
+This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_ from Willem Jan Willemse and Annick van Ool.
+
 Installation
 ------------
 
