@@ -5,6 +5,7 @@ import logging
 import itertools
 import re
 from pyparsing import *
+from pyparsing import pyparsing_unicode as ppu
 
 from ruleminer.const import DUNDER_DF
 from ruleminer.const import VAR_Z
@@ -20,7 +21,7 @@ LOGIC_OP = one_of("& |")
 COMPA_OP = one_of(">= > <= < != == .isin")
 PREFIX_OP = one_of("min max abs quantile MIN MAX ABS QUANTILE")
 NUMBER = Combine(Optional("-")+Word(nums) + "." + Word(nums)) | (Optional("-")+Word(nums))
-STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/\\?|@#$%^&']") + " "
+STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']") + " " + "\x01" + "\x02" + "\x03" + ppu.Greek.alphas + ppu.Greek.alphanums
 COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
 QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
 

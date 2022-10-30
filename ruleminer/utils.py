@@ -35,9 +35,9 @@ def generate_substitutions(
                     except:
                         logging.error("Error evaluating regex: " + value_regex[1:-1])
                     if r is not None:
-                        yield (column, value)
+                        yield (column, value, r.groups())
         else:
-            yield (column, None)
+            yield (column, None, None)
 
 
 def tree_to_expressions(tree, features, target):
