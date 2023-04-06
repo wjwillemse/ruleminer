@@ -12,17 +12,19 @@ from ruleminer.const import VAR_Z
 
 AND = one_of(["AND", "and", "&"])
 OR = one_of(["OR", "or", "|"])
-NOT = one_of(["NOT", "~"])
+NOT = one_of(["NOT", "~", "not"])
 SEP = Literal(",")
 
 QUOTE = Literal("'") | Literal('"')
 ARITH_OP = one_of("+ - * /")
 LOGIC_OP = one_of("& |")
 COMPA_OP = one_of(">= > <= < != == .isin in IN")
-PREFIX_OP = one_of("min max abs quantile subset MIN MAX ABS QUANTILE SUBSET")
+PREFIX_OP = one_of("min max abs quantile sum MIN MAX ABS QUANTILE SUM")
 NUMBER = Combine(Optional("-")+Word(nums) + "." + Word(nums)) | (Optional("-")+Word(nums))
 STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']") + " " + "\x01" + "\x02" + "\x03" + ppu.Greek.alphas + ppu.Greek.alphanums
-COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
+COLUMN_1 = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
+SPECIAL_COLUMN = Combine(COLUMN_1+".str.slice(start="+NUMBER+", stop="+NUMBER+")")
+COLUMN = SPECIAL_COLUMN | COLUMN_1 
 QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
 
 PARL = Literal("(").suppress()
