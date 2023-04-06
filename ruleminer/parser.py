@@ -22,10 +22,12 @@ COMPA_OP = one_of(">= > <= < != == .isin in IN")
 PREFIX_OP = one_of("min max abs quantile sum MIN MAX ABS QUANTILE SUM")
 NUMBER = Combine(Optional("-")+Word(nums) + "." + Word(nums)) | (Optional("-")+Word(nums))
 STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']") + " " + "\x01" + "\x02" + "\x03" + ppu.Greek.alphas + ppu.Greek.alphanums
+EMPTY = one_of(["None", '""', "pd.NA", "np.nan"])
 COLUMN_1 = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
 SPECIAL_COLUMN = Combine(COLUMN_1+".str.slice(start="+NUMBER+", stop="+NUMBER+")")
 COLUMN = SPECIAL_COLUMN | COLUMN_1 
 QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
+LIST_ELEMENT = QUOTED_STRING | COLUMN | NUMBER | EMPTY
 
 PARL = Literal("(").suppress()
 PARR = Literal(")").suppress()
@@ -34,11 +36,11 @@ PARR = Literal(")").suppress()
 # COLUMN_VARIABLE = (PARL+Literal("?P<")+Word(STRING_2)+Literal(">")+COLUMN+PARR) | (PARL+Literal("?P=")+Word(STRING_2)+PARR)
 
 ARITH_COLUMNS = Group((COLUMN | NUMBER) + (ARITH_OP + (COLUMN | NUMBER))[1, ...])
-COLUMNS = (PARL + ARITH_COLUMNS + PARR) | ARITH_COLUMNS | COLUMN | NUMBER
+COLUMNS = (PARL + ARITH_COLUMNS + PARR) | ARITH_COLUMNS | COLUMN | NUMBER | EMPTY
 PREFIX_COLUMN = PREFIX_OP + Group(PARL + COLUMNS + (SEP + COLUMNS)[0, ...] + PARR)
 QUOTED_STRING_LIST = Group(
-    PARL + Literal("[") + QUOTED_STRING + (SEP + QUOTED_STRING)[0, ...] + Literal("]") + PARR
-)
+    PARL + Literal("[") + LIST_ELEMENT + (SEP + LIST_ELEMENT)[0, ...] + Literal("]") + PARR) | Group(
+    PARL + Literal("(") + LIST_ELEMENT + (SEP + LIST_ELEMENT)[0, ...] + Literal(")") + PARR)
 
 # TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST | COLUMN_VARIABLE
 TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST
