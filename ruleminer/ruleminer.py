@@ -79,6 +79,8 @@ class RuleMiner:
                 "MIN": np.minimum,
                 "ABS": np.abs,
                 "QUANTILE": np.quantile,
+                "SUM": np.sum,
+                "sum": np.sum,
                 "max": np.maximum,
                 "min": np.minimum,
                 "abs": np.abs,
