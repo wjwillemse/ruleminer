@@ -125,6 +125,20 @@ class TestRuleminer(unittest.TestCase):
         
     def test_16(self):
         actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            'IF ( not("F3".isin(("G1","G3")))) THEN ({"A"}.str.slice(start=2, stop=4).isin(["D1","D3"]))', parse_all=True
+        ).as_list()
+        expected = [
+            ['IF',
+                 ['not', ['"F3"', '.isin', ['(', '"G1"', ',', '"G3"', ')']]],
+                 'THEN',
+                     ['{"A"}.str.slice(start=2, stop=4)',
+                     '.isin',
+                        ['[', '"D1"', ',', '"D3"', ']']]]
+        ]
+        self.assertTrue(actual == expected)
+        
+    def test_16(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
             'if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True
         ).as_list()
         expected = [
