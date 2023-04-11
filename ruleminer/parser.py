@@ -67,8 +67,8 @@ CONDITION = infixNotation(
         ),
     ],
 )
-IF_THEN = "if" + CONDITION + "then" + CONDITION
-RULE_SYNTAX = IF_THEN | "if () then " + CONDITION | CONDITION
+IF_THEN = "if" + CONDITION + "then" + CONDITION | "IF" + CONDITION + "THEN" + CONDITION
+RULE_SYNTAX = IF_THEN | "if () then " + CONDITION | "IF () THEN " + CONDITION | CONDITION
 
 
 def python_code_lengths(expression: str = "", required: list = []):
