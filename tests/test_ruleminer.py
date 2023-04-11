@@ -115,6 +115,24 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
 
     def test_15(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            'if () then ("A"=="")', parse_all=True
+        ).as_list()
+        expected = [
+            ['IF () THEN ', ['"A"', '==', '""']]
+        ]
+        self.assertTrue(actual == expected)
+        
+    def test_16(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            'if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True
+        ).as_list()
+        expected = [
+            ['IF', ['"C"', '!=', '"pd.NA"'], 'THEN', ['"A"', '>', '-', '1']]
+        ]
+        self.assertTrue(actual == expected)
+        
+    def test_15(self):
         actual = ruleminer.flatten_and_sort(
             ruleminer.parser.RULE_SYNTAX.parse_string(
                 '(({"4"} + {"3"} + {"2"} * {"1"}) > 0)', parse_all=True
