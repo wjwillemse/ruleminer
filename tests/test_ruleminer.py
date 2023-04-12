@@ -363,6 +363,36 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.CONFIDENCE,
                 ruleminer.ENCODINGS])
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+        
+    def test_27(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            '0.05*(A+0.5*B+C)', parse_all=True
+        ).as_list()
+        expected = [['0.05', '*', ['A', '+', '0.5', '*', 'B', '+', 'C']]]
+        self.assertTrue(actual == expected)
+
+    def test_28(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            '1*(1+0.5*(A+0.5*(B+1)+0.5*(C+1)))', parse_all=True
+        ).as_list()
+        expected = [['1', '*', [['1', '+', '0.5'], '*', [['A', '+', '0.5'], '*', ['B', '+', '1']],
+   '+', ['0.5', '*', ['C', '+', '1']]]]]
+        self.assertTrue(actual == expected)
+        
+    def test_29(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            '0.05*(0.5*(A+1)+0.5*(B+C))', parse_all=True
+        ).as_list()
+        expected = [['0.05', '*', [['0.5', '*', ['A', '+', '1']], '+', ['0.5', '*', ['B', '+', 'C']]]]]
+        self.assertTrue(actual == expected)
+        
+    def test_30(self):
+        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+            '0.05*(A+0.5*(B+1))', parse_all=True
+        ).as_list()
+        expected = [['0.05', '*', [[['A', '+', '0.5'], '*', ['B', '+', '1']]]]]
+        self.assertTrue(actual == expected)
+        
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""
     #     templates = ["template"]
