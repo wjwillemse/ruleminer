@@ -128,12 +128,12 @@ class TestRuleminer(unittest.TestCase):
             'IF ( not("F3".isin(("G1","G3")))) THEN ({"A"}.str.slice(start=2, stop=4).isin(["D1","D3"]))', parse_all=True
         ).as_list()
         expected = [
-            ['IF',
+            'IF',
                 ['not', ['"F3"', '.isin', ['(', '"G1"', ',', '"G3"', ')']]],
                 'THEN',
                 ['{"A"}.str.slice(start=2, stop=4)',
                     '.isin',
-                    ['[', '"D1"', ',', '"D3"', ']']]]
+                    ['[', '"D1"', ',', '"D3"', ']']]
         ]
         self.assertTrue(actual == expected)
         
@@ -142,7 +142,7 @@ class TestRuleminer(unittest.TestCase):
             'if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True
         ).as_list()
         expected = [
-            ['if', ['"C"', '!=', '"pd.NA"'], 'then', ['"A"', '>', '-', '1']]
+            'if', ['"C"', '!=', '"pd.NA"'], 'then', ['"A"', '>', '-', '1']
         ]
         self.assertTrue(actual == expected)
         
@@ -151,10 +151,10 @@ class TestRuleminer(unittest.TestCase):
             'if (0 >min({"C"},{"B"})) then (1 == sum({"A"},{"B"}))', parse_all=True
         ).as_list()
         expected = [
-            ['if',
+            'if',
                 ['0', '>', 'min', ['{"C"}', ',', '{"B"}']],
                 'then',
-                    ['1', '==', 'sum', ['{"A"}', ',', '{"B"}']]]
+                    ['1', '==', 'sum', ['{"A"}', ',', '{"B"}']]
         ]
         self.assertTrue(actual == expected)
         
