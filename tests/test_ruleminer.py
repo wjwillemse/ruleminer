@@ -119,7 +119,7 @@ class TestRuleminer(unittest.TestCase):
             'IF () THEN ("A"=="")', parse_all=True
         ).as_list()
         expected = [
-            ['IF () THEN ', ['"A"', '==', '""']]
+            'IF () THEN ', ['"A"', '==', '""']
         ]
         self.assertTrue(actual == expected)
         
