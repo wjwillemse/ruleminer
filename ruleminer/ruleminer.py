@@ -79,6 +79,8 @@ class RuleMiner:
                 "MIN": np.minimum,
                 "ABS": np.abs,
                 "QUANTILE": np.quantile,
+                "SUM": np.sum,
+                "sum": np.sum,
                 "max": np.maximum,
                 "min": np.minimum,
                 "abs": np.abs,
@@ -232,10 +234,14 @@ class RuleMiner:
                 column_substitutions=[item[0] for item in if_part_substitution],
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
+            candidate = self.reformulate(candidate)
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[VAR_Z]
             if not isinstance(df_eval, float): # then it is nan
-                then_part_column_values = self.search_column_value(then_part, [])
+
+                # substitute variables in then_part
+                then_part_substituted = self.substitute_group_names(then_part, [item[2] for item in if_part_substitution])
+                then_part_column_values = self.search_column_value(then_part_substituted, [])
                 then_part_substitutions = [
                     generate_substitutions(df=df_eval, column_value=column_value)
                     for column_value in then_part_column_values
@@ -251,8 +257,11 @@ class RuleMiner:
                     )
                 template_column_values = if_part_column_values + then_part_column_values
                 for substitution in expression_substitutions:
+
+                    # substitute variables in full expression
+                    parsed_substituted = self.substitute_group_names(parsed, [item[2] for item in substitution])
                     candidate_parsed, _, _, _, _ = self.substitute_list(
-                        expression=parsed,
+                        expression=parsed_substituted,
                         columns=[item[0] for item in template_column_values],
                         values=[item[1] for item in template_column_values],
                         column_substitutions=[item[0] for item in substitution],
@@ -291,6 +300,17 @@ class RuleMiner:
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
             del self.data[str(self.data.index.names[level])]
+
+    def substitute_group_names(self, expr: str = None, group_names_list: list = []):
+        """ """
+        if isinstance(expr, str):
+            for group_names in group_names_list:
+                if group_names is not None:
+                    for idx, key in enumerate(group_names):
+                        expr = re.sub("\\x0"+str(idx+1), key, expr)
+            return expr
+        elif isinstance(expr, list):
+            return [self.substitute_group_names(i, group_names_list) for i in expr]
 
     def search_column_value(self, expr, column_value):
         """ """
@@ -346,6 +366,14 @@ class RuleMiner:
                     expression.replace(
                         values[0], '"' + value_substitutions[0] + '"', 1
                     ),
+                    columns,
+                    values[1:],
+                    column_substitutions,
+                    value_substitutions[1:],
+                )
+            elif values != [] and values[0] is None:
+                return (
+                    expression,
                     columns,
                     values[1:],
                     column_substitutions,
@@ -471,7 +499,9 @@ class RuleMiner:
         return None
 
     def reformulate(self, expression: str = ""):
-        """ """
+        """
+        function to convert some parameters settings and functions to pandas code
+        """
         if isinstance(expression, str):
             return expression
         else:
@@ -506,8 +536,8 @@ class RuleMiner:
                     and item.lower() == "quantile"
                 ):
                     l = ""
-                    for item in expression[:idx]:
-                        l += self.reformulate(item)
+                    for i in expression[:idx]:
+                        l += self.reformulate(i)
                     quantile_code = parser.python_code_for_intermediate(
                         flatten(expression[idx : idx + 2])
                     )
@@ -515,13 +545,33 @@ class RuleMiner:
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
-                    for item in expression[idx + 2 :]:
-                        l += self.reformulate(item)
+                    for i in expression[idx + 2 :]:
+                        l += self.reformulate(i)
                     return "(" + l + ")"
-
+                if (
+                    isinstance(item, str) 
+                    and item.lower() == "in"
+                ):
+                    # replace in by .isin
+                    l = ""
+                    for i in expression[:idx]:
+                        l += self.reformulate(i)
+                    l += ".isin"
+                    for i in expression[idx+1:]:
+                        l += self.reformulate(i)
+                    return l
+                if (
+                    isinstance(item, str)
+                    and item.lower() == "substr"
+                ):
+                    string, _, start, _, stop = expression[idx+1]
+                    l = "("+self.reformulate(string)+".str.slice("+start+","+stop+"))"
+                    for i in expression[idx+2:]:
+                        l += self.reformulate(i)
+                    return l
             l = ""
-            for item in expression:
-                l += self.reformulate(item)
+            for i in expression:
+                l += self.reformulate(i)
             return "(" + l + ")"
 
 
