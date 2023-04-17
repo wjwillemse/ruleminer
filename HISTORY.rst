@@ -47,7 +47,7 @@ History
 
 * Optimizations: metric calculations are done with boolean masks of DataFrame
 
-0.1.13 (2023-4-17)
+0.1.14 (2023-4-17)
 ------------------
 
 * Nested functions added
