@@ -234,6 +234,7 @@ class RuleMiner:
                 column_substitutions=[item[0] for item in if_part_substitution],
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
+            candidate = self.reformulate(candidate)
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[VAR_Z]
             if not isinstance(df_eval, float): # then it is nan
@@ -498,7 +499,9 @@ class RuleMiner:
         return None
 
     def reformulate(self, expression: str = ""):
-        """ """
+        """
+        function to convert some parameters settings and functions to pandas code
+        """
         if isinstance(expression, str):
             return expression
         else:
@@ -533,8 +536,8 @@ class RuleMiner:
                     and item.lower() == "quantile"
                 ):
                     l = ""
-                    for item in expression[:idx]:
-                        l += self.reformulate(item)
+                    for i in expression[:idx]:
+                        l += self.reformulate(i)
                     quantile_code = parser.python_code_for_intermediate(
                         flatten(expression[idx : idx + 2])
                     )
@@ -542,13 +545,33 @@ class RuleMiner:
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
-                    for item in expression[idx + 2 :]:
-                        l += self.reformulate(item)
+                    for i in expression[idx + 2 :]:
+                        l += self.reformulate(i)
                     return "(" + l + ")"
-
+                if (
+                    isinstance(item, str) 
+                    and item.lower() == "in"
+                ):
+                    # replace in by .isin
+                    l = ""
+                    for i in expression[:idx]:
+                        l += self.reformulate(i)
+                    l += ".isin"
+                    for i in expression[idx+1:]:
+                        l += self.reformulate(i)
+                    return l
+                if (
+                    isinstance(item, str)
+                    and item.lower() == "substr"
+                ):
+                    string, _, start, _, stop = expression[idx+1]
+                    l = "("+self.reformulate(string)+".str.slice("+start+","+stop+"))"
+                    for i in expression[idx+2:]:
+                        l += self.reformulate(i)
+                    return l
             l = ""
-            for item in expression:
-                l += self.reformulate(item)
+            for i in expression:
+                l += self.reformulate(i)
             return "(" + l + ")"
 
 
