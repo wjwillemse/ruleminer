@@ -190,6 +190,8 @@ class RuleMiner:
             + [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
             + [RESULT, INDICES]
         )
+        self.results[RESULT] = self.results[RESULT].astype(bool)
+
 
     def generate_rules(self, template: dict):
         """
@@ -332,13 +334,13 @@ class RuleMiner:
         condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
         rule_parts = condition.search(expression)
         if rule_parts is not None:
-            if_part = parser.RULE_SYNTAX.parse_string(rule_parts.group(1)).as_list()
-            then_part = parser.RULE_SYNTAX.parse_string(rule_parts.group(2)).as_list()
+            if_part = parser.rule_expression().parse_string(rule_parts.group(1), parseAll=True).as_list()
+            then_part = parser.rule_expression().parse_string(rule_parts.group(2), parseAll=True).as_list()
         else:
             expression = "if () then " + expression
             if_part = ""
-            then_part = parser.RULE_SYNTAX.parse_string(expression).as_list()
-        parsed = parser.RULE_SYNTAX.parse_string(expression).as_list()
+            then_part = parser.rule_expression().parse_string(expression, parseAll=True).as_list()
+        parsed = parser.rule_expression().parse_string(expression, parseAll=True).as_list()
         return parsed, if_part, then_part
 
     def substitute_list(

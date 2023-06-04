@@ -10,68 +10,98 @@ from pyparsing import pyparsing_unicode as ppu
 from ruleminer.const import DUNDER_DF
 from ruleminer.const import VAR_Z
 
-AND = one_of(["AND", "and", "&"])
-OR = one_of(["OR", "or", "|"])
-NOT = one_of(["NOT", "~", "not"])
-SEP = Literal(",")
+lpar, rpar = map(Suppress, "()")
+e = CaselessKeyword("E")
+number = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
+function = one_of("min max abs quantile sum substr MIN MAX ABS QUANTILE SUM SUBSTR")
+empty = one_of(["None", '""', "pd.NA", "np.nan"])
+quote = Literal('"')
+sep = Literal(",")
+string = srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']") + " " + "\x01" + "\x02" + "\x03" + ppu.Greek.alphas + ppu.Greek.alphanums
+quoted_string = Combine(quote + Word(string) + quote)
+column = Combine("{" + quote + Word(string) + quote + "}")
+addop = Literal("+") | Literal("-")
+multop = Literal("*") | Literal("/")
+expop = Literal("^")    
+compa_op = one_of(">= > <= < != == in IN")
 
-QUOTE = Literal("'") | Literal('"')
-ARITH_OP = one_of("+ - * /")
-LOGIC_OP = one_of("& |")
-COMPA_OP = one_of(">= > <= < != == in IN")
-PREFIX_OP = one_of("min max abs quantile sum substr MIN MAX ABS QUANTILE SUM SUBSTR")
-NUMBER = Combine(Optional("-")+Word(nums) + "." + Word(nums)) | (Optional("-")+Word(nums))
-STRING = srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']") + " " + "\x01" + "\x02" + "\x03" + ppu.Greek.alphas + ppu.Greek.alphanums
-EMPTY = one_of(["None", '""', "pd.NA", "np.nan"])
-COLUMN = Combine("{" + QUOTE + Word(STRING) + QUOTE + "}")
-QUOTED_STRING = Combine(QUOTE + Word(STRING) + QUOTE)
-LIST_ELEMENT = QUOTED_STRING | COLUMN | NUMBER | EMPTY
-
-PARL = Literal("(").suppress()
-PARR = Literal(")").suppress()
-
-# STRING_2 = srange(r"[a-zA-Z0-9_.,:;*+-/\\?|@#$%^&']") + " "
-# COLUMN_VARIABLE = (PARL+Literal("?P<")+Word(STRING_2)+Literal(">")+COLUMN+PARR) | (PARL+Literal("?P=")+Word(STRING_2)+PARR)
-
-ARITH_COLUMNS = Group((COLUMN | NUMBER) + (ARITH_OP + (COLUMN | NUMBER))[1, ...])
-COLUMNS_S = ARITH_COLUMNS | (PARL + ARITH_COLUMNS + PARR) | COLUMN | NUMBER | EMPTY
-ARITH_COLUMNS_NESTED = Group(COLUMNS_S + (ARITH_OP + PARL + COLUMNS_S[1,...] + PARR)[1,...])
-ARITH_COLUMNS_NESTED_2 = Group(((COLUMNS_S + ARITH_OP)[0,1] + PARL + ARITH_COLUMNS_NESTED[1,...] + (ARITH_OP + ARITH_COLUMNS_NESTED)[0,...] + PARR)[0,...])
-ARITH_COLUMNS_NESTED_3 = (COLUMNS_S  + (ARITH_OP + PARL + ARITH_COLUMNS_NESTED_2 + PARR)[0,...] + (ARITH_OP+ ARITH_COLUMNS_NESTED_2)[0,1])
-COLUMNS = ARITH_COLUMNS_NESTED | ARITH_COLUMNS_NESTED_3 | COLUMNS_S
-PREFIX_COLUMN = PREFIX_OP + Group(PARL + COLUMNS + (SEP + COLUMNS)[0, ...] + PARR)
-QUOTED_STRING_LIST = Group(
-    Literal("[") + LIST_ELEMENT + (SEP + LIST_ELEMENT)[0, ...] + Literal("]")) | Group(
-    PARL + Literal("[") + LIST_ELEMENT + (SEP + LIST_ELEMENT)[0, ...] + Literal("]") + PARR)
-
-# TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST | COLUMN_VARIABLE
-TERM = PREFIX_COLUMN | COLUMNS | QUOTED_STRING | QUOTED_STRING_LIST
-
-COMP_EL = TERM + COMPA_OP + TERM
-COMP = Group((PARL + COMP_EL + PARR))
-CONDITION = infixNotation(
-    COMP,
-    [
-        (
-            NOT,
-            1,
-            opAssoc.RIGHT,
-        ),
-        (
-            AND,
-            2,
-            opAssoc.LEFT,
-        ),
-        (
-            OR,
-            2,
-            opAssoc.LEFT,
-        ),
-    ],
+list_element = quoted_string | column | number | empty
+quoted_string_list = (
+    Group(
+        Literal("[") + list_element + (sep + list_element)[0, ...] + Literal("]")
+    ) | Group
+    (
+        lpar + Literal("[") + list_element + (sep + list_element)[0, ...] + Literal("]") + rpar
+    )
 )
-IF_THEN = "if" + CONDITION + "then" + CONDITION | "IF" + CONDITION + "THEN" + CONDITION
-RULE_SYNTAX = IF_THEN | "if () then " + CONDITION | "IF () THEN " + CONDITION | CONDITION
 
+# exprStack = []
+
+# def push_first(toks):
+#     exprStack.append(toks[0])
+
+# def push_unary_minus(toks):
+#     for t in toks:
+#         if t == "-":
+#             exprStack.append("unary -")
+#         else:
+#             break
+
+def term_expression():
+    """
+    """    
+    expr = Forward()
+
+    function_expr = (function + Group(lpar + expr + (sep + expr)[...] + rpar))
+    
+    atom = (
+        addop[...]
+        + (
+            # (function_expr | quoted_string_list | quoted_string | column | number | empty ).setParseAction(push_first)
+            (function_expr | quoted_string_list | quoted_string | column | number | empty )
+            | Group(lpar + expr + rpar)
+        )
+    # ).setParseAction(push_unary_minus)
+    )
+
+    factor = Forward()
+    # factor <<= atom + (expop + factor).setParseAction(push_first)[...]
+    # term = factor + (multop + factor).setParseAction(push_first)[...]
+    # expr <<= term + (addop + term).setParseAction(push_first)[...]
+    factor <<= atom + (expop + factor)[...]
+    term = factor + (multop + factor)[...]
+    expr <<= term + (addop + term)[...]
+
+    return expr
+
+def rule_expression():
+    """
+    """    
+    condition_item = term_expression() + compa_op + term_expression()
+    comp_expr = Group(lpar + condition_item + rpar)
+    condition = infixNotation(
+        comp_expr,
+        [
+            (
+                one_of(["NOT", "not", "~"]),
+                1,
+                opAssoc.RIGHT,
+            ),
+            (
+                one_of(["AND", "and", "&"]),
+                2,
+                opAssoc.LEFT,
+            ),
+            (
+                one_of(["OR", "or", "|"]),
+                2,
+                opAssoc.LEFT,
+            ),
+        ],
+    )
+    if_then = "if" + condition + "then" + condition | "IF" + condition + "THEN" + condition
+    rule_syntax = if_then | "if () then " + condition | "IF () THEN " + condition | condition
+    return rule_syntax
 
 def python_code_lengths(expression: str = "", required: list = []):
     """ """

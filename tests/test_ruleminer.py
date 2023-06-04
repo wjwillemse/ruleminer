@@ -19,62 +19,62 @@ class TestRuleminer(unittest.TestCase):
         assert r is not None
 
     def test_1(self):
-        actual = ruleminer.parser.COLUMN.parse_string('{"A"}', parse_all=True).as_list()
+        actual = ruleminer.parser.column.parse_string('{"A"}', parse_all=True).as_list()
         expected = ['{"A"}']
         self.assertTrue(actual == expected)
 
     def test_2(self):
-        actual = ruleminer.parser.QUOTED_STRING.parse_string(
+        actual = ruleminer.parser.quoted_string.parse_string(
             '"A"', parse_all=True
         ).as_list()
         expected = ['"A"']
         self.assertTrue(actual == expected)
 
     def test_3(self):
-        actual = ruleminer.parser.TERM.parse_string('"b"', parse_all=True).as_list()
+        actual = ruleminer.parser.term_expression().parse_string('"b"', parse_all=True).as_list()
         expected = ['"b"']
         self.assertTrue(actual == expected)
 
     def test_4(self):
-        actual = ruleminer.parser.TERM.parse_string('{"b"}', parse_all=True).as_list()
+        actual = ruleminer.parser.term_expression().parse_string('{"b"}', parse_all=True).as_list()
         expected = ['{"b"}']
         self.assertTrue(actual == expected)
 
     def test_5(self):
-        actual = ruleminer.parser.TERM.parse_string("221", parse_all=True).as_list()
+        actual = ruleminer.parser.term_expression().parse_string("221", parse_all=True).as_list()
         expected = ["221"]
         self.assertTrue(actual == expected)
 
     def test_6(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '({"f"} == 0)', parse_all=True
         ).as_list()
         expected = [['{"f"}', "==", "0"]]
         self.assertTrue(actual == expected)
 
     def test_7(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '({"f"} > 0)', parse_all=True
         ).as_list()
         expected = [['{"f"}', ">", "0"]]
         self.assertTrue(actual == expected)
 
     def test_8(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '({"f"} == 0) & ({"w"} == 0)', parse_all=True
         ).as_list()
         expected = [[['{"f"}', "==", "0"], "&", ['{"w"}', "==", "0"]]]
         self.assertTrue(actual == expected)
 
     def test_9(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '~({"f"} == 0) & ({"d"} == "s")', parse_all=True
         ).as_list()
         expected = [[["~", ['{"f"}', "==", "0"]], "&", ['{"d"}', "==", '"s"']]]
         self.assertTrue(actual == expected)
 
     def test_10(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(min({"f"}, {"d"})>0) & ({"d"} == "s")', parse_all=True
         ).as_list()
         expected = [
@@ -83,31 +83,31 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
 
     def test_11(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(({"f"} + {"d"}) > 0)', parse_all=True
         ).as_list()
         expected = [[['{"f"}', "+", '{"d"}'], ">", "0"]]
         self.assertTrue(actual == expected)
 
     def test_12(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(abs({"f"}) == 0)', parse_all=True
         ).as_list()
         expected = [["abs", ['{"f"}'], "==", "0"]]
         self.assertTrue(actual == expected)
 
     def test_13(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(abs({"f"} + {"d"}) > 1) & ({"s"} < 2)', parse_all=True
         ).as_list()
         expected = [
-            [["abs", [['{"f"}', "+", '{"d"}']], ">", "1"], "&", ['{"s"}', "<", "2"]]
+            [["abs", ['{"f"}', "+", '{"d"}'], ">", "1"], "&", ['{"s"}', "<", "2"]]
         ]
         self.assertTrue(actual == expected)
 
     def test_14(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} + {"3"} + {"2"} + {"1"}) > 0)', parse_all=True
             ).as_list()
         )
@@ -115,7 +115,7 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
 
     def test_15(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             'IF () THEN ("A"=="")', parse_all=True
         ).as_list()
         expected = [
@@ -124,7 +124,7 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
         
     def test_16(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             'IF ( not("F3" in ["G1","G3"])) THEN (SUBSTR({"A"}, 2, 4) in ["D1","D3"])', parse_all=True
         ).as_list()
         expected = [
@@ -142,7 +142,7 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
         
     def test_17(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             'if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True
         ).as_list()
         expected = [
@@ -151,7 +151,7 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(actual == expected)
         
     def test_18(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             'if (0 >min({"C"},{"B"})) then (1 == sum({"A"},{"B"}))', parse_all=True
         ).as_list()
         expected = [
@@ -164,7 +164,7 @@ class TestRuleminer(unittest.TestCase):
         
     def test_19(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} + {"3"} + {"2"} * {"1"}) > 0)', parse_all=True
             ).as_list()
         )
@@ -173,7 +173,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_20(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} + {"3"} * {"2"} + {"1"}) > 0)', parse_all=True
             ).as_list()
         )
@@ -182,7 +182,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_21(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} * {"3"} + {"2"} + {"1"}) > 0)', parse_all=True
             ).as_list()
         )
@@ -191,7 +191,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_22(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '({"4"} == {"3"})', parse_all=True
             ).as_list()
         )
@@ -200,7 +200,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_23(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '({"4"} != {"3"})', parse_all=True
             ).as_list()
         )
@@ -209,7 +209,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_24(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '({"4"} > {"3"})', parse_all=True
             ).as_list()
         )
@@ -218,7 +218,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_25(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} > {"3"}) & ({"2"} > {"1"}))', parse_all=True
             ).as_list()
         )
@@ -227,7 +227,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_26(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} > {"3"}) & ({"2"} == {"1"}))', parse_all=True
             ).as_list()
         )
@@ -236,7 +236,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_27(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.RULE_SYNTAX.parse_string(
+            ruleminer.parser.rule_expression().parse_string(
                 '(({"4"} > {"3"}) & (({"2"}+{"0"}) == {"1"}))', parse_all=True
             ).as_list()
         )
@@ -369,39 +369,39 @@ class TestRuleminer(unittest.TestCase):
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
         
     def test_31(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(0.05*({"A"}+0.5*{"B"}+{"C"})>0)', parse_all=True
         ).as_list()
-        expected = [[['0.05', '*', ['{"A"}', '+', '0.5', '*', '{"B"}', '+', '{"C"}']], '>', '0']]
+        expected = [['0.05', '*', ['{"A"}', '+', '0.5', '*', '{"B"}', '+', '{"C"}'], '>', '0']]
         self.assertTrue(actual == expected)
 
     def test_32(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(1*(1+0.5*({"A"}+0.5*({"B"}+1)+0.5*({"C"}+1)))>5)', parse_all=True
         ).as_list()
         expected = [['1', '*',
-                        [['1', '+', '0.5'],
+                        ['1', '+', '0.5',
                         '*',
-                        [['{"A"}', '+', '0.5'], '*', ['{"B"}', '+', '1']],
+                        ['{"A"}', '+', '0.5', '*', ['{"B"}', '+', '1'],
                         '+',
-                            ['0.5', '*', ['{"C"}', '+', '1']]],
+                            '0.5', '*', ['{"C"}', '+', '1']]],
                             '>',
                                 '5']]
 
         self.assertTrue(actual == expected)
         
     def test_33(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(0.05*(0.5*({"A"}+1)+0.5*({"B"}+{"C"}))>0)', parse_all=True
         ).as_list()
-        expected = [['0.05', '*', [['0.5', '*', ['{"A"}', '+', '1']], '+', ['0.5', '*', ['{"B"}', '+', '{"C"}']]],'>','0']]
+        expected = [['0.05', '*', ['0.5', '*', ['{"A"}', '+', '1'], '+', '0.5', '*', ['{"B"}', '+', '{"C"}']],'>','0']]
         self.assertTrue(actual == expected)
         
     def test_34(self):
-        actual = ruleminer.parser.RULE_SYNTAX.parse_string(
+        actual = ruleminer.parser.rule_expression().parse_string(
             '(0.05*({"A"}+0.5*({"B"}+1))>2)', parse_all=True
         ).as_list()
-        expected = [['0.05', '*', [[['{"A"}', '+', '0.5'], '*', ['{"B"}', '+', '1']]],'>','2']]
+        expected = [['0.05', '*', ['{"A"}', '+', '0.5', '*', ['{"B"}', '+', '1']],'>','2']]
         self.assertTrue(actual == expected)
         
     # def setUp_templates(self):
