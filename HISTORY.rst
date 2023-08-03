@@ -52,3 +52,10 @@ History
 
 * Nested functions added
 * substr and in operators added
+
+0.1.16 (2023-8-3)
+-----------------
+
+* Templates now do not necessarily have to contain a regex
+* Bug fix when evaluating rules that contain columns that do not exist
+* Templates now can start with 'if () then'
