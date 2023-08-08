@@ -22,7 +22,7 @@ quoted_string = Combine(quote + Word(string) + quote)
 column = Combine("{" + quote + Word(string) + quote + "}")
 addop = Literal("+") | Literal("-")
 multop = Literal("*") | Literal("/")
-expop = Literal("^")    
+expop = Literal("**")    
 compa_op = one_of(">= > <= < != == in IN")
 
 list_element = quoted_string | column | number | empty

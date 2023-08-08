@@ -64,3 +64,9 @@ History
 -----------------
 
 * Generate rules now runs without specified data
+
+0.1.18 (2023-8-8)
+-----------------
+
+* Dedicated function added for template to rule conversion without data
+* Exp sign changed from ^ to **

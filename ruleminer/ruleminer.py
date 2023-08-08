@@ -122,12 +122,15 @@ class RuleMiner:
         assert (
             self.templates is not None
         ), "Unable to generate rules, no templates defined."
-        # assert self.data is not None, "Unable to generate rules, no data defined."
 
         self.setup_rules_dataframe()
 
-        for template in self.templates:
-            self.generate_rules(template=template)
+        if self.data is None:
+            for template in self.templates:
+                self.convert_template(template=template)
+        else:
+            for template in self.templates:
+                self.generate_rules(template=template)
 
         return None
 
@@ -198,6 +201,33 @@ class RuleMiner:
         )
         self.results[RESULT] = self.results[RESULT].astype(bool)
 
+    def convert_template(self, template: dict={}):
+        """
+        Main function to convert templates to rules without data and regexes
+        """
+        logger = logging.getLogger(__name__)
+        group = template.get("group", 0)
+        encodings = template.get("encodings", {})
+        template_expression = template.get("expression", None)
+
+        # if the template expression is not a if then rule then it is changed into a if then rule
+        try:
+            parsed = parser.rule_expression().parse_string(template_expression, parseAll=True).as_list()
+        except:
+            logger.error(
+                'Parsing error in expression "' + str(template_expression) + '"'
+            )
+            return None
+
+        reformulated_expression = self.reformulate(parsed)[1:-1]
+        self.add_rule(
+            rule_id=len(self.rules.index),
+            rule_group=group,
+            rule_def=reformulated_expression,
+            rule_status="",
+            rule_metrics={m: np.nan for m in self.metrics},
+            encodings=encodings,
+        )
 
     def generate_rules(self, template: dict):
         """
@@ -525,7 +555,10 @@ class RuleMiner:
         function to convert some parameters settings and functions to pandas code
         """
         if isinstance(expression, str):
-            return expression
+            if expression == "in":
+                return ".isin"
+            else:
+                return expression
         else:
             for idx, item in enumerate(expression):
                 if (
@@ -567,7 +600,7 @@ class RuleMiner:
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
-                    for i in expression[idx + 2 :]:
+                    for i in expression[idx+2:]:
                         l += self.reformulate(i)
                     return "(" + l + ")"
                 if (
