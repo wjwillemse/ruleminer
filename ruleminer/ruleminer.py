@@ -72,20 +72,19 @@ class RuleMiner:
         self.required_vars = required_variables(self.metrics)
         self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
 
-        if data is not None:
-            self.data = data
-            self.eval_dict = {
-                "MAX": np.maximum,
-                "MIN": np.minimum,
-                "ABS": np.abs,
-                "QUANTILE": np.quantile,
-                "SUM": np.sum,
-                "sum": np.sum,
-                "max": np.maximum,
-                "min": np.minimum,
-                "abs": np.abs,
-                "quantile": np.quantile,
-            }
+        self.data = data
+        self.eval_dict = {
+            "MAX": np.maximum,
+            "MIN": np.minimum,
+            "ABS": np.abs,
+            "QUANTILE": np.quantile,
+            "SUM": np.sum,
+            "sum": np.sum,
+            "max": np.maximum,
+            "min": np.minimum,
+            "abs": np.abs,
+            "quantile": np.quantile,
+        }
 
             # def get_encodings():
             #     for item in encodings_definitions:
@@ -123,7 +122,7 @@ class RuleMiner:
         assert (
             self.templates is not None
         ), "Unable to generate rules, no templates defined."
-        assert self.data is not None, "Unable to generate rules, no data defined."
+        # assert self.data is not None, "Unable to generate rules, no data defined."
 
         self.setup_rules_dataframe()
 
@@ -132,8 +131,13 @@ class RuleMiner:
 
         return None
 
-    def evaluate(self):
+    def evaluate(self,
+            data: pd.DataFrame = None,
+    ):
         """ """
+        if data is not None:
+            self.update(data=data)
+
         assert self.rules is not None, "Unable to evaluate data, no rules defined."
         assert self.data is not None, "Unable to evaluate data, no data defined."
 
@@ -156,7 +160,6 @@ class RuleMiner:
                 expression=expression, required=required_vars
             )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
-            print([results[key] for key in results.keys()])
             len_results = {
                 key: len(results[key]) if not isinstance(results[key], float) else 0
                 for key in results.keys()
@@ -207,10 +210,11 @@ class RuleMiner:
         template_expression = template.get("expression", None)
 
         # temporarily add index names as columns, so we derive rules with index names
-        for level in range(len(self.data.index.names)):
-            self.data[
-                str(self.data.index.names[level])
-            ] = self.data.index.get_level_values(level=level)
+        if self.data is not None:
+            for level in range(len(self.data.index.names)):
+                self.data[
+                    str(self.data.index.names[level])
+                ] = self.data.index.get_level_values(level=level)
 
         # if the template expression is not a if then rule then it is changed into a if then rule
         try:
@@ -223,13 +227,13 @@ class RuleMiner:
 
         sorted_expressions = {}
 
-        candidates = []
         if_part_column_values = self.search_column_value(if_part, [])
         if_part_substitutions = [
             generate_substitutions(df=self.data, column_value=column_value)
             for column_value in if_part_column_values
         ]
         if_part_substitutions = itertools.product(*if_part_substitutions)
+
         logger.info("Expression for if-part (" + str(if_part) + ") generated")
         for if_part_substitution in if_part_substitutions:
             candidate, _, _, _, _ = self.substitute_list(
@@ -262,7 +266,12 @@ class RuleMiner:
                     )
                 template_column_values = if_part_column_values + then_part_column_values
 
-                if expression_substitutions!=[]:
+                candidates = []
+                if expression_substitutions == []:
+                    # no substitutions, so original parsed expression
+                    candidates.append(parsed)
+                else:
+                    # add all substitutions to candidate list
                     for substitution in expression_substitutions:
                         # substitute variables in full expression
                         parsed_substituted = self.substitute_group_names(parsed, [item[2] for item in substitution])
@@ -273,43 +282,43 @@ class RuleMiner:
                             column_substitutions=[item[0] for item in substitution],
                             value_substitutions=[item[1] for item in substitution],
                         )
-                else:
-                    # then part contains no substitutions
-                    candidate_parsed = parsed
-                
-                sorted_expression = flatten_and_sort(candidate_parsed)[1:-1]
-                reformulated_expression = self.reformulate(candidate_parsed)[1:-1]
-                if sorted_expression not in sorted_expressions.keys():
-                    sorted_expressions[sorted_expression] = True
-                    rule_code = parser.python_code_lengths(
-                        expression=reformulated_expression,
-                        required=self.required_vars
-                    )
-                    len_results = self.evaluate_code(
-                        expressions=rule_code, dataframe=self.data
-                    )
-                    rule_metrics = calculate_metrics(
-                        len_results=len_results, metrics=self.metrics
-                    )
-                    logger.debug(
-                        "Candidate expression "
-                        + reformulated_expression
-                        + " has rule metrics "
-                        + str(rule_metrics)
-                    )
-                    if self.apply_filter(metrics=rule_metrics):
-                        self.add_rule(
-                            rule_id=len(self.rules.index),
-                            rule_group=group,
-                            rule_def=reformulated_expression,
-                            rule_status="",
-                            rule_metrics=rule_metrics,
-                            encodings=encodings,
+                        candidates.append(candidate_parsed)
+
+                for candidate in candidates:
+                    sorted_expression = flatten_and_sort(candidate)[1:-1]
+                    reformulated_expression = self.reformulate(candidate)[1:-1]
+                    if sorted_expression not in sorted_expressions.keys():
+                        sorted_expressions[sorted_expression] = True
+                        rule_code = parser.python_code_lengths(
+                            expression=reformulated_expression,
+                            required=self.required_vars
                         )
+                        len_results = self.evaluate_code(
+                            expressions=rule_code, dataframe=self.data
+                        )
+                        rule_metrics = calculate_metrics(
+                            len_results=len_results, metrics=self.metrics
+                        )
+                        logger.debug(
+                            "Candidate expression "
+                            + reformulated_expression
+                            + " has rule metrics "
+                            + str(rule_metrics)
+                        )
+                        if self.apply_filter(metrics=rule_metrics):
+                            self.add_rule(
+                                rule_id=len(self.rules.index),
+                                rule_group=group,
+                                rule_def=reformulated_expression,
+                                rule_status="",
+                                rule_metrics=rule_metrics,
+                                encodings=encodings,
+                            )
 
         # remove temporarily added index columns
-        for level in range(len(self.data.index.names)):
-            del self.data[str(self.data.index.names[level])]
+        if self.data is not None:
+            for level in range(len(self.data.index.names)):
+                del self.data[str(self.data.index.names[level])]
 
     def substitute_group_names(self, expr: str = None, group_names_list: list = []):
         """ """
@@ -423,7 +432,7 @@ class RuleMiner:
         """
         This function applies the filter to the rule metrics (for example confidence > 0.75)
         """
-        return all([metrics[metric] >= self.filter[metric] for metric in self.filter])
+        return self.data is None or all([metrics[metric] >= self.filter[metric] for metric in self.filter])
 
     def evaluate_code(
         self,

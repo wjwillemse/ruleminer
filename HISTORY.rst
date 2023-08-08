@@ -59,3 +59,8 @@ History
 * Templates now do not necessarily have to contain a regex
 * Bug fix when evaluating rules that contain columns that do not exist
 * Templates now can start with 'if () then'
+
+0.1.17 (2023-8-8)
+-----------------
+
+* Generate rules now runs without specified data
