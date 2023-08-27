@@ -212,6 +212,10 @@ class RuleMiner:
 
         # if the template expression is not a if then rule then it is changed into a if then rule
         try:
+            condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
+            rule_parts = condition.search(template_expression)
+            if rule_parts is None:
+                template_expression = "if () then " + template_expression
             parsed = parser.rule_expression().parse_string(template_expression, parseAll=True).as_list()
         except:
             logger.error(
@@ -555,7 +559,7 @@ class RuleMiner:
         function to convert some parameters settings and functions to pandas code
         """
         if isinstance(expression, str):
-            if expression == "in":
+            if expression.lower() == "in":
                 return ".isin"
             else:
                 return expression

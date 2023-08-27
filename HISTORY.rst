@@ -70,3 +70,8 @@ History
 
 * Dedicated function added for template to rule conversion without data
 * Exp sign changed from ^ to **
+
+0.1.19 (2023-8-27)
+------------------
+
+* Small fixes rule conversion without data
