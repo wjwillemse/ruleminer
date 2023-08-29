@@ -510,9 +510,18 @@ class RuleMiner:
         """
         Function to add a result to the results list
         """
+        logger = logging.getLogger(__name__)
+        if co_indices is not None and not isinstance(co_indices, float):
+            nco = len(co_indices)
+        else:
+            nco = 0
+        if ex_indices is not None and not isinstance(ex_indices, float):
+            nex = len(ex_indices)
+        else:
+            nex = 0
 
-        nco = len(co_indices if co_indices is not None else [])
-        nex = len(ex_indices if ex_indices is not None else [])
+        if nco == 0 and nex == 0:
+            logger.info("Error when evaluating rule results for rule id "+str(rule_idx))
 
         if nco > 0:
             data = [

@@ -2,7 +2,7 @@
 
 __author__ = """Willem Jan Willemse"""
 __email__ = "w.j.willemse@dnb.nl"
-__version__ = "0.1.19"
+__version__ = "0.1.20"
 
 from .ruleminer import *
 from .utils import *

@@ -75,3 +75,8 @@ History
 ------------------
 
 * Small fixes rule conversion without data
+
+0.1.20 (2023-8-29)
+------------------
+
+* Small fixes in evaluating rules with syntax errors
