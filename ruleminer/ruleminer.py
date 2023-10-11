@@ -71,20 +71,28 @@ class RuleMiner:
         self.metrics = metrics(self.metrics)
         self.required_vars = required_variables(self.metrics)
         self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
+        self.tolerance = self.params.get("tolerance", None)
 
-        self.data = data
-        self.eval_dict = {
-            "MAX": np.maximum,
-            "MIN": np.minimum,
-            "ABS": np.abs,
-            "QUANTILE": np.quantile,
-            "SUM": np.sum,
-            "sum": np.sum,
-            "max": np.maximum,
-            "min": np.minimum,
-            "abs": np.abs,
-            "quantile": np.quantile,
-        }
+        if data is not None:
+            self.data = data
+            self.eval_dict = {
+                "MAX": np.maximum,
+                "MIN": np.minimum,
+                "ABS": np.abs,
+                "QUANTILE": np.quantile,
+                "SUM": np.nansum,
+                "sum": np.nansum,
+                "max": np.maximum,
+                "min": np.minimum,
+                "abs": np.abs,
+                "quantile": np.quantile,
+            }
+            if self.tolerance is not None:
+                def __tol__(v):
+                    for ((start, end)), value in self.tolerance.items():
+                        if v >= start and v < end:
+                            return 0.5 * 10 ** (value)
+                self.eval_dict['__tol__'] = __tol__
 
             # def get_encodings():
             #     for item in encodings_definitions:
@@ -598,6 +606,32 @@ class RuleMiner:
                             + str(precision)
                             + ")"
                         )
+                if (
+                    "tolerance" in self.params.keys()
+                    and isinstance(item, str)
+                    and (item in ["=="])
+                ):
+                    if not (
+                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
+                    ) and (
+                        not (
+                            is_string(expression[idx + 1])
+                            and len(expression[idx + 1 :]) == 1
+                        )
+                    ):
+                        left_side = self.reformulate(expression[:idx])
+                        right_side = self.reformulate(expression[idx + 1 :])
+                        return (
+                            "(("
+                            + right_side+"-0.5*("+right_side.replace("}", "}.apply(__tol__)")+")"
+                            + " <= "
+                            + left_side+"+0.5*("+left_side.replace("}", "}.apply(__tol__)")+")"
+                            + ") & ("
+                            + right_side+"+0.5*("+right_side.replace("}", "}.apply(__tol__)")+")"
+                            + " >= "
+                            + left_side+"-0.5*("+left_side.replace("}", "}.apply(__tol__)")+")"
+                            + "))"
+                            )
                 if (
                     self.params.get("evaluate_quantile", False)
                     and isinstance(item, str)

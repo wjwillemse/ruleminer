@@ -80,3 +80,9 @@ History
 ------------------
 
 * Small fixes in evaluating rules with syntax errors
+
+0.1.21 (2023-10-11)
+------------------
+
+* changed sum to nansum
+* added tolerance functionality
