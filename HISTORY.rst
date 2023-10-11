@@ -52,3 +52,9 @@ History
 
 * Nested functions added
 * substr and in operators added
+
+0.1.14 (2023-10-11)
+------------------
+
+* changed sum to nansum
+* added tolerance functionality
