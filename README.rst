@@ -306,9 +306,7 @@ If the precision should depend on the specific value of each row, which is the c
         }
     }
 
-This means that if the value >= 1e3 and < 1e6 then the precision of that value is -2, and so on.
-
-The effect is that comparisons like::
+This means that if abs(value) >= 1e3 and < 1e6 then the precision of that value is -2, and so on. The effect is that comparisons like ::
 
     A==B
 
@@ -318,11 +316,9 @@ are translated to ::
 
     & 
 
-    A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B)
+    A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B))
 
 where tol(A) return 0.5*10**(precision), with precision based on the value A and the tolerance defined in the 'tolerance' parameter.
-
-
 
 Suppose you have the following DataFrame ::
 
