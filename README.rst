@@ -308,6 +308,22 @@ If the precision should depend on the specific value of each row, which is the c
 
 This means that if the value >= 1e3 and < 1e6 then the precision of that value is -2, and so on.
 
+The effect is that comparisons like::
+
+    A==B
+
+are translated to ::
+
+    A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
+
+    & 
+
+    A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B)
+
+where tol(A) return 0.5*10**(precision), with precision based on the value A and the tolerance defined in the 'tolerance' parameter.
+
+
+
 Suppose you have the following DataFrame ::
 
     df = pd.DataFrame(
@@ -344,26 +360,12 @@ And r.rules gives you the following output
      - confidence
      - encodings
    * - 0
-     - if () then ((({"C"})-0.5*abs(({"C"}.apply(__tol__))) <= ({"A"}+{"B"})+0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))) & (({"C"})+0.5*abs(({"C"}.apply(__tol__))) >= ({"A"}+{"B"})-0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))))
+     - if () then ((({"C"})-0.5*abs(({"C"}.apply(__tol__))) <= ({"A"}+{"B"})+0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))) & ... )
      - 
      - 1
      - 1
      - 0.5
      - {}
-
-This means that comparisons like::
-
-    A==B
-
-are translated to ::
-
-    A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
-
-    & 
-
-    A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B)
-
-where tol(A) return 0.5*10**(precision), with precision based on the value A and the tolerance defined in the 'tolerance' parameter.
 
 Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
 
