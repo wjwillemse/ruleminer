@@ -292,6 +292,84 @@ are translated to ::
 
 If no 'decimal' parameter is provided then the absolute difference should be exactly zero.
 
+Precision based on datapoint values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the precision should depend on the specific value of each row, which is the case for some XBRL validation rules (see for example `EIOPA XBRL Filing Rules <https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Filing_Rules_2.8.0.pdf>`_) then you can define tolerances that depend on the values in this way ::
+
+    params = {
+        'tolerance': {
+            (  0, 1e3): -1,
+            (1e3, 1e6): -2, 
+            (1e6, 1e8): -3, 
+            (1e8, np.inf): -4
+        }
+    }
+
+This means that if the value >= 1e3 and < 1e6 then the precision of that value is -2, and so on.
+
+Suppose you have the following DataFrame ::
+
+    df = pd.DataFrame(
+        columns=[
+            "A",
+            "B",
+            "C",
+        ],
+        data=[
+            [1499, 1502, 3000],
+            [1499, 1500, 2999],
+        ],
+    )
+
+And you define the following template: ::
+
+    templates = [{'expression': '({"A"} + {"B"}== {"C"})'}]
+
+Then you can run ::
+
+    r = ruleminer.RuleMiner(templates=templates, data=df, params=params)
+
+And r.rules gives you the following output
+
+.. list-table:: Generated rules (2)
+   :widths: 20 40 20 20 20 15 15
+   :header-rows: 1
+
+   * - id
+     - definition
+     - status
+     - abs support
+     - abs exceptions
+     - confidence
+     - encodings
+   * - 0
+     - if () then ((({"C"})-0.5*abs(({"C"}.apply(__tol__))) <= ({"A"}+{"B"})+0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))) & (({"C"})+0.5*abs(({"C"}.apply(__tol__))) >= ({"A"}+{"B"})-0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))))
+     - 
+     - 1
+     - 1
+     - 0.5
+     - {}
+
+This means that comparisons like::
+
+    A==B
+
+are translated to ::
+
+    A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
+
+    & 
+
+    A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B)
+
+where tol(A) return 0.5*10**(precision), with precision based on the value A and the tolerance defined in the 'tolerance' parameter.
+
+Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
+
+If the rule contains minus or division operators then it should be reformulated in such a way that it contains only plus and multiplication operators.
+
+
 Evaluating results within rules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

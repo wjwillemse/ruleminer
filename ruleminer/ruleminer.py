@@ -90,7 +90,7 @@ class RuleMiner:
             if self.tolerance is not None:
                 def __tol__(v):
                     for ((start, end)), value in self.tolerance.items():
-                        if v >= start and v < end:
+                        if abs(v) >= start and abs(v) < end:
                             return 0.5 * 10 ** (value)
                 self.eval_dict['__tol__'] = __tol__
 
@@ -623,13 +623,13 @@ class RuleMiner:
                         right_side = self.reformulate(expression[idx + 1 :])
                         return (
                             "(("
-                            + right_side+"-0.5*("+right_side.replace("}", "}.apply(__tol__)")+")"
+                            + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
                             + " <= "
-                            + left_side+"+0.5*("+left_side.replace("}", "}.apply(__tol__)")+")"
+                            + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
                             + ") & ("
-                            + right_side+"+0.5*("+right_side.replace("}", "}.apply(__tol__)")+")"
+                            + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
                             + " >= "
-                            + left_side+"-0.5*("+left_side.replace("}", "}.apply(__tol__)")+")"
+                            + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
                             + "))"
                             )
                 if (
