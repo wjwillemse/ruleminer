@@ -609,7 +609,7 @@ class RuleMiner:
                 if (
                     "tolerance" in self.params.keys()
                     and isinstance(item, str)
-                    and (item in ["=="])
+                    and item in ["==", "!=", "<", "<=", ">", ">="]
                 ):
                     if not (
                         is_string(expression[idx - 1]) and len(expression[:idx]) == 1
@@ -621,16 +621,45 @@ class RuleMiner:
                     ):
                         left_side = self.reformulate(expression[:idx])
                         right_side = self.reformulate(expression[idx + 1 :])
-                        return (
-                            "(("
-                            + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
-                            + " <= "
-                            + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
-                            + ") & ("
-                            + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
-                            + " >= "
-                            + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
-                            + "))"
+                        if (item in ["=="]):
+                            return (
+                                "(("
+                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + " <= "
+                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + ") & ("
+                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + " >= "
+                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + "))"
+                            )
+                        if (item in ["!="]):
+                            return (
+                                "(("
+                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + " > "
+                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + ") | ("
+                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + " < "
+                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + "))"
+                            )
+                        elif (item in [">", ">="]):
+                            return (
+                                "("
+                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + item
+                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + ")"
+                            )
+                        elif (item in ["<", "<="]):
+                            return (
+                                "("
+                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + item
+                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + ")"
                             )
                 if (
                     self.params.get("evaluate_quantile", False)

@@ -295,7 +295,7 @@ If no 'decimal' parameter is provided then the absolute difference should be exa
 Precision based on datapoint values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the precision should depend on the specific value of each row, which is the case for some XBRL validation rules (see for example `EIOPA XBRL Filing Rules <https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Filing_Rules_2.8.0.pdf>`_) then you can define tolerances that depend on the values in this way ::
+If the precision should depend on the specific value of each row, which is the case for some XBRL validation rules (see for example `EIOPA XBRL Taxonomy Documentation <https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Taxonomy_Documentation_2.8.0.pdf>`_), then you can define tolerances that depend on the values in this way ::
 
     params = {
         'tolerance': {
@@ -306,21 +306,33 @@ If the precision should depend on the specific value of each row, which is the c
         }
     }
 
-This means that if abs(value) >= 1e3 and < 1e6 then the precision of that value is -2, and so on. The effect is that comparisons like ::
+This means that if abs(value) >= 1e3 and < 1e6 then the precision of that value is -2, and so on.
+
+The following example is taken from the document mentioned (page 41) above. In case of addition of two numbers A and B, where A is interval of [A1, A2], B is interval of [B1, B2] the result is interval of [A1+B1, A2+B2]. If the interval of the reported numbers overlap with the computed interval the rule is satisfied. An example in C = A + B, where:
+– A is reported as 1499 with precision in units (@decimals = 0) hence the resulting range is [1498.5, 1499.5];
+– B is reported as 1502 with precision in units (@decimals = 0) hence the resulting range is [1501.5, 1502.5]; and 
+– C is reported as = 3000 with precision in units (@decimals = 0) hence the resulting range is [2999.5, 3000.5].
+
+Following the basic operations, the computed tolerance interval for A + B is [1498.5+1501.5, 1499.5+1502.5] = [3000, 3002]. There is an overlap between the interval of C and interval of A + B. As a result the rule is satisfied. If C was reported as 2999, the resulting interval ( with precision in units) would be [2998.5, 2999.5]. With no overlap the rule would not be  satisfied and an exception would be raised.
+
+So, to check whether 'A = B' there must be overlap between intervals [A1, A2] and [B1, B2], and that is the case if B1 <= A2 and A1 <= B2. Likewise, for the comparison 'A > B' we check whether A1 > B2 and for the comparison 'A < B' we check whether A2 < B1.
+
+In ruleminer, a comparison like ::
 
     A==B
 
-are translated to ::
+is translated to ::
 
     A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
 
-    & 
+    &
 
     A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B))
 
-where tol(A) return 0.5*10**(precision), with precision based on the value A and the tolerance defined in the 'tolerance' parameter.
+where tol(A) return 0.5*10**(precision), with precision based on value A and the tolerance defined in the 'tolerance' parameter.
 
-Suppose you have the following DataFrame ::
+
+The example can be reproduced in ruleminer in the following way ::
 
     df = pd.DataFrame(
         columns=[
@@ -336,7 +348,7 @@ Suppose you have the following DataFrame ::
 
 And you define the following template: ::
 
-    templates = [{'expression': '({"A"} + {"B"}== {"C"})'}]
+    templates = [{'expression': '({"A"} + {"B"} == {"C"})'}]
 
 Then you can run ::
 

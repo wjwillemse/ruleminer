@@ -85,4 +85,10 @@ History
 -------------------
 
 * changed sum to nansum
-* added tolerance functionality
+* added tolerance functionality for ==
+
+0.1.22 (2023-10-17)
+-------------------
+
+* added tolerance functionality for !=, <, <=, > and >=
+* updated docs
