@@ -13,7 +13,7 @@ from ruleminer.const import VAR_Z
 lpar, rpar = map(Suppress, "()")
 e = CaselessKeyword("E")
 number = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
-function = one_of("min max abs quantile sum substr MIN MAX ABS QUANTILE SUM SUBSTR")
+function = one_of("min max abs quantile sum substr split count sumif countif MIN MAX ABS QUANTILE SUM SUBSTR SPLIT COUNT SUMIF COUNTIF")
 empty = one_of(["None", '""', "pd.NA", "np.nan"])
 quote = Literal('"')
 sep = Literal(",")
@@ -53,12 +53,15 @@ def term_expression():
     expr = Forward()
 
     function_expr = (function + Group(lpar + expr + (sep + expr)[...] + rpar))
+
+    element = ( function_expr | quoted_string_list | quoted_string | column | number | empty )
     
     atom = (
         addop[...]
         + (
             # (function_expr | quoted_string_list | quoted_string | column | number | empty ).setParseAction(push_first)
-            (function_expr | quoted_string_list | quoted_string | column | number | empty )
+            (element + compa_op + element)
+            | element
             | Group(lpar + expr + rpar)
         )
     # ).setParseAction(push_unary_minus)

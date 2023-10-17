@@ -700,6 +700,30 @@ class RuleMiner:
                     for i in expression[idx+2:]:
                         l += self.reformulate(i)
                     return l
+                if (
+                    isinstance(item, str)
+                    and item.lower() == "split"
+                ):
+                    string, _, separator, _, position = expression[idx+1]
+                    l = "("+self.reformulate(string)+".str.split("+separator+").str["+position+"])"
+                    for i in expression[idx+2:]:
+                        l += self.reformulate(i)
+                    return l
+                if (
+                    isinstance(item, str)
+                    and item.lower() == "sumif"
+                ):
+                    string = expression[idx+1][0]
+                    condition = expression[idx+1][2:]
+                    l = "sum("+self.reformulate(string)+".loc["+self.reformulate(condition)+"])"
+                    for i in expression[idx+2:]:
+                        l += self.reformulate(i)
+                    return l
+                if (
+                    isinstance(item, str)
+                    and item.lower() == "countif"
+                ):
+                    logging.error("Not yet implemented")
             l = ""
             for i in expression:
                 l += self.reformulate(i)
