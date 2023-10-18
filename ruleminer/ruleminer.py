@@ -6,9 +6,9 @@ import re
 import numpy as np
 import pandas as pd
 
-from ruleminer import parser
-from ruleminer.utils import generate_substitutions
-from ruleminer.metrics import (
+from .parser import *
+from .utils import generate_substitutions
+from .metrics import (
     metrics,
     required_variables,
     calculate_metrics

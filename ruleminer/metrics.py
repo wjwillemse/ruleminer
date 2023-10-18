@@ -1,24 +1,24 @@
 """Metrics module."""
 
-from ruleminer.const import ABSOLUTE_SUPPORT
-from ruleminer.const import ABSOLUTE_EXCEPTIONS
-from ruleminer.const import SUPPORT
-from ruleminer.const import CONFIDENCE
-from ruleminer.const import ADDED_VALUE
-from ruleminer.const import CASUAL_CONFIDENCE
-from ruleminer.const import CASUAL_SUPPORT
-from ruleminer.const import LIFT
-from ruleminer.const import CONVICTION
-from ruleminer.const import RULE_POWER_FACTOR
-from ruleminer.const import VAR_X
-from ruleminer.const import VAR_NOT_X
-from ruleminer.const import VAR_Y
-from ruleminer.const import VAR_Z
-from ruleminer.const import VAR_N
-from ruleminer.const import VAR_NOT_Y
-from ruleminer.const import VAR_X_AND_Y
-from ruleminer.const import VAR_X_AND_NOT_Y
-from ruleminer.const import VAR_NOT_X_AND_NOT_Y
+from .const import ABSOLUTE_SUPPORT
+from .const import ABSOLUTE_EXCEPTIONS
+from .const import SUPPORT
+from .const import CONFIDENCE
+from .const import ADDED_VALUE
+from .const import CASUAL_CONFIDENCE
+from .const import CASUAL_SUPPORT
+from .const import LIFT
+from .const import CONVICTION
+from .const import RULE_POWER_FACTOR
+from .const import VAR_X
+from .const import VAR_NOT_X
+from .const import VAR_Y
+from .const import VAR_Z
+from .const import VAR_N
+from .const import VAR_NOT_Y
+from .const import VAR_X_AND_Y
+from .const import VAR_X_AND_NOT_Y
+from .const import VAR_NOT_X_AND_NOT_Y
 
 import numpy as np
 
