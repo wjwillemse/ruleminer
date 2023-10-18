@@ -537,10 +537,10 @@ class TestRuleminer(unittest.TestCase):
     def test_36(self):
         actual = (
             ruleminer.parser.rule_expression()
-            .parse_string('((substr({"Type"}, 0, 3)) > 0)', parseAll=True)
+            .parse_string('(substr({"Type"}, 0, 3) > 0)', parseAll=True)
             .as_list()
         )
-        expected = [[["substr", ['{"Type"}', ",", "0", ",", "3"]], ">", "0"]]
+        expected = [["substr", ['{"Type"}', ",", "0", ",", "3"], ">", "0"]]
         self.assertTrue(actual == expected)
 
     def test_37(self):

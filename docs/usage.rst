@@ -194,6 +194,7 @@ The following rules can be applied to the data above::
 
     ({"Own funds"} <= quantile({"Own funds"}, 0.95))
 
+    (substr({"Type"}, 0, 1) in ["a", "b"])
 
 Parameters
 ----------

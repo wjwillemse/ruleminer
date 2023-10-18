@@ -24,4 +24,29 @@ ruleminer
 
 Python package to discover association rules in Pandas DataFrames.
 
-This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_ from Willem Jan Willemse and Annick van Ool.
+This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_.
+
+Here is what the package does:
+
+* Generate rules with rule templates containing regular expressions and a Pandas DataFrame dataset
+
+  - available functions: min, max, abs, quantile, sum, substr, split, count, sumif and countif
+  - including parameters for metric filters and rule precisions (including XBRL tolerances)
+
+* Evaluate rules and calculate association rules metrics
+
+  - available metrics: abs support, abs exceptions, confidence, support, added value, casual confidence, casual support, conviction, lift and rule power factor
+
+Here are some examples of rule templates with regexes with which you can generate validation rules:
+
+- if ({"Type"} == ".*") then ({".*"} > 0)
+
+- if ({".*"} > 0) then (({".*"} == 0) & ({".*"} > 0))
+
+- (({".*"} + {".*"} + {".*"}) == {".*"})
+
+- (min({".*"}, {".*"}) == {".*"})
+
+- ({"Own funds"} <= quantile({"Own funds"}, 0.95))
+
+- (substr({"Type"}, 0, 1) in ["a", "b"])
