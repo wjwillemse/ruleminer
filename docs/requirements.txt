@@ -7,3 +7,4 @@ sphinx>=3.2.1
 numpy
 pandas
 pyparsing
+scikit-learn
