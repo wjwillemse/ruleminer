@@ -35,42 +35,42 @@ quoted_string_list = (
     )
 )
 
-# exprStack = []
+def function_expression():
+    """
+    """
+    expr = Forward()
 
-# def push_first(toks):
-#     exprStack.append(toks[0])
+    params = Forward()
+    
+    param_element = ( expr | quoted_string_list | quoted_string | column | number | empty )
 
-# def push_unary_minus(toks):
-#     for t in toks:
-#         if t == "-":
-#             exprStack.append("unary -")
-#         else:
-#             break
+    param_condition = param_element + compa_op + param_element
+    
+    param = param_condition | param_element
+    
+    params <<= param + ( sep + param)[...]
+    
+    expr <<= function + Group ( lpar + params + rpar ) 
+
+    return expr
 
 def term_expression():
     """
     """    
     expr = Forward()
 
-    function_expr = (function + Group(lpar + expr + (sep + expr)[...] + rpar))
+    term_element = ( 
+        function_expression() | quoted_string_list | quoted_string | column | number | empty 
+    )
 
-    element = ( function_expr | quoted_string_list | quoted_string | column | number | empty )
-    
     atom = (
         addop[...]
         + (
-            # (function_expr | quoted_string_list | quoted_string | column | number | empty ).setParseAction(push_first)
-            (element + compa_op + element)
-            | element
-            | Group(lpar + expr + rpar)
+            term_element | ( lpar + expr + rpar )
         )
-    # ).setParseAction(push_unary_minus)
     )
 
     factor = Forward()
-    # factor <<= atom + (expop + factor).setParseAction(push_first)[...]
-    # term = factor + (multop + factor).setParseAction(push_first)[...]
-    # expr <<= term + (addop + term).setParseAction(push_first)[...]
     factor <<= atom + (expop + factor)[...]
     term = factor + (multop + factor)[...]
     expr <<= term + (addop + term)[...]

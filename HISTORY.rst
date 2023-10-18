@@ -92,3 +92,8 @@ History
 
 * added tolerance functionality for !=, <, <=, > and >=
 * updated docs
+
+0.1.23 (2023-10-17)
+-------------------
+
+* added nested conditions in functions
