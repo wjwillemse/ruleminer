@@ -8,8 +8,8 @@ import pyparsing
 from pyparsing import *
 from typing import Dict
 
-from ruleminer.const import DUNDER_DF
-from ruleminer.const import VAR_Z
+from .const import DUNDER_DF
+from .const import VAR_Z
 
 lpar, rpar = map(Suppress, "()")
 number = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
