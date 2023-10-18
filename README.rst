@@ -2,6 +2,9 @@
 ruleminer
 =========
 
+.. image:: https://readthedocs.org/projects/ruleminer/badge/?version=latest
+        :alt: ReadTheDocs
+        :target: https://ruleminer.readthedocs.io/en/latest/
 
 .. image:: https://img.shields.io/pypi/v/ruleminer.svg
         :target: https://pypi.python.org/pypi/ruleminer
