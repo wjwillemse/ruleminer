@@ -18,10 +18,6 @@ ruleminer
         :alt: Code style: black
 
 
-**DISCLAIMER - BETA PHASE**
-
-*This package is currently in a beta phase.*
-
 Python package to discover association rules in Pandas DataFrames. 
 
 This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_.
