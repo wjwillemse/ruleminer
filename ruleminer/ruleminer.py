@@ -1,35 +1,36 @@
 """Main module."""
 
-import pandas as pd
 import logging
 import itertools
 import re
 import numpy as np
-import pyparsing
+import pandas as pd
 
 from ruleminer import parser
 from ruleminer.utils import generate_substitutions
-from ruleminer.metrics import metrics
-from ruleminer.metrics import required_variables
-from ruleminer.metrics import calculate_metrics
-from ruleminer.const import CONFIDENCE
-from ruleminer.const import ABSOLUTE_SUPPORT
-from ruleminer.const import ABSOLUTE_EXCEPTIONS
-from ruleminer.const import ADDED_VALUE
-from ruleminer.const import RULE_ID
-from ruleminer.const import RULE_GROUP
-from ruleminer.const import RULE_DEF
-from ruleminer.const import RULE_STATUS
-from ruleminer.const import RULE_VARIABLES
-from ruleminer.const import RESULT
-from ruleminer.const import INDICES
-from ruleminer.const import ENCODINGS
-from ruleminer.const import DUNDER_DF
-from ruleminer.const import VAR_X_AND_Y
-from ruleminer.const import VAR_X_AND_NOT_Y
-from ruleminer.const import VAR_Z
-from ruleminer.encodings import encodings_definitions
-
+from ruleminer.metrics import (
+    metrics,
+    required_variables,
+    calculate_metrics
+)
+from ruleminer.const import (
+    CONFIDENCE,
+    ABSOLUTE_SUPPORT,
+    ABSOLUTE_EXCEPTIONS,
+    ADDED_VALUE,
+    RULE_ID,
+    RULE_GROUP,
+    RULE_DEF,
+    RULE_STATUS,
+    RULE_VARIABLES,
+    RESULT,
+    INDICES,
+    ENCODINGS,
+    DUNDER_DF,
+    VAR_X_AND_Y,
+    VAR_X_AND_NOT_Y,
+    VAR_Z
+)
 
 class RuleMiner:
     """
@@ -147,7 +148,7 @@ class RuleMiner:
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
-            rule_code = parser.python_code_index(
+            rule_code = parser.dataframe_index(
                 expression=expression, required=required_vars
             )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
@@ -229,7 +230,40 @@ class RuleMiner:
 
     def generate_rules(self, template: dict):
         """
-        Main function to generate rules from data given a rule template
+        Generate rules from data using a rule template.
+
+        This method generates rules based on a provided rule template. It uses the template
+        expression to create a set of rules by substituting variable values and applying
+        conditions. The resulting rules are evaluated and filtered based on specified
+        metrics.
+
+        Args:
+            template (dict): A dictionary containing the rule template with the following keys:
+                - "group" (int): The group identifier for the rules.
+                - "encodings" (dict): A dictionary of encodings for the rules.
+                - "expression" (str): The rule template expression.
+
+        Returns:
+            None
+
+        Example:
+            >>> rule_template = {
+            ...     "expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")'
+            ...     "group": 1,
+            ...     "encodings": {},
+            ... }
+            >>> generator.generate_rules(rule_template)
+
+        Note:
+            - The method first parses the provided rule expression into 'if' and 'then' parts.
+            - It generates rule candidates by substituting variables and applying conditions.
+            - The candidates are evaluated, and the resulting rules are filtered using metrics.
+            - The rules are added to the discovered rule list.
+
+        - Temporary index name columns are added to the data to derive rules based on index names.
+        - If the template expression is not in 'if-then' format, it is converted into such a format.
+        - Substitutions are made for variable values, and rules are generated and evaluated.
+        - Temporary index columns are removed from the data after rule generation.
         """
         logger = logging.getLogger(__name__)
 
@@ -272,7 +306,9 @@ class RuleMiner:
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             candidate = self.reformulate(candidate)
-            df_code = parser.python_code_for_columns(expression=flatten(candidate))
+            df_code = {
+                VAR_Z: parser.dataframe_values(expression=flatten(candidate))
+            }
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
                 VAR_Z
             ]
@@ -324,7 +360,7 @@ class RuleMiner:
                     reformulated_expression = self.reformulate(candidate)[1:-1]
                     if sorted_expression not in sorted_expressions.keys():
                         sorted_expressions[sorted_expression] = True
-                        rule_code = parser.python_code_lengths(
+                        rule_code = parser.dataframe_lengths(
                             expression=reformulated_expression,
                             required=self.required_vars,
                         )
@@ -356,7 +392,33 @@ class RuleMiner:
                 del self.data[str(self.data.index.names[level])]
 
     def substitute_group_names(self, expr: str = None, group_names_list: list = []):
-        """ """
+        """
+        Substitute group names in an expression.
+
+        This method substitutes placeholders in an expression with their corresponding group
+        names. Group names are provided as a list, and placeholders in the expression are
+        represented as '\x01', '\x02', and so on. The method replaces these placeholders with
+        the group names from the list.
+
+        Args:
+            expr (str or list): The expression or list of expressions to be processed.
+            group_names_list (list): A list of group names to use as substitutions.
+
+        Returns:
+            str or list: The expression with placeholders replaced by group names.
+
+        Example:
+            >>> expression = "Column '\x01' contains values from group '\x02'"
+            >>> group_names = ['Group A', 'Numbers']
+            >>> result = ruleminer.RuleMiner().substitute_group_names(expression, group_names)
+            >>> print(result)
+            "Column 'Group A' contains values from group 'Numbers'"
+
+        Note:
+            The method can be applied to both strings and lists of expressions. It searches
+            for placeholders in the format '\x01', '\x02', and so on, and substitutes them
+            with the corresponding group names from the list.
+        """
         if isinstance(expr, str):
             for group_names in group_names_list:
                 if group_names is not None:
@@ -366,8 +428,33 @@ class RuleMiner:
         elif isinstance(expr, list):
             return [self.substitute_group_names(i, group_names_list) for i in expr]
 
-    def search_column_value(self, expr, column_value):
-        """ """
+    def search_column_value(self, expr, column_value) -> list:
+        """
+        Search for column-value pairs in an expression.
+
+        This method recursively searches for column-value pairs within an expression and
+        appends them to the provided list. It identifies column-value pairs by checking
+        the structure of the expression.
+
+        Args:
+            expr (str or list): The expression to search for column-value pairs.
+            column_value (list): A list to store the identified column-value pairs.
+
+        Returns:
+            list: A list containing the discovered column-value pairs as tuples.
+
+        Example:
+
+            >>> expression = ['{"A"}', '==', '"b"']
+            >>> column_value_pairs = ruleminer.RuleMiner().search_column_value(expression, [])
+            >>> print(column_value_pairs)
+            [('{"A"}', '"b"')]
+
+        Note:
+            The method examines the structure of the expression and identifies column-value pairs
+            by checking for specific patterns. It recursively traverses the expression to find
+            such pairs and appends them to the provided list.
+        """
         if isinstance(expr, str):
             if is_column(expr):
                 column_value.append((expr, None))
@@ -381,8 +468,39 @@ class RuleMiner:
                     self.search_column_value(item, column_value)
         return column_value
 
-    def split_rule(self, expression: str = ""):
-        """ """
+    def split_rule(self, expression: str = "") -> tuple:
+        """
+        Split a rule expression into its 'if' and 'then' parts.
+
+        This method takes a rule expression and splits it into its 'if' and 'then' components.
+        It uses regular expressions to identify these parts, and if the 'if' part is empty, it
+        is assumed to be the entire rule expression. The resulting 'if' and 'then' parts are
+        parsed and returned as lists.
+
+        Args:
+            expression (str): The rule expression to be split.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - list: The parsed rule expression as a list.
+                - list: The 'if' part of the rule as a parsed list (empty if not present).
+                - list: The 'then' part of the rule as a parsed list.
+
+        Example:
+            >>> rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
+            >>> parsed, if_part, then_part = split_rule(rule_expression)
+            >>> print(parsed)
+            ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
+            >>> print(if_part)
+            [['{"A"}', '>', '10']]
+            >>> print(then_part)
+            [['{"B"}', '==', '"C"']]
+
+        Note:
+            The method employs regular expressions to identify 'if' and 'then' parts, and if
+            the 'if' part is not present, the entire expression is considered the 'then' part.
+            The parsed results are returned as lists for further evaluation.
+        """
         condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
         rule_parts = condition.search(expression)
         if rule_parts is not None:
@@ -420,6 +538,40 @@ class RuleMiner:
         column_substitutions: list = [],
         value_substitutions: list = [],
     ):
+        """
+        Substitute columns and values in an expression with their substitutions.
+
+        This method allows for the substitution of columns and values within an expression
+        using the provided lists of column and value substitutions. It recursively processes
+        the expression, replacing the first occurrence of a column or value with its substitution.
+
+        Args:
+            expression (str or list): The input expression to be processed.
+            columns (list): A list of original columns to be substituted.
+            values (list): A list of original values to be substituted.
+            column_substitutions (list): A list of column substitutions.
+            value_substitutions (list): A list of value substitutions.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - str or list: The processed expression with substitutions.
+                - list: The remaining columns for substitution.
+                - list: The remaining values for substitution.
+                - list: The remaining column substitutions.
+                - list: The remaining value substitutions.
+
+        Example:
+            >>> expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
+            >>> columns = ['{"A.*"}', {"B.*"}]
+            >>> values = [10, 20]
+            >>> column_subs = ["Aa", "Bb"]
+            >>> value_subs = [30, 40]
+            >>> result = ruleminer.RuleMiner().substitute_list(expression, columns, values, column_subs, value_subs)
+            >>> print(result)
+            ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
+
+        """
+
         if isinstance(expression, str):
             if columns != [] and columns[0] in expression:
                 # replace only first occurrence in string
@@ -491,7 +643,22 @@ class RuleMiner:
         dataframe: pd.DataFrame = None,
         encodings: dict = {},
     ):
-        """ """
+        """
+        Evaluate a set of expressions and return their results.
+
+        This method evaluates a dictionary of expressions using the provided data frame, encodings,
+        and additional variables from the evaluation context. The results of the expressions are
+        stored in a dictionary and returned.
+
+        Args:
+            expressions (dict): A dictionary of variable names as keys and expressions as values.
+            dataframe (pd.DataFrame): The Pandas DataFrame containing the data for evaluation.
+            encodings (dict): A dictionary of variable encodings or transformations for evaluation.
+
+        Returns:
+            dict: A dictionary containing the results of evaluated expressions.
+
+        """
         dict_values = {**{DUNDER_DF: dataframe}, **self.eval_dict}
         variables = {}
         for key in expressions.keys():
@@ -511,7 +678,31 @@ class RuleMiner:
         encodings: dict = {},
     ):
         """
-        Function to add a rule with info to the discovered rule list
+        Add a rule with information to the discovered rule list.
+
+        This method adds a new rule to the discovered rule list. The rule is defined by a unique
+        rule ID, a rule group, a rule definition (expression or description), a rule status, a dictionary
+        of rule-specific metrics, and a dictionary of encodings used in the rule evaluation.
+
+        Args:
+            rule_id (str): A unique identifier for the rule.
+            rule_group (int): An integer representing the group or category to which the rule belongs.
+            rule_def (str): The definition or expression of the rule.
+            rule_status (str): The status of the rule
+            rule_metrics (dict): A dictionary of rule-specific metrics and their values.
+            encodings (dict): A dictionary of variable encodings used in the rule.
+
+        Example:
+            >>> my_rule = {
+            ...     'rule_id': 'R001',
+            ...     'rule_group': 1,
+            ...     'rule_def': 'column_A > 10',
+            ...     'rule_status': 'active',
+            ...     'rule_metrics': {'coverage': 0.9, 'accuracy': 0.85},
+            ...     'encodings': {}
+            ... }
+            >>> add_rule(**my_rule)
+
         """
         row = pd.DataFrame(
             data=[
@@ -523,9 +714,34 @@ class RuleMiner:
         )
         self.rules = pd.concat([self.rules, row], ignore_index=True)
 
-    def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices):
+    def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices) -> None:
         """
-        Function to add a result to the results list
+        Add results for a rule to the results list.
+
+        This method adds results for a specific rule, including its metrics and indices, to the
+        results list. It updates both the results for confirmations (co_indices) and exceptions 
+        (ex_indices). If no indices are provided for either category, an error message is logged.
+
+        Args:
+            rule_idx (int): The index of the rule in the rule list.
+            rule_metrics (dict): A dictionary of rule-specific metrics for evaluation.
+            co_indices (list or None): A list of indices for confirmations.
+            ex_indices (list or None): A list of indices for exceptions.
+
+        Returns:
+            None: This method updates the results list in-place.
+
+        Example:
+            >>> rule_index = 0
+            >>> metrics = {
+            ...     'absolute_support': 50,
+            ...     'absolute_exceptions': 5,
+            ...     'confidence': 0.9
+            ... }
+            >>> co_indices = [1, 2, 3, 4, 5]
+            >>> ex_indices = [10, 11, 12, 13]
+            >>> add_results(rule_index, metrics, co_indices, ex_indices)
+
         """
         logger = logging.getLogger(__name__)
         if co_indices is not None and not isinstance(co_indices, float):
@@ -584,7 +800,24 @@ class RuleMiner:
 
     def reformulate(self, expression: str = ""):
         """
-        function to convert some parameters settings and functions to pandas code
+        Convert parameters, settings, and functions to Pandas code within an expression.
+
+        This method takes an input expression and converts specific parameters, settings,
+        and functions into their equivalent Pandas code. It allows for custom transformations
+        and conversions that are used in the evaluation of rules.
+
+        Args:
+            expression (str): The input expression to be reformulated into Pandas code.
+
+        Returns:
+            str: The reformulated expression in Pandas code.
+
+        Example:
+            >>> expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
+            >>> result = ruleminer.RuleMiner().reformulate(expression)
+            >>> print(result)
+            "({"A"}.str.slice(1,1))"
+
         """
         if isinstance(expression, str):
             if expression.lower() == "in":
@@ -716,9 +949,11 @@ class RuleMiner:
                     l = ""
                     for i in expression[:idx]:
                         l += self.reformulate(i)
-                    quantile_code = parser.python_code_for_intermediate(
-                        flatten(expression[idx : idx + 2])
-                    )
+                    quantile_code = {
+                        VAR_Z: parser.pandas_column(
+                            flatten(expression[idx : idx + 2])
+                        )
+                    }
                     quantile_result = self.evaluate_code(
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
@@ -785,7 +1020,31 @@ class RuleMiner:
 
 
 def flatten_and_sort(expression: str = ""):
-    """ """
+    """
+    Recursively flatten and sort a nested expression and return it as a string.
+
+    This function takes an expression, which can be a nested list of strings or a single string,
+    and recursively flattens and sorts it into a single string enclosed in parentheses. Sorting
+    is applied to certain elements within the expression, such as mathematical operations, column
+    references, and strings, based on their relationships and order of precedence.
+
+    Args:
+        expression (str or list): The expression to be flattened and sorted.
+
+    Returns:
+        str: The flattened and sorted expression as a string enclosed in parentheses.
+
+    Example:
+        >>> expression = ["max", ["C", "A"]]
+        >>> result = ruleminer.flatten_and_sort(expression)
+        >>> print(result)
+        "(max((CA)))"
+
+        >>> expression = ["C", "==", ["A", "+", "B"]]
+        >>> result = ruleminer.flatten_and_sort(expression)
+        >>> print(result)
+        "((A+B)==C)"
+    """
     if isinstance(expression, str):
         return expression
     else:
@@ -839,7 +1098,24 @@ def flatten_and_sort(expression: str = ""):
 
 
 def flatten(expression):
-    """ """
+    """
+    Recursively flatten a nested expression and return it as a string.
+
+    This function takes an expression, which can be a nested list of strings or a single string,
+    and recursively flattens it into a single string enclosed in parentheses.
+
+    Args:
+        expression (str or list): The expression to be flattened.
+
+    Returns:
+        str: The flattened expression as a string enclosed in parentheses.
+
+    Example:
+        >>> expression = ["A", ["B", ["C", "D"]]]
+        >>> result = ruleminer.flatten(expression)
+        >>> print(result)
+        "(A(B(CD)))"
+    """
     if isinstance(expression, str):
         return expression
     else:
@@ -850,14 +1126,56 @@ def flatten(expression):
 
 
 def is_column(s):
-    """ """
+    """
+    Check if a given string is formatted as a column reference.
+
+    This function checks if a string is formatted as a column reference, which typically
+    consists of double curly braces {""} enclosing a column name.
+
+    Args:
+        s (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is formatted as a column reference, False otherwise.
+
+    Example:
+        >>> is_column('{"A"}')
+        True
+
+        >>> is_column('{"B"}')
+        True
+
+        >>> is_column("Not a column reference")
+        False
+    """
     return len(s) > 4 and (
         (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
     )
 
 
 def is_string(s):
-    """ """
+    """
+    Check if a given string is enclosed in single or double quotes.
+
+    This function checks if a string is enclosed in single ('') or double ("") quotes, indicating that
+    it is a string literal.
+
+    Args:
+        s (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is enclosed in quotes, False otherwise.
+
+    Example:
+        >>> is_string("'Hello, World!'")
+        True
+
+        >>> is_string('"42"')
+        True
+
+        >>> is_string("Not a string")
+        False
+    """
     return len(s) > 2 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
     )

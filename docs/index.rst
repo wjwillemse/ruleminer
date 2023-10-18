@@ -11,7 +11,6 @@ Welcome to ruleminer's documentation!
    Contributions & Help <contributing>
    License <license>
    Authors <authors>
-   History <history>
    Module Reference <api/modules>
 
 

@@ -4,14 +4,6 @@ ruleminer package
 Submodules
 ----------
 
-ruleminer.cli module
---------------------
-
-.. automodule:: ruleminer.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 ruleminer.const module
 ----------------------
 
