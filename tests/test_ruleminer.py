@@ -7,7 +7,6 @@ import unittest
 from click.testing import CliRunner
 
 from ruleminer import ruleminer
-from ruleminer import cli
 import pandas as pd
 
 
