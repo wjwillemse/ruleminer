@@ -1,3 +1,8 @@
+.. ruleminer documentation master file, created by
+   sphinx-quickstart on Wed Oct 18 10:11:24 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
 Welcome to ruleminer's documentation!
 =====================================
 
@@ -5,18 +10,11 @@ Welcome to ruleminer's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   Overview <README>
-   installation
-   usage
-   Contributions & Help <contributing>
-   License <license>
-   Authors <authors>
-   History <history>
-   Module Reference <api/modules>
 
 
 Indices and tables
 ==================
+
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
