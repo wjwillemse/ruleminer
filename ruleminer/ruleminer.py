@@ -13,7 +13,7 @@ from .metrics import (
     required_variables,
     calculate_metrics
 )
-from ruleminer.const import (
+from .const import (
     CONFIDENCE,
     ABSOLUTE_SUPPORT,
     ABSOLUTE_EXCEPTIONS,
