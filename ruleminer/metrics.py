@@ -23,33 +23,15 @@ from ruleminer.const import VAR_NOT_X_AND_NOT_Y
 import numpy as np
 
 METRICS = {
-    ABSOLUTE_SUPPORT: [
-        VAR_X_AND_Y
-    ],
-    ABSOLUTE_EXCEPTIONS: [
-        VAR_X_AND_NOT_Y
-    ],
-    CONFIDENCE: [
-        VAR_X, VAR_X_AND_Y
-    ],
-    SUPPORT: [
-        VAR_N, VAR_X_AND_Y
-    ],
-    ADDED_VALUE: [
-        VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y
-    ],
-    CASUAL_CONFIDENCE: [
-        VAR_X, VAR_NOT_X, VAR_X_AND_Y, VAR_NOT_X_AND_NOT_Y
-    ],
-    CONVICTION: [
-        VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y
-    ],
-    LIFT: [
-        VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y
-    ],
-    RULE_POWER_FACTOR: [
-        VAR_N, VAR_X, VAR_X_AND_Y
-    ],
+    ABSOLUTE_SUPPORT: [VAR_X_AND_Y],
+    ABSOLUTE_EXCEPTIONS: [VAR_X_AND_NOT_Y],
+    CONFIDENCE: [VAR_X, VAR_X_AND_Y],
+    SUPPORT: [VAR_N, VAR_X_AND_Y],
+    ADDED_VALUE: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
+    CASUAL_CONFIDENCE: [VAR_X, VAR_NOT_X, VAR_X_AND_Y, VAR_NOT_X_AND_NOT_Y],
+    CONVICTION: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
+    LIFT: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
+    RULE_POWER_FACTOR: [VAR_N, VAR_X, VAR_X_AND_Y],
 }
 
 

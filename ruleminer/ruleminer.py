@@ -73,45 +73,25 @@ class RuleMiner:
         self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
         self.tolerance = self.params.get("tolerance", None)
 
-        if data is not None:
-            self.data = data
-            self.eval_dict = {
-                "MAX": np.maximum,
-                "MIN": np.minimum,
-                "ABS": np.abs,
-                "QUANTILE": np.quantile,
-                "SUM": np.nansum,
-                "sum": np.nansum,
-                "max": np.maximum,
-                "min": np.minimum,
-                "abs": np.abs,
-                "quantile": np.quantile,
-            }
-            if self.tolerance is not None:
-                def __tol__(v):
-                    for ((start, end)), value in self.tolerance.items():
-                        if abs(v) >= start and abs(v) < end:
-                            return 0.5 * 10 ** (value)
-                self.eval_dict['__tol__'] = __tol__
-
-            # def get_encodings():
-            #     for item in encodings_definitions:
-            #         exec(encodings_definitions[item])
-            #     encodings = {
-            #         encodings[item]: locals()[item]
-            #         for item in encodings_definitions.keys()
-            #     }
-            #     return encodings
-            # encodings = metapattern.get("encodings", None)
-            # if encodings is not None:
-            #     encodings_code = get_encodings()
-            #     for c in self.data.columns:
-            #         if c in encodings.keys():
-            #             self.data[c] = eval(
-            #                 str(encodings[c]) + "(s)",
-            #                 encodings_code,
-            #                 {"s": self.data[c]},
-            #             )
+        self.data = data
+        self.eval_dict = {
+            "MAX": np.maximum,
+            "MIN": np.minimum,
+            "ABS": np.abs,
+            "QUANTILE": np.quantile,
+            "SUM": np.nansum,
+            "sum": np.nansum,
+            "max": np.maximum,
+            "min": np.minimum,
+            "abs": np.abs,
+            "quantile": np.quantile,
+        }
+        if self.tolerance is not None:
+            def __tol__(v):
+                for ((start, end)), value in self.tolerance.items():
+                    if abs(v) >= start and abs(v) < end:
+                        return 0.5 * 10 ** (value)
+            self.eval_dict["__tol__"] = __tol__
 
         if templates is not None:
             self.templates = templates
@@ -142,8 +122,9 @@ class RuleMiner:
 
         return None
 
-    def evaluate(self,
-            data: pd.DataFrame = None,
+    def evaluate(
+        self,
+        data: pd.DataFrame = None,
     ):
         """ """
         if data is not None:
@@ -161,7 +142,6 @@ class RuleMiner:
             ] = self.data.index.get_level_values(level=level)
 
         for idx in self.rules.index:
-
             required_vars = required_variables(
                 [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
             )
@@ -180,7 +160,9 @@ class RuleMiner:
                 len_results=len_results,
                 metrics=[ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE],
             )
-            self.add_results(idx, rule_metrics, results[VAR_X_AND_Y], results[VAR_X_AND_NOT_Y])
+            self.add_results(
+                idx, rule_metrics, results[VAR_X_AND_Y], results[VAR_X_AND_NOT_Y]
+            )
 
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
@@ -209,7 +191,7 @@ class RuleMiner:
         )
         self.results[RESULT] = self.results[RESULT].astype(bool)
 
-    def convert_template(self, template: dict={}):
+    def convert_template(self, template: dict = {}):
         """
         Main function to convert templates to rules without data and regexes
         """
@@ -224,7 +206,11 @@ class RuleMiner:
             rule_parts = condition.search(template_expression)
             if rule_parts is None:
                 template_expression = "if () then " + template_expression
-            parsed = parser.rule_expression().parse_string(template_expression, parseAll=True).as_list()
+            parsed = (
+                parser.rule_expression()
+                .parse_string(template_expression, parseAll=True)
+                .as_list()
+            )
         except:
             logger.error(
                 'Parsing error in expression "' + str(template_expression) + '"'
@@ -287,12 +273,17 @@ class RuleMiner:
             )
             candidate = self.reformulate(candidate)
             df_code = parser.python_code_for_columns(expression=flatten(candidate))
-            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[VAR_Z]
-            if not isinstance(df_eval, float): # then it is nan
-
+            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
+                VAR_Z
+            ]
+            if not isinstance(df_eval, float):  # then it is nan
                 # substitute variables in then_part
-                then_part_substituted = self.substitute_group_names(then_part, [item[2] for item in if_part_substitution])
-                then_part_column_values = self.search_column_value(then_part_substituted, [])
+                then_part_substituted = self.substitute_group_names(
+                    then_part, [item[2] for item in if_part_substitution]
+                )
+                then_part_column_values = self.search_column_value(
+                    then_part_substituted, []
+                )
                 then_part_substitutions = [
                     generate_substitutions(df=df_eval, column_value=column_value)
                     for column_value in then_part_column_values
@@ -316,7 +307,9 @@ class RuleMiner:
                     # add all substitutions to candidate list
                     for substitution in expression_substitutions:
                         # substitute variables in full expression
-                        parsed_substituted = self.substitute_group_names(parsed, [item[2] for item in substitution])
+                        parsed_substituted = self.substitute_group_names(
+                            parsed, [item[2] for item in substitution]
+                        )
                         candidate_parsed, _, _, _, _ = self.substitute_list(
                             expression=parsed_substituted,
                             columns=[item[0] for item in template_column_values],
@@ -333,7 +326,7 @@ class RuleMiner:
                         sorted_expressions[sorted_expression] = True
                         rule_code = parser.python_code_lengths(
                             expression=reformulated_expression,
-                            required=self.required_vars
+                            required=self.required_vars,
                         )
                         len_results = self.evaluate_code(
                             expressions=rule_code, dataframe=self.data
@@ -368,7 +361,7 @@ class RuleMiner:
             for group_names in group_names_list:
                 if group_names is not None:
                     for idx, key in enumerate(group_names):
-                        expr = re.sub("\\x0"+str(idx+1), key, expr)
+                        expr = re.sub("\\x0" + str(idx + 1), key, expr)
             return expr
         elif isinstance(expr, list):
             return [self.substitute_group_names(i, group_names_list) for i in expr]
@@ -393,16 +386,30 @@ class RuleMiner:
         condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
         rule_parts = condition.search(expression)
         if rule_parts is not None:
-            if rule_parts.group(1).strip()!='()':
-                if_part = parser.rule_expression().parse_string(rule_parts.group(1), parseAll=True).as_list()
+            if rule_parts.group(1).strip() != "()":
+                if_part = (
+                    parser.rule_expression()
+                    .parse_string(rule_parts.group(1), parseAll=True)
+                    .as_list()
+                )
             else:
                 if_part = ""
-            then_part = parser.rule_expression().parse_string(rule_parts.group(2), parseAll=True).as_list()
+            then_part = (
+                parser.rule_expression()
+                .parse_string(rule_parts.group(2), parseAll=True)
+                .as_list()
+            )
         else:
             expression = "if () then " + expression
             if_part = ""
-            then_part = parser.rule_expression().parse_string(expression, parseAll=True).as_list()
-        parsed = parser.rule_expression().parse_string(expression, parseAll=True).as_list()
+            then_part = (
+                parser.rule_expression()
+                .parse_string(expression, parseAll=True)
+                .as_list()
+            )
+        parsed = (
+            parser.rule_expression().parse_string(expression, parseAll=True).as_list()
+        )
         return parsed, if_part, then_part
 
     def substitute_list(
@@ -474,7 +481,9 @@ class RuleMiner:
         """
         This function applies the filter to the rule metrics (for example confidence > 0.75)
         """
-        return self.data is None or all([metrics[metric] >= self.filter[metric] for metric in self.filter])
+        return self.data is None or all(
+            [metrics[metric] >= self.filter[metric] for metric in self.filter]
+        )
 
     def evaluate_code(
         self,
@@ -529,7 +538,9 @@ class RuleMiner:
             nex = 0
 
         if nco == 0 and nex == 0:
-            logger.info("Error when evaluating rule results for rule id "+str(rule_idx))
+            logger.info(
+                "Error when evaluating rule results for rule id " + str(rule_idx)
+            )
 
         if nco > 0:
             data = [
@@ -621,44 +632,80 @@ class RuleMiner:
                     ):
                         left_side = self.reformulate(expression[:idx])
                         right_side = self.reformulate(expression[idx + 1 :])
-                        if (item in ["=="]):
+                        if item in ["=="]:
                             return (
                                 "(("
-                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "-0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + " <= "
-                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "+0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + ") & ("
-                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "+0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + " >= "
-                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "-0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + "))"
                             )
-                        if (item in ["!="]):
+                        if item in ["!="]:
                             return (
                                 "(("
-                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "-0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + " > "
-                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "+0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + ") | ("
-                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "+0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + " < "
-                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "-0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + "))"
                             )
-                        elif (item in [">", ">="]):
+                        elif item in [">", ">="]:
                             return (
                                 "("
-                                + left_side+"-0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "-0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + item
-                                + right_side+"+0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "+0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + ")"
                             )
-                        elif (item in ["<", "<="]):
+                        elif item in ["<", "<="]:
                             return (
                                 "("
-                                + left_side+"+0.5*abs("+left_side.replace("}", "}.apply(__tol__)")+")"
+                                + left_side
+                                + "+0.5*abs("
+                                + left_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + item
-                                + right_side+"-0.5*abs("+right_side.replace("}", "}.apply(__tol__)")+")"
+                                + right_side
+                                + "-0.5*abs("
+                                + right_side.replace("}", "}.apply(__tol__)")
+                                + ")"
                                 + ")"
                             )
                 if (
@@ -676,53 +723,60 @@ class RuleMiner:
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
-                    for i in expression[idx+2:]:
+                    for i in expression[idx + 2 :]:
                         l += self.reformulate(i)
                     return "(" + l + ")"
-                if (
-                    isinstance(item, str) 
-                    and item.lower() == "in"
-                ):
+                if isinstance(item, str) and item.lower() == "in":
                     # replace in by .isin
                     l = ""
                     for i in expression[:idx]:
                         l += self.reformulate(i)
                     l += ".isin"
-                    for i in expression[idx+1:]:
+                    for i in expression[idx + 1 :]:
                         l += self.reformulate(i)
                     return l
-                if (
-                    isinstance(item, str)
-                    and item.lower() == "substr"
-                ):
-                    string, _, start, _, stop = expression[idx+1]
-                    l = "("+self.reformulate(string)+".str.slice("+start+","+stop+"))"
-                    for i in expression[idx+2:]:
+                if isinstance(item, str) and item.lower() == "substr":
+                    string, _, start, _, stop = expression[idx + 1]
+                    l = (
+                        "("
+                        + self.reformulate(string)
+                        + ".str.slice("
+                        + start
+                        + ","
+                        + stop
+                        + "))"
+                    )
+                    for i in expression[idx + 2 :]:
                         l += self.reformulate(i)
                     return l
-                if (
-                    isinstance(item, str)
-                    and item.lower() == "split"
-                ):
-                    string, _, separator, _, position = expression[idx+1]
-                    l = "("+self.reformulate(string)+".str.split("+separator+").str["+position+"])"
-                    for i in expression[idx+2:]:
+                if isinstance(item, str) and item.lower() == "split":
+                    string, _, separator, _, position = expression[idx + 1]
+                    l = (
+                        "("
+                        + self.reformulate(string)
+                        + ".str.split("
+                        + separator
+                        + ").str["
+                        + position
+                        + "])"
+                    )
+                    for i in expression[idx + 2 :]:
                         l += self.reformulate(i)
                     return l
-                if (
-                    isinstance(item, str)
-                    and item.lower() == "sumif"
-                ):
-                    string = expression[idx+1][0]
-                    condition = expression[idx+1][2:]
-                    l = "sum("+self.reformulate(string)+".loc["+self.reformulate(condition)+"])"
-                    for i in expression[idx+2:]:
+                if isinstance(item, str) and item.lower() == "sumif":
+                    string = expression[idx + 1][0]
+                    condition = expression[idx + 1][2:]
+                    l = (
+                        "sum("
+                        + self.reformulate(string)
+                        + ".loc["
+                        + self.reformulate(condition)
+                        + "])"
+                    )
+                    for i in expression[idx + 2 :]:
                         l += self.reformulate(i)
                     return l
-                if (
-                    isinstance(item, str)
-                    and item.lower() == "countif"
-                ):
+                if isinstance(item, str) and item.lower() == "countif":
                     logging.error("Not yet implemented")
             l = ""
             for i in expression:
