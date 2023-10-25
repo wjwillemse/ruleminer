@@ -11,15 +11,15 @@ from typing import Dict
 from .const import DUNDER_DF
 from .const import VAR_Z
 
-lpar, rpar = map(Suppress, "()")
-number = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
-function = one_of(
+_lpar, _rpar = map(Suppress, "()")
+_number = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
+_function = one_of(
     "min max abs quantile sum substr split count sumif countif MIN MAX ABS QUANTILE SUM SUBSTR SPLIT COUNT SUMIF COUNTIF"
 )
-empty = one_of(["None", '""', "pd.NA", "np.nan"])
-quote = Literal('"')
-sep = Literal(",")
-string = (
+_empty = one_of(["None", '""', "pd.NA", "np.nan"])
+_quote = Literal('"')
+_sep = Literal(",")
+_string = (
     srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']")
     + " "
     + "\x01"
@@ -28,23 +28,23 @@ string = (
     + pyparsing.pyparsing_unicode.Greek.alphas
     + pyparsing.pyparsing_unicode.Greek.alphanums
 )
-quoted_string = Combine(quote + Word(string) + quote)
-column = Combine("{" + quote + Word(string) + quote + "}")
-addop = Literal("+") | Literal("-")
-multop = Literal("*") | Literal("/")
-expop = Literal("**")
-compa_op = one_of(">= > <= < != == in IN")
+_quoted_string = Combine(_quote + Word(_string) + _quote)
+_column = Combine("{" + _quote + Word(_string) + _quote + "}")
+_addop = Literal("+") | Literal("-")
+_multop = Literal("*") | Literal("/")
+_expop = Literal("**")
+_compa_op = one_of(">= > <= < != == in IN")
 
-list_element = quoted_string | column | number | empty
-quoted_string_list = Group(
-    Literal("[") + list_element + (sep + list_element)[0, ...] + Literal("]")
+_list_element = _quoted_string | _column | _number | _empty
+_quoted_string_list = Group(
+    Literal("[") + _list_element + (_sep + _list_element)[0, ...] + Literal("]")
 ) | Group(
-    lpar
+    _lpar
     + Literal("[")
-    + list_element
-    + (sep + list_element)[0, ...]
+    + _list_element
+    + (_sep + _list_element)[0, ...]
     + Literal("]")
-    + rpar
+    + _rpar
 )
 
 
@@ -52,8 +52,8 @@ def function_expression():
     """
     Define a ruleminer function expression
 
-    This function defines a function expression. It uses pyparsing to define 
-    the syntax for function calls with parameters, including basic mathematical 
+    This function defines a function expression. It uses pyparsing to define
+    the syntax for function calls with parameters, including basic mathematical
     operations and comparisons.
 
     Returns:
@@ -69,12 +69,12 @@ def function_expression():
     params = Forward()
     math_expr = math_expression(expr)
     param_element = (
-        math_expr | quoted_string_list | quoted_string | column | number | empty
+        math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty
     )
-    param_condition = param_element + compa_op + param_element
+    param_condition = param_element + _compa_op + param_element
     param = param_condition | param_element
-    params <<= param + (sep + param)[...]
-    expr <<= function + Group(lpar + params + rpar)
+    params <<= param + (_sep + param)[...]
+    expr <<= _function + Group(_lpar + params + _rpar)
     return expr
 
 
@@ -82,8 +82,8 @@ def math_expression(base: pyparsing.core.Forward = None):
     """
     Define a ruleminer mathematical expression
 
-    This function defines a mathematical expression. It uses pyparsing to define 
-    the syntax for function calls with parameters, including basic mathematical 
+    This function defines a mathematical expression. It uses pyparsing to define
+    the syntax for function calls with parameters, including basic mathematical
     operations and comparisons.
 
     Args:
@@ -101,14 +101,16 @@ def math_expression(base: pyparsing.core.Forward = None):
     """
     expr = Forward()
     if base is None:
-        element = quoted_string_list | quoted_string | column | number | empty
+        element = _quoted_string_list | _quoted_string | _column | _number | _empty
     else:
-        element = base | quoted_string_list | quoted_string | column | number | empty
-    atom = addop[...] + (element | Group(lpar + expr + rpar))
+        element = (
+            base | _quoted_string_list | _quoted_string | _column | _number | _empty
+        )
+    atom = _addop[...] + (element | Group(_lpar + expr + _rpar))
     factor = Forward()
-    factor <<= atom + (expop + factor)[...]
-    term = factor + (multop + factor)[...]
-    expr <<= term + (addop + term)[...]
+    factor <<= atom + (_expop + factor)[...]
+    term = factor + (_multop + factor)[...]
+    expr <<= term + (_addop + term)[...]
     return expr
 
 
@@ -116,7 +118,7 @@ def rule_expression():
     """
     Define a ruleminer rule expression
 
-    This function defines a ruleminer rule expression. It uses pyparsing to define 
+    This function defines a ruleminer rule expression. It uses pyparsing to define
     the syntax for conditions and rule syntax
 
     Args:
@@ -133,10 +135,10 @@ def rule_expression():
     """
     condition_item = (
         math_expression(function_expression())
-        + compa_op
+        + _compa_op
         + math_expression(function_expression())
     )
-    comp_expr = Group(lpar + condition_item + rpar)
+    comp_expr = Group(_lpar + condition_item + _rpar)
     condition = infixNotation(
         comp_expr,
         [
@@ -203,17 +205,13 @@ def dataframe_lengths(expression: str = "", required: list = []) -> Dict[str, st
             if if_part == "()":
                 expressions[variable] = "len(" + DUNDER_DF + ".index)"
             else:
-                expressions[variable] = (
-                    "(" + pandas_column(if_part) + ").sum()"
-                )
+                expressions[variable] = "(" + pandas_column(if_part) + ").sum()"
         elif variable == "~X":
             expressions[variable] = "(~(" + pandas_column(if_part) + ")).sum()"
         elif variable == "Y":
             expressions[variable] = "(" + pandas_column(then_part) + ").sum()"
         elif variable == "~Y":
-            expressions[variable] = (
-                "(~(" + pandas_column(then_part) + ")).sum()"
-            )
+            expressions[variable] = "(~(" + pandas_column(then_part) + ")).sum()"
         elif variable == "X and Y":
             expressions[variable] = (
                 "(("
@@ -251,8 +249,8 @@ def dataframe_index(expression: str = "", required: list = []) -> Dict[str, str]
     Parse a rule expression and generate corresponding DataFrame index expressions.
 
     This function takes a rule expression, such as 'if A then B', and a list of required
-    variables ('N', 'X', 'Y', '~X', '~Y', 'X and Y', 'X and ~Y', '~X and ~Y'). It then 
-    generates corresponding DataFrame index expressions for each required variable 
+    variables ('N', 'X', 'Y', '~X', '~Y', 'X and Y', 'X and ~Y', '~X and ~Y'). It then
+    generates corresponding DataFrame index expressions for each required variable
     based on the given expression.
 
     Args:

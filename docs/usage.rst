@@ -278,11 +278,11 @@ This means that if abs(value) >= 1e3 and < 1e6 then the precision of that value 
 
 To describe how it works we use the following example taken from the document mentioned above (page 41). In case of addition of two numbers A and B, where A is interval [A1, A2], and B is interval [B1, B2], the result is interval [A1+B1, A2+B2]. If the interval of the reported numbers overlap with the computed interval the rule is satisfied. An example in C = A + B, where:
 
-* A is reported as 1499 with precision in units (@decimals = 0) hence the resulting range is [1498.5, 1499.5];
+* A is reported as 1499 with precision in units (decimals = 0) hence the resulting range is [1498.5, 1499.5];
 
-* B is reported as 1502 with precision in units (@decimals = 0) hence the resulting range is [1501.5, 1502.5]; and 
+* B is reported as 1502 with precision in units (decimals = 0) hence the resulting range is [1501.5, 1502.5]; and 
 
-* C is reported as = 3000 with precision in units (@decimals = 0) hence the resulting range is [2999.5, 3000.5].
+* C is reported as = 3000 with precision in units (decimals = 0) hence the resulting range is [2999.5, 3000.5].
 
 Following the basic operations, the computed tolerance interval for A + B is [1498.5+1501.5, 1499.5+1502.5] = [3000, 3002]. There is an overlap between the interval of C and interval of A + B. As a result the rule is satisfied. If C was reported as 2999, the resulting interval ( with precision in units) would be [2998.5, 2999.5]. With no overlap the rule would not be  satisfied and an exception would be raised.
 
@@ -348,7 +348,7 @@ And r.rules gives you the following output
 
 Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
 
-If the rule contains minus or division operators then it should be reformulated in such a way that it contains only plus and multiplication operators.
+If a rule contains minus or division operators then the signs of tolerances of the right part (that falls under the minus or division) are reversed.
 
 
 Evaluating results within rules
@@ -460,6 +460,7 @@ If you are using this in a Jupyter notebook you can add a the beginning::
 
     logging.basicConfig(stream=sys.stdout, 
                         format='%(asctime)s %(message)s',
-                        level=logging.INFO)
+                        level=logging.DEBUG)
 
-Information about the rule generating process with be displayed in the notebook. Set the debug level to logging.DEBUG is you want more results.
+Information about the rule generating process with be displayed in the notebook. Set the debug level to logging.INFO is you want less results.
+

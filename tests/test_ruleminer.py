@@ -4,11 +4,8 @@
 
 
 import unittest
-from click.testing import CliRunner
-
-from ruleminer import ruleminer
 import pandas as pd
-
+import ruleminer
 
 class TestRuleminer(unittest.TestCase):
     """Tests for `ruleminer` package."""
@@ -19,12 +16,12 @@ class TestRuleminer(unittest.TestCase):
         assert r is not None
 
     def test_1(self):
-        actual = ruleminer.parser.column.parse_string('{"A"}', parse_all=True).as_list()
+        actual = ruleminer._column.parse_string('{"A"}', parse_all=True).as_list()
         expected = ['{"A"}']
         self.assertTrue(actual == expected)
 
     def test_2(self):
-        actual = ruleminer.parser.quoted_string.parse_string(
+        actual = ruleminer._quoted_string.parse_string(
             '"A"', parse_all=True
         ).as_list()
         expected = ['"A"']
@@ -32,7 +29,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_3(self):
         actual = (
-            ruleminer.parser.math_expression()
+            ruleminer.math_expression()
             .parse_string('"b"', parse_all=True)
             .as_list()
         )
@@ -41,7 +38,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_4(self):
         actual = (
-            ruleminer.parser.math_expression()
+            ruleminer.math_expression()
             .parse_string('{"b"}', parse_all=True)
             .as_list()
         )
@@ -50,7 +47,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_5(self):
         actual = (
-            ruleminer.parser.math_expression()
+            ruleminer.math_expression()
             .parse_string("221", parse_all=True)
             .as_list()
         )
@@ -59,7 +56,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_6(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"f"} == 0)', parse_all=True)
             .as_list()
         )
@@ -68,7 +65,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_7(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"f"} > 0)', parse_all=True)
             .as_list()
         )
@@ -77,7 +74,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_8(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"f"} == 0) & ({"w"} == 0)', parse_all=True)
             .as_list()
         )
@@ -86,7 +83,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_9(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('~({"f"} == 0) & ({"d"} == "s")', parse_all=True)
             .as_list()
         )
@@ -95,7 +92,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_10(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(min({"f"}, {"d"})>0) & ({"d"} == "s")', parse_all=True)
             .as_list()
         )
@@ -106,7 +103,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_11(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"f"} + {"d"}) > 0)', parse_all=True)
             .as_list()
         )
@@ -115,7 +112,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_12(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(abs({"f"}) == 0)', parse_all=True)
             .as_list()
         )
@@ -124,7 +121,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_13(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(abs({"f"} + {"d"}) > 1) & ({"s"} < 2)', parse_all=True)
             .as_list()
         )
@@ -135,7 +132,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_14(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} + {"3"} + {"2"} + {"1"}) > 0)', parse_all=True)
             .as_list()
         )
@@ -144,7 +141,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_15(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('IF () THEN ("A"=="")', parse_all=True)
             .as_list()
         )
@@ -153,7 +150,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_16(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string(
                 'IF ( not("F3" in ["G1","G3"])) THEN (SUBSTR({"A"}, 2, 4) in ["D1","D3"])',
                 parse_all=True,
@@ -175,7 +172,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_17(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True)
             .as_list()
         )
@@ -184,9 +181,9 @@ class TestRuleminer(unittest.TestCase):
 
     def test_18(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string(
-                'if (0 >min({"C"},{"B"})) then (1 == sum({"A"},{"B"}))', parse_all=True
+                'if (0 > min({"C"},{"B"})) then (1 == sum({"A"},{"B"}))', parse_all=True
             )
             .as_list()
         )
@@ -200,7 +197,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_19(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} + {"3"} + {"2"} * {"1"}) > 0)', parse_all=True)
             .as_list()
         )
@@ -209,7 +206,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_20(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} + {"3"} * {"2"} + {"1"}) > 0)', parse_all=True)
             .as_list()
         )
@@ -218,7 +215,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_21(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} * {"3"} + {"2"} + {"1"}) > 0)', parse_all=True)
             .as_list()
         )
@@ -227,7 +224,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_22(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"4"} == {"3"})', parse_all=True)
             .as_list()
         )
@@ -236,7 +233,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_23(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"4"} != {"3"})', parse_all=True)
             .as_list()
         )
@@ -245,7 +242,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_24(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('({"4"} > {"3"})', parse_all=True)
             .as_list()
         )
@@ -254,7 +251,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_25(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} > {"3"}) & ({"2"} > {"1"}))', parse_all=True)
             .as_list()
         )
@@ -263,7 +260,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_26(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(({"4"} > {"3"}) & ({"2"} == {"1"}))', parse_all=True)
             .as_list()
         )
@@ -272,7 +269,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_27(self):
         actual = ruleminer.flatten_and_sort(
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string(
                 '(({"4"} > {"3"}) & (({"2"}+{"0"}) == {"1"}))', parse_all=True
             )
@@ -441,9 +438,62 @@ class TestRuleminer(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
 
+    def test_30_1(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{"expression": '(sumif([{"Assets"}, {"Own_funds"}], {"Type"}=="life_insurer") > 0)'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+            data=[
+                [
+                    0,
+                    0,
+                    'if () then sum(([{"Assets"}.loc[({"Type"}=="life_insurer")],{"Own_funds"}.loc[({"Type"}=="life_insurer")]]))>0',
+                    "",
+                    5,
+                    0,
+                    0.5,
+                    {},
+                ]
+            ],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
     def test_31(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(0.05*({"A"}+0.5*{"B"}+{"C"})>0)', parse_all=True)
             .as_list()
         )
@@ -454,7 +504,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_32(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string(
                 '(1*(1+0.5*({"A"}+0.5*({"B"}+1)+0.5*({"C"}+1)))>5)', parse_all=True
             )
@@ -490,7 +540,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_33(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(0.05*(0.5*({"A"}+1)+0.5*({"B"}+{"C"}))>0)', parse_all=True)
             .as_list()
         )
@@ -515,7 +565,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_34(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(0.05*({"A"}+0.5*({"B"}+1))>2)', parse_all=True)
             .as_list()
         )
@@ -526,7 +576,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_35(self):
         actual = (
-            ruleminer.parser.function_expression()
+            ruleminer.function_expression()
             .parse_string('substr({"Type"}, 0, 3)', parseAll=True)
             .as_list()
         )
@@ -535,7 +585,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_36(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(substr({"Type"}, 0, 3) > 0)', parseAll=True)
             .as_list()
         )
@@ -544,7 +594,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_37(self):
         actual = (
-            ruleminer.parser.function_expression()
+            ruleminer.function_expression()
             .parse_string('max((substr({"Type"}, 0, 1)) in ["d"])', parseAll=True)
             .as_list()
         )
@@ -556,7 +606,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_38(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string('(max((substr({"Type"}, 0, 1)) in ["d"]) > 0)', parseAll=True)
             .as_list()
         )
@@ -572,7 +622,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_39(self):
         actual = (
-            ruleminer.parser.function_expression()
+            ruleminer.function_expression()
             .parse_string('abs(({"f"} + {"d"}))')
             .as_list()
         )
@@ -581,7 +631,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_40(self):
         actual = (
-            ruleminer.parser.rule_expression()
+            ruleminer.rule_expression()
             .parse_string(
                 '({"Own funds"} <= quantile({"Own funds"}, 0.95))', parseAll=True
             )
@@ -589,6 +639,8 @@ class TestRuleminer(unittest.TestCase):
         )
         expected = [['{"Own funds"}', "<=", "quantile", ['{"Own funds"}', ",", "0.95"]]]
         self.assertTrue(actual == expected)
+
+
 
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""

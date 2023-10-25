@@ -97,3 +97,8 @@ History
 -------------------
 
 * added nested conditions in functions
+
+0.1.24 (2023-10-25)
+-------------------
+
+* added sumif and improved tolerance functionality

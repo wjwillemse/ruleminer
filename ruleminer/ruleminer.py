@@ -6,13 +6,18 @@ import re
 import numpy as np
 import pandas as pd
 
-from .parser import *
-from .utils import generate_substitutions
-from .metrics import (
-    metrics,
-    required_variables,
-    calculate_metrics
+from .parser import (
+    dataframe_index,
+    dataframe_values,
+    dataframe_lengths,
+    pandas_column,
+    rule_expression,
+    math_expression,
+    function_expression,
 )
+
+from .utils import generate_substitutions
+from .metrics import metrics, required_variables, calculate_metrics
 from .const import (
     CONFIDENCE,
     ABSOLUTE_SUPPORT,
@@ -29,8 +34,9 @@ from .const import (
     DUNDER_DF,
     VAR_X_AND_Y,
     VAR_X_AND_NOT_Y,
-    VAR_Z
+    VAR_Z,
 )
+
 
 class RuleMiner:
     """
@@ -80,18 +86,20 @@ class RuleMiner:
             "MIN": np.minimum,
             "ABS": np.abs,
             "QUANTILE": np.quantile,
-            "SUM": np.nansum,
-            "sum": np.nansum,
+            # "SUM": np.nansum,
+            # "sum": np.nansum,
             "max": np.maximum,
             "min": np.minimum,
             "abs": np.abs,
             "quantile": np.quantile,
         }
         if self.tolerance is not None:
+
             def __tol__(v):
                 for ((start, end)), value in self.tolerance.items():
                     if abs(v) >= start and abs(v) < end:
                         return 0.5 * 10 ** (value)
+
             self.eval_dict["__tol__"] = __tol__
 
         if templates is not None:
@@ -148,9 +156,7 @@ class RuleMiner:
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
-            rule_code = parser.dataframe_index(
-                expression=expression, required=required_vars
-            )
+            rule_code = dataframe_index(expression=expression, required=required_vars)
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
                 key: len(results[key]) if not isinstance(results[key], float) else 0
@@ -208,14 +214,14 @@ class RuleMiner:
             if rule_parts is None:
                 template_expression = "if () then " + template_expression
             parsed = (
-                parser.rule_expression()
+                rule_expression()
                 .parse_string(template_expression, parseAll=True)
                 .as_list()
             )
-        except:
-            logger.error(
-                'Parsing error in expression "' + str(template_expression) + '"'
-            )
+        except Exception as e:
+            logger.error("Parsing error in " + repr(template_expression))
+            if logging.root.level == logging.DEBUG:
+                logger.debug("Parsing error message: " + repr(e))
             return None
 
         reformulated_expression = self.reformulate(parsed)[1:-1]
@@ -281,10 +287,10 @@ class RuleMiner:
         # if the template expression is not a if then rule then it is changed into a if then rule
         try:
             parsed, if_part, then_part = self.split_rule(expression=template_expression)
-        except:
-            logger.error(
-                'Parsing error in expression "' + str(template_expression) + '"'
-            )
+        except Exception as e:
+            logger.error("Parsing error in expression " + repr(template_expression))
+            if logging.root.level == logging.DEBUG:
+                logger.debug("Parsing error message: " + repr(e))
             return None
 
         sorted_expressions = {}
@@ -306,9 +312,7 @@ class RuleMiner:
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             candidate = self.reformulate(candidate)
-            df_code = {
-                VAR_Z: parser.dataframe_values(expression=flatten(candidate))
-            }
+            df_code = {VAR_Z: dataframe_values(expression=flatten(candidate))}
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
                 VAR_Z
             ]
@@ -360,7 +364,7 @@ class RuleMiner:
                     reformulated_expression = self.reformulate(candidate)[1:-1]
                     if sorted_expression not in sorted_expressions.keys():
                         sorted_expressions[sorted_expression] = True
-                        rule_code = parser.dataframe_lengths(
+                        rule_code = dataframe_lengths(
                             expression=reformulated_expression,
                             required=self.required_vars,
                         )
@@ -506,14 +510,14 @@ class RuleMiner:
         if rule_parts is not None:
             if rule_parts.group(1).strip() != "()":
                 if_part = (
-                    parser.rule_expression()
+                    rule_expression()
                     .parse_string(rule_parts.group(1), parseAll=True)
                     .as_list()
                 )
             else:
                 if_part = ""
             then_part = (
-                parser.rule_expression()
+                rule_expression()
                 .parse_string(rule_parts.group(2), parseAll=True)
                 .as_list()
             )
@@ -521,13 +525,9 @@ class RuleMiner:
             expression = "if () then " + expression
             if_part = ""
             then_part = (
-                parser.rule_expression()
-                .parse_string(expression, parseAll=True)
-                .as_list()
+                rule_expression().parse_string(expression, parseAll=True).as_list()
             )
-        parsed = (
-            parser.rule_expression().parse_string(expression, parseAll=True).as_list()
-        )
+        parsed = rule_expression().parse_string(expression, parseAll=True).as_list()
         return parsed, if_part, then_part
 
     def substitute_list(
@@ -659,12 +659,15 @@ class RuleMiner:
             dict: A dictionary containing the results of evaluated expressions.
 
         """
+        logger = logging.getLogger(__name__)
         dict_values = {**{DUNDER_DF: dataframe}, **self.eval_dict}
         variables = {}
         for key in expressions.keys():
             try:
                 variables[key] = eval(expressions[key], encodings, dict_values)
-            except:
+            except Exception as e:
+                if logging.root.level == logging.DEBUG:
+                    logger.debug("Error while evaluating code: " + repr(e))
                 variables[key] = np.nan
         return variables
 
@@ -719,7 +722,7 @@ class RuleMiner:
         Add results for a rule to the results list.
 
         This method adds results for a specific rule, including its metrics and indices, to the
-        results list. It updates both the results for confirmations (co_indices) and exceptions 
+        results list. It updates both the results for confirmations (co_indices) and exceptions
         (ex_indices). If no indices are provided for either category, an error message is logged.
 
         Args:
@@ -798,7 +801,12 @@ class RuleMiner:
 
         return None
 
-    def reformulate(self, expression: str = ""):
+    def reformulate(
+        self,
+        expression: str = "",
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ):
         """
         Convert parameters, settings, and functions to Pandas code within an expression.
 
@@ -808,6 +816,8 @@ class RuleMiner:
 
         Args:
             expression (str): The input expression to be reformulated into Pandas code.
+            apply_tolerance (bool):
+            positive_tolerance (bool):
 
         Returns:
             str: The reformulated expression in Pandas code.
@@ -820,7 +830,12 @@ class RuleMiner:
 
         """
         if isinstance(expression, str):
-            if expression.lower() == "in":
+            if is_column(expression) and apply_tolerance:
+                if positive_tolerance:
+                    return expression + "+0.5*abs(" + expression + ".apply(__tol__))"
+                else:
+                    return expression + "-0.5*abs(" + expression + ".apply(__tol__))"
+            elif expression.lower() == "in":
                 return ".isin"
             else:
                 return expression
@@ -843,9 +858,17 @@ class RuleMiner:
                         precision = 1.5 * 10 ** (-decimal)
                         return (
                             "(abs("
-                            + self.reformulate(expression[:idx])
+                            + self.reformulate(
+                                expression[:idx],
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
                             + "-"
-                            + self.reformulate(expression[idx + 1 :])
+                            + self.reformulate(
+                                expression[idx + 1 :],
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
                             + ") <= "
                             + str(precision)
                             + ")"
@@ -863,84 +886,54 @@ class RuleMiner:
                             and len(expression[idx + 1 :]) == 1
                         )
                     ):
-                        left_side = self.reformulate(expression[:idx])
-                        right_side = self.reformulate(expression[idx + 1 :])
+                        left_side_pos = self.reformulate(
+                            expression=expression[:idx],
+                            apply_tolerance=True,
+                            positive_tolerance=True,
+                        )
+                        left_side_neg = self.reformulate(
+                            expression=expression[:idx],
+                            apply_tolerance=True,
+                            positive_tolerance=False,
+                        )
+                        right_side_pos = self.reformulate(
+                            expression=expression[idx + 1 :],
+                            apply_tolerance=True,
+                            positive_tolerance=True,
+                        )
+                        right_side_neg = self.reformulate(
+                            expression=expression[idx + 1 :],
+                            apply_tolerance=True,
+                            positive_tolerance=False,
+                        )
                         if item in ["=="]:
                             return (
                                 "(("
-                                + right_side
-                                + "-0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + right_side_neg
                                 + " <= "
-                                + left_side
-                                + "+0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + left_side_pos
                                 + ") & ("
-                                + right_side
-                                + "+0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + right_side_pos
                                 + " >= "
-                                + left_side
-                                + "-0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + left_side_neg
                                 + "))"
                             )
                         if item in ["!="]:
                             return (
                                 "(("
-                                + right_side
-                                + "-0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + right_side_neg
                                 + " > "
-                                + left_side
-                                + "+0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + left_side_pos
                                 + ") | ("
-                                + right_side
-                                + "+0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + right_side_pos
                                 + " < "
-                                + left_side
-                                + "-0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
+                                + left_side_neg
                                 + "))"
                             )
                         elif item in [">", ">="]:
-                            return (
-                                "("
-                                + left_side
-                                + "-0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
-                                + item
-                                + right_side
-                                + "+0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
-                                + ")"
-                            )
+                            return "(" + left_side_neg + item + right_side_pos + ")"
                         elif item in ["<", "<="]:
-                            return (
-                                "("
-                                + left_side
-                                + "+0.5*abs("
-                                + left_side.replace("}", "}.apply(__tol__)")
-                                + ")"
-                                + item
-                                + right_side
-                                + "-0.5*abs("
-                                + right_side.replace("}", "}.apply(__tol__)")
-                                + ")"
-                                + ")"
-                            )
+                            return "(" + left_side_pos + item + right_side_neg + ")"
                 if (
                     self.params.get("evaluate_quantile", False)
                     and isinstance(item, str)
@@ -948,33 +941,51 @@ class RuleMiner:
                 ):
                     l = ""
                     for i in expression[:idx]:
-                        l += self.reformulate(i)
-                    quantile_code = {
-                        VAR_Z: parser.pandas_column(
-                            flatten(expression[idx : idx + 2])
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
                         )
+                    quantile_code = {
+                        VAR_Z: pandas_column(flatten(expression[idx : idx + 2]))
                     }
                     quantile_result = self.evaluate_code(
                         expressions=quantile_code, dataframe=self.data
                     )[VAR_Z]
                     l += str(np.round(quantile_result, 8))
                     for i in expression[idx + 2 :]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     return "(" + l + ")"
                 if isinstance(item, str) and item.lower() == "in":
                     # replace in by .isin
                     l = ""
                     for i in expression[:idx]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     l += ".isin"
                     for i in expression[idx + 1 :]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     return l
                 if isinstance(item, str) and item.lower() == "substr":
                     string, _, start, _, stop = expression[idx + 1]
                     l = (
                         "("
-                        + self.reformulate(string)
+                        + self.reformulate(
+                            string,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                         + ".str.slice("
                         + start
                         + ","
@@ -982,13 +993,21 @@ class RuleMiner:
                         + "))"
                     )
                     for i in expression[idx + 2 :]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     return l
                 if isinstance(item, str) and item.lower() == "split":
                     string, _, separator, _, position = expression[idx + 1]
                     l = (
                         "("
-                        + self.reformulate(string)
+                        + self.reformulate(
+                            string,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                         + ".str.split("
                         + separator
                         + ").str["
@@ -996,26 +1015,75 @@ class RuleMiner:
                         + "])"
                     )
                     for i in expression[idx + 2 :]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     return l
-                if isinstance(item, str) and item.lower() == "sumif":
-                    string = expression[idx + 1][0]
-                    condition = expression[idx + 1][2:]
-                    l = (
-                        "sum("
-                        + self.reformulate(string)
-                        + ".loc["
-                        + self.reformulate(condition)
-                        + "])"
-                    )
+                if isinstance(item, str) and item.lower() in ["sum", "sumif"]:
+                    if item.lower() == "sum":
+                        string = expression[idx + 1]
+                        l = (
+                            "sum("
+                            + self.reformulate(
+                                string,
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+                            + ")")
+                    else:
+                        string = expression[idx + 1][0]
+                        condition = expression[idx + 1][2:]
+                        sumlist = (
+                            self.reformulate(
+                                string,
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                                )
+                        )
+                        condition = (".loc["
+                            + self.reformulate(
+                                condition,
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+                            + "]"
+                        )
+                        sumlist = sumlist.replace("}", "}"+condition)
+                        l = "sum("+sumlist+")"
                     for i in expression[idx + 2 :]:
-                        l += self.reformulate(i)
+                        l += self.reformulate(
+                            i,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
                     return l
                 if isinstance(item, str) and item.lower() == "countif":
                     logging.error("Not yet implemented")
+
+                if isinstance(item, str) and item in ["-", "/"]:
+                    left_side = self.reformulate(
+                        expression=expression[:idx],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+                    right_side = self.reformulate(
+                        expression=expression[idx + 1 :],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=not positive_tolerance
+                        if apply_tolerance
+                        else positive_tolerance,
+                    )
+                    return "(" + left_side + item + right_side + ")"
+
             l = ""
             for i in expression:
-                l += self.reformulate(i)
+                l += self.reformulate(
+                    i,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
             return "(" + l + ")"
 
 
