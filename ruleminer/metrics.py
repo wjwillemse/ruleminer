@@ -6,16 +6,13 @@ from .const import SUPPORT
 from .const import CONFIDENCE
 from .const import ADDED_VALUE
 from .const import CASUAL_CONFIDENCE
-from .const import CASUAL_SUPPORT
 from .const import LIFT
 from .const import CONVICTION
 from .const import RULE_POWER_FACTOR
 from .const import VAR_X
 from .const import VAR_NOT_X
 from .const import VAR_Y
-from .const import VAR_Z
 from .const import VAR_N
-from .const import VAR_NOT_Y
 from .const import VAR_X_AND_Y
 from .const import VAR_X_AND_NOT_Y
 from .const import VAR_NOT_X_AND_NOT_Y
@@ -37,7 +34,8 @@ METRICS = {
 
 def required_variables(metrics: list = []):
     """
-    This function derives a set of variables that are needed to calculate the metrics
+    This function derives a set of variables that
+    are needed to calculate the metrics
     """
     variables = set()
     for metric in metrics:
@@ -60,7 +58,9 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
             calculated_metrics[metric] = len_results.get(VAR_X_AND_Y, np.nan)
         elif metric == ABSOLUTE_EXCEPTIONS:
             # n(X and ~Y)
-            calculated_metrics[metric] = len_results.get(VAR_X_AND_NOT_Y, np.nan)
+            calculated_metrics[metric] = len_results.get(
+                VAR_X_AND_NOT_Y, np.nan
+            )
         elif metric == CONFIDENCE:
             # conf(X->Y) = n(X and Y) / n(X)
             if len_results.get(VAR_X, np.nan) != 0:
@@ -72,9 +72,9 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
         elif metric == SUPPORT:
             # n(X) / n
             if len_results.get(VAR_N, np.nan) != 0:
-                calculated_metrics[metric] = len_results.get(VAR_X_AND_Y, np.nan) / (
-                    len_results.get(VAR_N, np.nan)
-                )
+                calculated_metrics[metric] = len_results.get(
+                    VAR_X_AND_Y, np.nan
+                ) / (len_results.get(VAR_N, np.nan))
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == ADDED_VALUE:
@@ -86,9 +86,9 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
             else:
                 calculated_metrics[metric] = np.nan
             if len_results.get(VAR_N, np.nan) != 0:
-                calculated_metrics[metric] -= len_results.get(VAR_Y, np.nan) / (
-                    len_results.get(VAR_N, np.nan)
-                )
+                calculated_metrics[metric] -= len_results.get(
+                    VAR_Y, np.nan
+                ) / (len_results.get(VAR_N, np.nan))
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == CASUAL_CONFIDENCE:
@@ -113,7 +113,8 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
             # (1-supp(Y)) / (1-conf(X->Y))
             if len_results.get(VAR_N, np.nan) != 0:
                 calculated_metrics[metric] = 1 - (
-                    len_results.get(VAR_Y, np.nan) / len_results.get(VAR_N, np.nan)
+                    len_results.get(VAR_Y, np.nan)
+                    / len_results.get(VAR_N, np.nan)
                 )
             else:
                 calculated_metrics[metric] = np.nan

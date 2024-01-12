@@ -2,7 +2,6 @@
 
 import pandas as pd
 import logging
-import itertools
 import re
 import numpy as np
 from sklearn.tree import _tree, DecisionTreeRegressor, DecisionTreeClassifier
@@ -10,7 +9,9 @@ from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
 
 
 def generate_substitutions(
-    df: pd.DataFrame = None, column_value: tuple = None, value_regex: str = None
+    df: pd.DataFrame = None,
+    column_value: tuple = None,
+    value_regex: str = None,
 ):
     """
     Util function to retrieve values of dataframe satisfying a regex
@@ -35,9 +36,9 @@ def generate_substitutions(
                     if isinstance(value, str):
                         try:
                             r = compiled_value_regex.fullmatch(value)
-                        except:
+                        except Exception as e:
                             logging.error(
-                                "Error evaluating regex: " + value_regex[1:-1]
+                                "Error evaluating regex: "+value_regex[1:-1]+", "+str(e)
                             )
                         if r is not None:
                             yield (column, value, r.groups())

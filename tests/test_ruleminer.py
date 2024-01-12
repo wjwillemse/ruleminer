@@ -7,6 +7,7 @@ import unittest
 import pandas as pd
 import ruleminer
 
+
 class TestRuleminer(unittest.TestCase):
     """Tests for `ruleminer` package."""
 
@@ -152,7 +153,8 @@ class TestRuleminer(unittest.TestCase):
         actual = (
             ruleminer.rule_expression()
             .parse_string(
-                'IF ( not("F3" in ["G1","G3"])) THEN (SUBSTR({"A"}, 2, 4) in ["D1","D3"])',
+                'IF ( not("F3" in ["G1","G3"])) THEN \
+                (SUBSTR({"A"}, 2, 4) in ["D1","D3"])',
                 parse_all=True,
             )
             .as_list()
@@ -463,14 +465,18 @@ class TestRuleminer(unittest.TestCase):
             ],
         )
 
-        templates = [{"expression": '(sumif([{"Assets"}, {"Own_funds"}], {"Type"}=="life_insurer") > 0)'}]
+        templates = [
+            {"expression": """(sumif([{"Assets"}, {"Own_funds"}],
+            {"Type"}=="life_insurer") > 0)"""}
+        ]
         actual = ruleminer.RuleMiner(templates=templates, data=df).rules
         expected = pd.DataFrame(
             data=[
                 [
                     0,
                     0,
-                    'if () then sum(([{"Assets"}.loc[({"Type"}=="life_insurer")],{"Own_funds"}.loc[({"Type"}=="life_insurer")]]))>0',
+                    'if () then sum(([{"Assets"}.loc[({"Type"}=="life_insurer")],\
+{"Own_funds"}.loc[({"Type"}=="life_insurer")]]))>0',
                     "",
                     5,
                     0,
@@ -639,8 +645,6 @@ class TestRuleminer(unittest.TestCase):
         )
         expected = [['{"Own funds"}', "<=", "quantile", ['{"Own funds"}', ",", "0.95"]]]
         self.assertTrue(actual == expected)
-
-
 
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""
