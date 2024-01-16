@@ -342,6 +342,7 @@ And r.rules gives you the following output
      - encodings
    * - 0
      - if () then ((({"C"}-0.5*abs({"C"}.apply(__tol__, args=("default",)))) <= ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",)))+{"B"}+0.5*abs({"B"}.apply(__tol__, args=("default",))))) & ... )
+     - 
      - 1
      - 1
      - 0.5
