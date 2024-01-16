@@ -267,10 +267,12 @@ If the precision should depend on the specific value, which is the case for some
 
     params = {
         'tolerance': {
-            (  0, 1e3): -1,
-            (1e3, 1e6): -2, 
-            (1e6, 1e8): -3, 
-            (1e8, np.inf): -4
+            "default": {
+                (  0, 1e3): -1,
+                (1e3, 1e6): -2, 
+                (1e6, 1e8): -3, 
+                (1e8, np.inf): -4
+            }
         }
     }
 
@@ -339,8 +341,7 @@ And r.rules gives you the following output
      - confidence
      - encodings
    * - 0
-     - if () then ((({"C"})-0.5*abs(({"C"}.apply(__tol__))) <= ({"A"}+{"B"})+0.5*abs(({"A"}.apply(__tol__)+{"B"}.apply(__tol__)))) & ... )
-     - 
+     - if () then ((({"C"}-0.5*abs({"C"}.apply(__tol__, args=("default",)))) <= ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",)))+{"B"}+0.5*abs({"B"}.apply(__tol__, args=("default",))))) & ... )
      - 1
      - 1
      - 0.5
@@ -349,6 +350,22 @@ And r.rules gives you the following output
 Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
 
 If a rule contains minus or division operators then the signs of tolerances of the right part (that falls under the minus or division) are reversed.
+
+If you have different tolerances per report of per data point then you can add keys in the form of regexes in the tolerance dictionary. For example the following tolerance definition would use for all columns that start with an "A" zero decimals and for the rest the default tolerance: ::
+
+    params = {
+        'tolerance': {
+            "A.*": {
+                (0, np.inf): 0
+            },
+            "default": {
+                (  0, 1e3): -1,
+                (1e3, 1e6): -2, 
+                (1e6, 1e8): -3, 
+                (1e8, np.inf): -4
+            }
+        }
+    }
 
 
 Evaluating results within rules

@@ -73,10 +73,11 @@ class RuleMiner:
         )
         self.metrics = metrics(self.metrics)
         self.required_vars = required_variables(self.metrics)
-        self.filter = self.params.get(
-            "filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2}
-        )
+        self.filter = self.params.get("filter", {CONFIDENCE: 0.5, ABSOLUTE_SUPPORT: 2})
         self.tolerance = self.params.get("tolerance", None)
+        if self.tolerance is not None:
+            if "default" not in self.tolerance.keys():
+                raise Exception("No 'default' key found in tolerance definition.")
 
         self.data = data
         self.eval_dict = {
@@ -91,12 +92,15 @@ class RuleMiner:
             "abs": np.abs,
             "quantile": np.quantile,
         }
+
         if self.tolerance is not None:
 
-            def __tol__(v):
-                for ((start, end)), value in self.tolerance.items():
-                    if abs(v) >= start and abs(v) < end:
-                        return 0.5 * 10 ** (value)
+            def __tol__(value, column=None):
+                for key, tol in self.tolerance.items():
+                    if key == column:
+                        for ((start, end)), decimals in tol.items():
+                            if abs(value) >= start and abs(value) < end:
+                                return 0.5 * 10 ** (decimals)
 
             self.eval_dict["__tol__"] = __tol__
 
@@ -137,12 +141,8 @@ class RuleMiner:
         if data is not None:
             self.update(data=data)
 
-        assert (
-            self.rules is not None
-        ), "Unable to evaluate data, no rules defined."
-        assert (
-            self.data is not None
-        ), "Unable to evaluate data, no data defined."
+        assert self.rules is not None, "Unable to evaluate data, no rules defined."
+        assert self.data is not None, "Unable to evaluate data, no data defined."
 
         self.setup_results_dataframe()
 
@@ -158,16 +158,10 @@ class RuleMiner:
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
-            rule_code = dataframe_index(
-                expression=expression, required=required_vars
-            )
-            results = self.evaluate_code(
-                expressions=rule_code, dataframe=self.data
-            )
+            rule_code = dataframe_index(expression=expression, required=required_vars)
+            results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
-                key: len(results[key])
-                if not isinstance(results[key], float)
-                else 0
+                key: len(results[key]) if not isinstance(results[key], float) else 0
                 for key in results.keys()
                 if results[key] is not None
             }
@@ -307,13 +301,9 @@ class RuleMiner:
         # if the template expression is not a if then rule then it is changed
         # into an if then rule
         try:
-            parsed, if_part, then_part = self.split_rule(
-                expression=template_expression
-            )
+            parsed, if_part, then_part = self.split_rule(expression=template_expression)
         except Exception as e:
-            logger.error(
-                "Parsing error in expression " + repr(template_expression)
-            )
+            logger.error("Parsing error in expression " + repr(template_expression))
             if logging.root.level == logging.DEBUG:
                 logger.debug("Parsing error message: " + repr(e))
             return None
@@ -333,16 +323,14 @@ class RuleMiner:
                 expression=if_part,
                 columns=[item[0] for item in if_part_column_values],
                 values=[item[1] for item in if_part_column_values],
-                column_substitutions=[
-                    item[0] for item in if_part_substitution
-                ],
+                column_substitutions=[item[0] for item in if_part_substitution],
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             candidate = self.reformulate(candidate)
             df_code = {VAR_Z: dataframe_values(expression=flatten(candidate))}
-            df_eval = self.evaluate_code(
-                expressions=df_code, dataframe=self.data
-            )[VAR_Z]
+            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
+                VAR_Z
+            ]
             if not isinstance(df_eval, float):  # then it is nan
                 # substitute variables in then_part
                 then_part_substituted = self.substitute_group_names(
@@ -352,9 +340,7 @@ class RuleMiner:
                     then_part_substituted, []
                 )
                 then_part_substitutions = [
-                    generate_substitutions(
-                        df=df_eval, column_value=column_value
-                    )
+                    generate_substitutions(df=df_eval, column_value=column_value)
                     for column_value in then_part_column_values
                 ]
                 if if_part_substitution != ():
@@ -366,9 +352,7 @@ class RuleMiner:
                     expression_substitutions = list(
                         itertools.product(*then_part_substitutions)
                     )
-                template_column_values = (
-                    if_part_column_values + then_part_column_values
-                )
+                template_column_values = if_part_column_values + then_part_column_values
 
                 candidates = []
                 if expression_substitutions == []:
@@ -383,18 +367,10 @@ class RuleMiner:
                         )
                         candidate_parsed, _, _, _, _ = self.substitute_list(
                             expression=parsed_substituted,
-                            columns=[
-                                item[0] for item in template_column_values
-                            ],
-                            values=[
-                                item[1] for item in template_column_values
-                            ],
-                            column_substitutions=[
-                                item[0] for item in substitution
-                            ],
-                            value_substitutions=[
-                                item[1] for item in substitution
-                            ],
+                            columns=[item[0] for item in template_column_values],
+                            values=[item[1] for item in template_column_values],
+                            column_substitutions=[item[0] for item in substitution],
+                            value_substitutions=[item[1] for item in substitution],
                         )
                         candidates.append(candidate_parsed)
 
@@ -434,9 +410,7 @@ class RuleMiner:
             for level in range(len(self.data.index.names)):
                 del self.data[str(self.data.index.names[level])]
 
-    def substitute_group_names(
-        self, expr: str = None, group_names_list: list = []
-    ):
+    def substitute_group_names(self, expr: str = None, group_names_list: list = []):
         """
         Substitute group names in an expression.
 
@@ -475,9 +449,7 @@ class RuleMiner:
                         expr = re.sub("\\x0" + str(idx + 1), key, expr)
             return expr
         elif isinstance(expr, list):
-            return [
-                self.substitute_group_names(i, group_names_list) for i in expr
-            ]
+            return [self.substitute_group_names(i, group_names_list) for i in expr]
 
     def search_column_value(self, expr, column_value) -> list:
         """
@@ -579,13 +551,9 @@ class RuleMiner:
             expression = "if () then " + expression
             if_part = ""
             then_part = (
-                rule_expression()
-                .parse_string(expression, parseAll=True)
-                .as_list()
+                rule_expression().parse_string(expression, parseAll=True).as_list()
             )
-        parsed = (
-            rule_expression().parse_string(expression, parseAll=True).as_list()
-        )
+        parsed = rule_expression().parse_string(expression, parseAll=True).as_list()
         return parsed, if_part, then_part
 
     def substitute_list(
@@ -644,11 +612,7 @@ class RuleMiner:
                     column_substitutions[1:],
                     value_substitutions,
                 )
-            elif (
-                values != []
-                and values[0] is not None
-                and values[0] in expression
-            ):
+            elif values != [] and values[0] is not None and values[0] in expression:
                 return (
                     expression.replace(
                         values[0], '"' + value_substitutions[0] + '"', 1
@@ -741,7 +705,12 @@ class RuleMiner:
                 variables[key] = eval(expressions[key], encodings, dict_values)
             except Exception as e:
                 if logging.root.level == logging.DEBUG:
-                    logger.debug("Error while evaluating code: " + repr(e))
+                    logger.debug(
+                        "Error while evaluating the code '"
+                        + expressions[key]
+                        + "': "
+                        + repr(e)
+                    )
                 variables[key] = np.nan
         return variables
 
@@ -799,9 +768,7 @@ class RuleMiner:
         else:
             self.rules = row
 
-    def add_results(
-        self, rule_idx, rule_metrics, co_indices, ex_indices
-    ) -> None:
+    def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices) -> None:
         """
         Add results for a rule to the results list.
 
@@ -843,8 +810,7 @@ class RuleMiner:
 
         if nco == 0 and nex == 0:
             logger.info(
-                "Error when evaluating rule results for rule id "
-                + str(rule_idx)
+                "Error when evaluating rule results for rule id " + str(rule_idx)
             )
 
         if nco > 0:
@@ -919,19 +885,29 @@ class RuleMiner:
         """
         if isinstance(expression, str):
             if is_column(expression) and apply_tolerance:
+                args = ""
+                for key, tol in self.tolerance.items():
+                    if re.fullmatch(key, expression[2:-2]):
+                        args = ', args=("' + key + '",)'
+                if args == "":
+                    args = ', args=("default",)'
                 if positive_tolerance:
                     return (
                         expression
                         + "+0.5*abs("
                         + expression
-                        + ".apply(__tol__))"
+                        + ".apply(__tol__"
+                        + args
+                        + "))"
                     )
                 else:
                     return (
                         expression
                         + "-0.5*abs("
                         + expression
-                        + ".apply(__tol__))"
+                        + ".apply(__tol__"
+                        + args
+                        + "))"
                     )
             elif expression.lower() == "in":
                 return ".isin"
@@ -945,8 +921,7 @@ class RuleMiner:
                     and (item in ["=="])
                 ):
                     if not (
-                        is_string(expression[idx - 1])
-                        and len(expression[:idx]) == 1
+                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
                     ) and (
                         not (
                             is_string(expression[idx + 1])
@@ -978,8 +953,7 @@ class RuleMiner:
                     and item in ["==", "!=", "<", "<=", ">", ">="]
                 ):
                     if not (
-                        is_string(expression[idx - 1])
-                        and len(expression[:idx]) == 1
+                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
                     ) and (
                         not (
                             is_string(expression[idx + 1])
@@ -1031,21 +1005,9 @@ class RuleMiner:
                                 + "))"
                             )
                         elif item in [">", ">="]:
-                            return (
-                                "("
-                                + left_side_neg
-                                + item
-                                + right_side_pos
-                                + ")"
-                            )
+                            return "(" + left_side_neg + item + right_side_pos + ")"
                         elif item in ["<", "<="]:
-                            return (
-                                "("
-                                + left_side_pos
-                                + item
-                                + right_side_neg
-                                + ")"
-                            )
+                            return "(" + left_side_pos + item + right_side_neg + ")"
                 if (
                     self.params.get("evaluate_quantile", False)
                     and isinstance(item, str)
@@ -1059,9 +1021,7 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
                     quantile_code = {
-                        VAR_Z: pandas_column(
-                            flatten(expression[idx : idx + 2])
-                        )
+                        VAR_Z: pandas_column(flatten(expression[idx : idx + 2]))
                     }
                     quantile_result = self.evaluate_code(
                         expressions=quantile_code, dataframe=self.data
@@ -1139,13 +1099,13 @@ class RuleMiner:
                     if item.lower() == "sum":
                         string = expression[idx + 1]
                         res = (
-                            "sum("
+                            "sum(["
                             + self.reformulate(
                                 string,
                                 apply_tolerance=apply_tolerance,
                                 positive_tolerance=positive_tolerance,
                             )
-                            + ")"
+                            + "])"
                         )
                     else:
                         string = expression[idx + 1][0]
@@ -1239,16 +1199,11 @@ def flatten_and_sort(expression: str = ""):
             res = (
                 expression[0]
                 + "("
-                + "".join(
-                    sorted([flatten_and_sort(item) for item in expression[1:]])
-                )
+                + "".join(sorted([flatten_and_sort(item) for item in expression[1:]]))
                 + ")"
             )
         elif all(
-            [
-                is_string(item) or is_column(item) or item == ","
-                for item in expression
-            ]
+            [is_string(item) or is_column(item) or item == "," for item in expression]
         ):
             return "".join(sorted(expression))
         else:
@@ -1262,9 +1217,7 @@ def flatten_and_sort(expression: str = ""):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
                 elif (
-                    isinstance(item, str)
-                    and (item == "+")
-                    and ("*" not in expression)
+                    isinstance(item, str) and (item == "+") and ("*" not in expression)
                 ):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
@@ -1272,9 +1225,7 @@ def flatten_and_sort(expression: str = ""):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
                 elif (
-                    isinstance(item, str)
-                    and (item == "|")
-                    and ("&" not in expression)
+                    isinstance(item, str) and (item == "|") and ("&" not in expression)
                 ):
                     idx_to_sort.add(idx - 1)
                     idx_to_sort.add(idx + 1)
@@ -1348,8 +1299,7 @@ def is_column(s):
         False
     """
     return len(s) > 4 and (
-        (s[:2] == '{"' and s[-2:] == '"}')
-        or (s[:2] == "{'" and s[-2:] == "'}")
+        (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
     )
 
 

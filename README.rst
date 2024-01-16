@@ -22,6 +22,8 @@ Python package to discover association rules in Pandas DataFrames.
 
 This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_.
 
+The documentation can be found `here <https://ruleminer.readthedocs.io/en/latest/>`_. 
+
 Here is what the package does:
 
 * Generate human-readable validation rules using rule templates containing regular expressions and a Pandas DataFrame dataset

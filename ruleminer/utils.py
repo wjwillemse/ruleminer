@@ -38,7 +38,10 @@ def generate_substitutions(
                             r = compiled_value_regex.fullmatch(value)
                         except Exception as e:
                             logging.error(
-                                "Error evaluating regex: "+value_regex[1:-1]+", "+str(e)
+                                "Error evaluating regex: "
+                                + value_regex[1:-1]
+                                + ", "
+                                + str(e)
                             )
                         if r is not None:
                             yield (column, value, r.groups())

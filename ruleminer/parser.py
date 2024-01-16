@@ -43,9 +43,7 @@ _string = (
     + pyparsing.pyparsing_unicode.Greek.alphanums
 )
 _quoted_string = pyparsing.Combine(_quote + pyparsing.Word(_string) + _quote)
-_column = pyparsing.Combine(
-    "{" + _quote + pyparsing.Word(_string) + _quote + "}"
-)
+_column = pyparsing.Combine("{" + _quote + pyparsing.Word(_string) + _quote + "}")
 _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
@@ -88,12 +86,7 @@ def function_expression():
     params = pyparsing.Forward()
     math_expr = math_expression(expr)
     param_element = (
-        math_expr
-        | _quoted_string_list
-        | _quoted_string
-        | _column
-        | _number
-        | _empty
+        math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty
     )
     param_condition = param_element + _compa_op + param_element
     param = param_condition | param_element
@@ -125,17 +118,10 @@ def math_expression(base: pyparsing.core.Forward = None):
     """
     expr = pyparsing.Forward()
     if base is None:
-        element = (
-            _quoted_string_list | _quoted_string | _column | _number | _empty
-        )
+        element = _quoted_string_list | _quoted_string | _column | _number | _empty
     else:
         element = (
-            base
-            | _quoted_string_list
-            | _quoted_string
-            | _column
-            | _number
-            | _empty
+            base | _quoted_string_list | _quoted_string | _column | _number | _empty
         )
     atom = _addop[...] + (element | pyparsing.Group(_lpar + expr + _rpar))
     factor = pyparsing.Forward()
@@ -191,21 +177,15 @@ def rule_expression():
         ],
     )
     if_then = (
-        "if" + condition + "then" + condition
-        | "IF" + condition + "THEN" + condition
+        "if" + condition + "then" + condition | "IF" + condition + "THEN" + condition
     )
     rule_syntax = (
-        if_then
-        | "if () then " + condition
-        | "IF () THEN " + condition
-        | condition
+        if_then | "if () then " + condition | "IF () THEN " + condition | condition
     )
     return rule_syntax
 
 
-def dataframe_lengths(
-    expression: str = "", required: list = []
-) -> Dict[str, str]:
+def dataframe_lengths(expression: str = "", required: list = []) -> Dict[str, str]:
     """
     Calculate lengths based on an rule expression and generate corresponding values.
 
@@ -245,17 +225,13 @@ def dataframe_lengths(
             if if_part == "()":
                 expressions[variable] = "len(" + DUNDER_DF + ".index)"
             else:
-                expressions[variable] = (
-                    "(" + pandas_column(if_part) + ").sum()"
-                )
+                expressions[variable] = "(" + pandas_column(if_part) + ").sum()"
         elif variable == "~X":
             expressions[variable] = "(~(" + pandas_column(if_part) + ")).sum()"
         elif variable == "Y":
             expressions[variable] = "(" + pandas_column(then_part) + ").sum()"
         elif variable == "~Y":
-            expressions[variable] = (
-                "(~(" + pandas_column(then_part) + ")).sum()"
-            )
+            expressions[variable] = "(~(" + pandas_column(then_part) + ")).sum()"
         elif variable == "X and Y":
             expressions[variable] = (
                 "(("
@@ -288,9 +264,7 @@ def dataframe_lengths(
     return expressions
 
 
-def dataframe_index(
-    expression: str = "", required: list = []
-) -> Dict[str, str]:
+def dataframe_index(expression: str = "", required: list = []) -> Dict[str, str]:
     """
     Parse a rule expression and generate corresponding DataFrame index expressions.
 
