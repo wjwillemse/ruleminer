@@ -6,6 +6,7 @@ import re
 import numpy as np
 from sklearn.tree import _tree, DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
+from sklearn.base import is_classifier, is_regressor
 
 
 def generate_substitutions(
@@ -132,22 +133,42 @@ def tree_to_expressions(tree, features, target):
 def fit_ensemble_and_extract_expressions(
     df: pd.DataFrame = None,
     target: str = None,
+    estimator: abc.ABCMeta = None,
+    base: abc.ABCMeta = None,
     random_state: int = 0,
     max_depth: int = 2,
     n_estimators: int = 10,
     min_samples_split: int = 2,
     min_samples_leaf: int = 1,
     min_weight_fraction_leaf: float = 0.0,
+    sample_weight: list = None,
 ):
     features = [col for col in df.columns if col != target]
     X = df[features]
     Y = df[[target]].values.ravel()
     target_dtype = df.dtypes[df.columns.get_loc(target)]
 
-    if pd.api.types.is_float_dtype(target_dtype):
-        base, estimator = DecisionTreeRegressor, AdaBoostRegressor
-    elif pd.api.types.is_integer_dtype(target_dtype):
-        base, estimator = DecisionTreeClassifier, AdaBoostClassifier
+    if estimator is None:
+        if pd.api.types.is_float_dtype(target_dtype):
+            estimator = AdaBoostRegressor
+        elif pd.api.types.is_integer_dtype(target_dtype):
+            estimator = AdaBoostClassifier
+    else:
+        if pd.api.types.is_float_dtype(target_dtype) and not is_regressor(estimator):
+            logging.error("target has float type data and estimator is not a regressor")
+        elif pd.api.types.is_integer_dtype(target_dtype) and not is_classifier(estimator):
+            logging.error("target has integer type data and estimator is not a classifier")
+
+    if base if None:
+        if pd.api.types.is_float_dtype(target_dtype):
+            base  = DecisionTreeRegressor
+        elif pd.api.types.is_integer_dtype(target_dtype):
+            base = DecisionTreeClassifier
+    else:
+        if pd.api.types.is_float_dtype(target_dtype) and not is_regressor(base):
+            logging.error("target has float type data and base is not a regressor")
+        elif pd.api.types.is_integer_dtype(target_dtype) and not is_classifier(base):
+            logging.error("target has integer type data and base is not a classifier")
 
     regressor = estimator(
         base_estimator=base(
@@ -160,7 +181,11 @@ def fit_ensemble_and_extract_expressions(
         n_estimators=n_estimators,
         random_state=random_state,
     )
-    regressor = regressor.fit(X, Y)
+    regressor = regressor.fit(
+        X, 
+        Y,
+        sample_weight=sample_weight,
+    )
     ensemble_expressions = [
         tree_to_expressions(estimator, features, target)
         for estimator in regressor.estimators_
