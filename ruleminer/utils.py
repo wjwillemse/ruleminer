@@ -3,11 +3,11 @@
 import pandas as pd
 import logging
 import re
+import abc
 import numpy as np
 from sklearn.tree import _tree, DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
 from sklearn.base import is_classifier, is_regressor
-
 
 def generate_substitutions(
     df: pd.DataFrame = None,
