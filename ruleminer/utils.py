@@ -159,7 +159,7 @@ def fit_ensemble_and_extract_expressions(
         elif pd.api.types.is_integer_dtype(target_dtype) and not is_classifier(estimator):
             logging.error("target has integer type data and estimator is not a classifier")
 
-    if base if None:
+    if base is None:
         if pd.api.types.is_float_dtype(target_dtype):
             base  = DecisionTreeRegressor
         elif pd.api.types.is_integer_dtype(target_dtype):
