@@ -109,7 +109,7 @@ History
 * added additional arguments estimate, base and sample_weights to fit_ensemble_and_extract_expressions function to use more than AdaBoost
 * added decision tree functions to __init__.py
 
-0.1.27 (2023-5-3)
+0.1.28 (2023-5-3)
 -------------------
 
 * Bug fix
