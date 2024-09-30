@@ -3,6 +3,7 @@
 import pandas as pd
 import logging
 import re
+import abc
 import numpy as np
 from sklearn.tree import _tree, DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
@@ -156,12 +157,16 @@ def fit_ensemble_and_extract_expressions(
     else:
         if pd.api.types.is_float_dtype(target_dtype) and not is_regressor(estimator):
             logging.error("target has float type data and estimator is not a regressor")
-        elif pd.api.types.is_integer_dtype(target_dtype) and not is_classifier(estimator):
-            logging.error("target has integer type data and estimator is not a classifier")
+        elif pd.api.types.is_integer_dtype(target_dtype) and not is_classifier(
+            estimator
+        ):
+            logging.error(
+                "target has integer type data and estimator is not a classifier"
+            )
 
-    if base if None:
+    if base is None:
         if pd.api.types.is_float_dtype(target_dtype):
-            base  = DecisionTreeRegressor
+            base = DecisionTreeRegressor
         elif pd.api.types.is_integer_dtype(target_dtype):
             base = DecisionTreeClassifier
     else:
@@ -182,7 +187,7 @@ def fit_ensemble_and_extract_expressions(
         random_state=random_state,
     )
     regressor = regressor.fit(
-        X, 
+        X,
         Y,
         sample_weight=sample_weight,
     )

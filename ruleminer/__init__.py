@@ -2,7 +2,7 @@
 
 __author__ = """Willem Jan Willemse"""
 __email__ = "w.j.willemse@dnb.nl"
-__version__ = "0.1.26"
+__version__ = "0.1.28"
 
 from .ruleminer import (
     rule_expression,
@@ -24,7 +24,7 @@ from .parser import (
     _column,
 )
 
-from .utils import(
+from .utils import (
     tree_to_expressions,
     fit_ensemble_and_extract_expressions,
     fit_dataframe_to_ensemble,

@@ -89,7 +89,15 @@ def function_expression():
         math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty
     )
     param_condition = param_element + _compa_op + param_element
-    param = param_condition | param_element
+
+    param_condition_list = pyparsing.Group(
+        pyparsing.Literal("[")
+        + pyparsing.Group(param_condition)
+        + (_sep + pyparsing.Group(param_condition))[...]
+        + pyparsing.Literal("]")
+    )
+
+    param = param_condition_list | param_condition | param_element
     params <<= param + (_sep + param)[...]
     expr <<= _function + pyparsing.Group(_lpar + params + _rpar)
     return expr

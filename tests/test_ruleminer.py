@@ -5,6 +5,7 @@
 
 import unittest
 import pandas as pd
+import numpy as np
 import ruleminer
 
 
@@ -475,11 +476,11 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then sum(([{"Assets"}.loc[({"Type"}=="life_insurer")],\
-{"Own_funds"}.loc[({"Type"}=="life_insurer")]]))>0',
+                    'if () then sum(([{"Assets"}.where(({"Type"}=="life_insurer")),\
+{"Own_funds"}.where(({"Type"}=="life_insurer"))]), axis=0)>0',
                     "",
                     5,
-                    0,
+                    5,
                     0.5,
                     {},
                 ]
@@ -644,6 +645,60 @@ class TestRuleminer(unittest.TestCase):
             .as_list()
         )
         expected = [['{"Own funds"}', "<=", "quantile", ['{"Own funds"}', ",", "0.95"]]]
+        self.assertTrue(actual == expected)
+
+    def test_41(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (  0, 1e3): -1,
+                    (1e3, 1e6): -2,
+                    (1e6, 1e8): -3,
+                    (1e8, np.inf): -4,
+                },
+            },
+        }
+        formula = '(({"1"} >= 0))'
+        df = pd.DataFrame([['Test_1', 0]], columns=["Name", "1"])
+        rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
+        actual = rm_rules.rules.values[0][2]
+        expected = 'if () then (({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))>=(0))'
+        self.assertTrue(actual == expected)
+
+    def test_42(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (  0, 1e3): -1,
+                    (1e3, 1e6): -2,
+                    (1e6, 1e8): -3,
+                    (1e8, np.inf): -4,
+                },
+            },
+        }
+        formula = '(({"1"}-{"2"}-{"3"}) == 0)'
+        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
+        rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
+        actual = rm_rules.rules.values[0][2]
+        expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",)))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",)))))) <= (0)))'
+        self.assertTrue(actual == expected)
+
+    def test_43(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (  0, 1e3): -1,
+                    (1e3, 1e6): -2,
+                    (1e6, 1e8): -3,
+                    (1e8, np.inf): -4,
+                },
+            },
+        }
+        formula = '(({"1"}-({"2"}+{"3"})) == 0)'
+        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
+        rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
+        actual = rm_rules.rules.values[0][2]
+        expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))))) <= (0)))'
         self.assertTrue(actual == expected)
 
     # def setUp_templates(self):
