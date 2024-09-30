@@ -24,7 +24,7 @@ from .parser import (
     _column,
 )
 
-from .utils import(
+from .utils import (
     tree_to_expressions,
     fit_ensemble_and_extract_expressions,
     fit_dataframe_to_ensemble,
