@@ -161,7 +161,6 @@ class RuleMiner:
 
             expression = self.rules.loc[idx, RULE_DEF]
             rule_code = dataframe_index(expression=expression, required=required_vars)
-            print(rule_code)
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
                 key: len(results[key]) if not isinstance(results[key], float) else 0
@@ -1250,13 +1249,28 @@ class RuleMiner:
                     )
                     # the rest of the expression if evaluated as a list with reversed tolerance
                     right_side = ""
+                    current_positive_tolerance = (
+                        not positive_tolerance 
+                        if apply_tolerance 
+                        else positive_tolerance
+                    )
                     for right_side_item in expression[idx + 1 :]:
+                        if right_side_item in ["+", "*"]:
+                            current_positive_tolerance = (
+                                positive_tolerance 
+                                if apply_tolerance 
+                                else positive_tolerance
+                            )
+                        elif right_side_item in ["-", "/"]:
+                            current_positive_tolerance = (
+                                not positive_tolerance 
+                                if apply_tolerance 
+                                else positive_tolerance
+                            )
                         right_side += self.reformulate(
                             expression=[right_side_item],
                             apply_tolerance=apply_tolerance,
-                            positive_tolerance=not positive_tolerance
-                            if apply_tolerance
-                            else positive_tolerance,
+                            positive_tolerance=current_positive_tolerance,
                         )
                     return "(" + left_side + item + right_side + ")"
 

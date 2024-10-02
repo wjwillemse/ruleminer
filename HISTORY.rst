@@ -114,7 +114,7 @@ History
 
 * Bug fix
 
-0.1.29 (2024-9-30)
+0.1.30 (2024-10-2)
 ------------------
 
 * Added functionality for countif and sumif
