@@ -104,12 +104,20 @@ History
 * added sumif and improved tolerance functionality
 
 0.1.26 (2023-4-22)
--------------------
+------------------
 
 * added additional arguments estimate, base and sample_weights to fit_ensemble_and_extract_expressions function to use more than AdaBoost
 * added decision tree functions to __init__.py
 
 0.1.28 (2023-5-3)
--------------------
+-----------------
 
 * Bug fix
+
+0.1.30 (2024-10-2)
+------------------
+
+* Added functionality for countif and sumif
+* Bug fix for tolerances in combination with >=, <=, > and <
+* Bug fix for tolerances in formulas like A - B - C
+* Added tests for these bug fixes
