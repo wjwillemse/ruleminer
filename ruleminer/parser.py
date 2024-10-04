@@ -7,6 +7,8 @@ from typing import Dict
 from .const import DUNDER_DF
 
 _lpar, _rpar = map(pyparsing.Suppress, "()")
+_lbra = pyparsing.Literal("[")
+_rbra = pyparsing.Literal("]")
 _number = pyparsing.Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
 _function = pyparsing.one_of(
     "min \
@@ -30,7 +32,10 @@ _function = pyparsing.one_of(
     SUMIF \
     COUNTIF"
 )
+_for = pyparsing.one_of("for", "FOR")
+_in = pyparsing.one_of("in", "IN")
 _empty = pyparsing.one_of(["None", '""', "pd.NA", "np.nan"])
+_list_comprehension_var = pyparsing.one_of("k", "K")
 _quote = pyparsing.Literal('"')
 _sep = pyparsing.Literal(",")
 _string = (
@@ -51,16 +56,16 @@ _compa_op = pyparsing.one_of(">= > <= < != == in IN")
 
 _list_element = _quoted_string | _column | _number | _empty
 _quoted_string_list = pyparsing.Group(
-    pyparsing.Literal("[")
+    _lbra
     + _list_element
     + (_sep + _list_element)[0, ...]
-    + pyparsing.Literal("]")
+    + _rbra
 ) | pyparsing.Group(
     _lpar
-    + pyparsing.Literal("[")
+    + _lbra
     + _list_element
     + (_sep + _list_element)[0, ...]
-    + pyparsing.Literal("]")
+    + _rbra
     + _rpar
 )
 
@@ -86,18 +91,31 @@ def function_expression():
     params = pyparsing.Forward()
     math_expr = math_expression(expr)
     param_element = (
-        math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty
+        math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty | _list_comprehension_var
     )
     param_condition = param_element + _compa_op + param_element
 
     param_condition_list = pyparsing.Group(
-        pyparsing.Literal("[")
+        _lbra
         + pyparsing.Group(param_condition)
         + (_sep + pyparsing.Group(param_condition))[...]
-        + pyparsing.Literal("]")
+        + _rbra
     )
-
-    param = param_condition_list | param_condition | param_element
+    param_condition_list_comprehension = pyparsing.Group(
+        _lbra
+        + pyparsing.Group(param_condition)
+        + _for
+        + _list_comprehension_var
+        + _in
+        + _lbra
+        + pyparsing.Group(
+            pyparsing.Group(_column)
+            + (_sep + pyparsing.Group(_column))[...]
+        )
+        + _rbra
+        + _rbra
+    )
+    param = param_condition_list_comprehension | param_condition_list | param_condition | param_element
     params <<= param + (_sep + param)[...]
     expr <<= _function + pyparsing.Group(_lpar + params + _rpar)
     return expr
