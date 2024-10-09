@@ -5,6 +5,7 @@ import itertools
 import re
 import numpy as np
 import pandas as pd
+import constraint
 
 from .parser import (
     dataframe_index,
@@ -263,12 +264,9 @@ class RuleMiner:
             None
 
         Example:
-            >>> rule_template = {
-            ...     "expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")'
-            ...     "group": 1,
-            ...     "encodings": {},
-            ... }
-            >>> generator.generate_rules(rule_template)
+            rule_template = {"expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")', "group": 1, "encodings": {}}
+
+            generator.generate_rules(rule_template)
 
         Note:
             - The method first parses the provided rule expression into
@@ -441,12 +439,15 @@ class RuleMiner:
             str or list: The expression with placeholders replaced by group names.
 
         Example:
-            >>> expression = "Column '\x01' contains values from group '\x02'"
-            >>> group_names = ['Group A', 'Numbers']
-            >>> result = ruleminer.RuleMiner().substitute_group_names(
-                expression, group_names)
-            >>> print(result)
-            "Column 'Group A' contains values from group 'Numbers'"
+            expression = "Column '\x01' contains values from group '\x02'"
+            
+            group_names = ['Group A', 'Numbers']
+            
+            result = ruleminer.RuleMiner().substitute_group_names(expression, group_names)
+            
+            print(result)
+            
+                "Column 'Group A' contains values from group 'Numbers'"
 
         Note:
             The method can be applied to both strings and lists of expressions.
@@ -480,12 +481,13 @@ class RuleMiner:
             list: A list containing the discovered column-value pairs as tuples.
 
         Example:
-
-            >>> expression = ['{"A"}', '==', '"b"']
-            >>> column_value_pairs = ruleminer.RuleMiner().search_column_value(
-                expression, [])
-            >>> print(column_value_pairs)
-            [('{"A"}', '"b"')]
+            expression = ['{"A"}', '==', '"b"']
+            
+            column_value_pairs = ruleminer.RuleMiner().search_column_value(expression, [])
+            
+            print(column_value_pairs)
+            
+                [('{"A"}', '"b"')]
 
         Note:
             The method examines the structure of the expression and identifies
@@ -527,14 +529,21 @@ class RuleMiner:
                 - list: The 'then' part of the rule as a parsed list.
 
         Example:
-            >>> rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
-            >>> parsed, if_part, then_part = split_rule(rule_expression)
-            >>> print(parsed)
-            ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
-            >>> print(if_part)
-            [['{"A"}', '>', '10']]
-            >>> print(then_part)
-            [['{"B"}', '==', '"C"']]
+            rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
+            
+            parsed, if_part, then_part = split_rule(rule_expression)
+            
+            print(parsed)
+            
+                ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
+            
+            print(if_part)
+            
+                [['{"A"}', '>', '10']]
+            
+            print(then_part)
+            
+                [['{"B"}', '==', '"C"']]
 
         Note:
             The method employs regular expressions to identify 'if' and 'then'
@@ -599,15 +608,21 @@ class RuleMiner:
                 - list: The remaining value substitutions.
 
         Example:
-            >>> expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
-            >>> columns = ['{"A.*"}', {"B.*"}]
-            >>> values = [10, 20]
-            >>> column_subs = ["Aa", "Bb"]
-            >>> value_subs = [30, 40]
-            >>> result = ruleminer.RuleMiner().substitute_list(expression,
-            columns, values, column_subs, value_subs)
-            >>> print(result)
-            ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
+            expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
+            
+            columns = ['{"A.*"}', {"B.*"}]
+            
+            values = [10, 20]
+            
+            column_subs = ["Aa", "Bb"]
+            
+            value_subs = [30, 40]
+            
+            result = ruleminer.RuleMiner().substitute_list(expression, columns, values, column_subs, value_subs)
+            
+            print(result)
+            
+                ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
 
         """
 
@@ -755,15 +770,16 @@ class RuleMiner:
             rule.
 
         Example:
-            >>> my_rule = {
-            ...     'rule_id': 'R001',
-            ...     'rule_group': 1,
-            ...     'rule_def': 'column_A > 10',
-            ...     'rule_status': 'active',
-            ...     'rule_metrics': {'coverage': 0.9, 'accuracy': 0.85},
-            ...     'encodings': {}
-            ... }
-            >>> add_rule(**my_rule)
+            my_rule = {
+                'rule_id': 'R001',
+                'rule_group': 1,
+                'rule_def': 'column_A > 10',
+                'rule_status': 'active',
+                'rule_metrics': {'coverage': 0.9, 'accuracy': 0.85},
+                'encodings': {}
+            }
+
+            add_rule(**my_rule)
 
         """
         row = pd.DataFrame(
@@ -798,15 +814,19 @@ class RuleMiner:
             None: This method updates the results list in-place.
 
         Example:
-            >>> rule_index = 0
-            >>> metrics = {
-            ...     'absolute_support': 50,
-            ...     'absolute_exceptions': 5,
-            ...     'confidence': 0.9
-            ... }
-            >>> co_indices = [1, 2, 3, 4, 5]
-            >>> ex_indices = [10, 11, 12, 13]
-            >>> add_results(rule_index, metrics, co_indices, ex_indices)
+            rule_index = 0
+
+            metrics = {
+                'absolute_support': 50,
+                'absolute_exceptions': 5,
+                'confidence': 0.9
+            }
+            
+            co_indices = [1, 2, 3, 4, 5]
+            
+            ex_indices = [10, 11, 12, 13]
+            
+            add_results(rule_index, metrics, co_indices, ex_indices)
 
         """
         logger = logging.getLogger(__name__)
@@ -888,10 +908,13 @@ class RuleMiner:
             str: The reformulated expression in Pandas code.
 
         Example:
-            >>> expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
-            >>> result = ruleminer.RuleMiner().reformulate(expression)
-            >>> print(result)
-            "({"A"}.str.slice(1,1))"
+            expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
+            
+            result = ruleminer.RuleMiner().reformulate(expression)
+            
+            print(result)
+            
+                "({"A"}.str.slice(1,1))"
 
         """
         if isinstance(expression, str):
@@ -925,7 +948,6 @@ class RuleMiner:
             else:
                 return expression
         else:
-
             if len(expression) == 1 and expression[0] in ["+", "-", "*", "/"]:
                 return expression[0]
 
@@ -1020,21 +1042,9 @@ class RuleMiner:
                                 + "))"
                             )
                         elif item in [">", ">="]:
-                            return (
-                                "(" 
-                                + left_side_pos
-                                + item
-                                + right_side_neg
-                                + ")"
-                            )
+                            return "(" + left_side_pos + item + right_side_neg + ")"
                         elif item in ["<", "<="]:
-                            return (
-                                "(" 
-                                + left_side_neg
-                                + item
-                                + right_side_pos
-                                + ")"
-                            )
+                            return "(" + left_side_neg + item + right_side_pos + ")"
                 if (
                     self.params.get("evaluate_quantile", False)
                     and isinstance(item, str)
@@ -1142,15 +1152,39 @@ class RuleMiner:
                             sumlist = sumlist.replace("}", "}.where(" + condition + ")")
                         else:
                             # the content of condition is a list of conditions
-                            conditions = []
-                            for condition_idx in range(1, len(condition_tree[0]), 2):
-                                conditions.append(
-                                    self.reformulate(
-                                        condition_tree[0][condition_idx],
-                                        apply_tolerance=apply_tolerance,
-                                        positive_tolerance=positive_tolerance,
+                            if condition_tree[0][2]=="for":
+                                # the content is a list comprehension
+                                # and is evaluated here to a list
+                                # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
+                                lc_expr = flatten(condition_tree[0][1]).replace('"', "'")
+                                lc_iter = flatten(condition_tree[0][6])[1:-1]
+                                lc_var = condition_tree[0][3]
+                                lc_eval = eval((
+                                    '["'
+                                    + lc_expr.replace(
+                                        lc_var,
+                                        '"+str(' + lc_var + ')+"',
                                     )
+                                    + '" for '
+                                    + lc_var
+                                    + " in ["
+                                    + lc_iter
+                                    + "]]")
                                 )
+                                conditions = [s.replace("'", '"') for s in lc_eval]
+                            else:
+                                # the content is a plain list
+                                conditions = []
+                                for condition_idx in range(
+                                    1, len(condition_tree[0]), 2
+                                ):
+                                    conditions.append(
+                                        self.reformulate(
+                                            condition_tree[0][condition_idx],
+                                            apply_tolerance=apply_tolerance,
+                                            positive_tolerance=positive_tolerance,
+                                        )
+                                    )
                             # apply list of condition to each respective column
                             parts = sumlist.split("}")
                             if len(parts) - 1 != len(conditions):
@@ -1250,21 +1284,21 @@ class RuleMiner:
                     # the rest of the expression if evaluated as a list with reversed tolerance
                     right_side = ""
                     current_positive_tolerance = (
-                        not positive_tolerance 
-                        if apply_tolerance 
+                        not positive_tolerance
+                        if apply_tolerance
                         else positive_tolerance
                     )
                     for right_side_item in expression[idx + 1 :]:
                         if right_side_item in ["+", "*"]:
                             current_positive_tolerance = (
-                                positive_tolerance 
-                                if apply_tolerance 
+                                positive_tolerance
+                                if apply_tolerance
                                 else positive_tolerance
                             )
                         elif right_side_item in ["-", "/"]:
                             current_positive_tolerance = (
-                                not positive_tolerance 
-                                if apply_tolerance 
+                                not positive_tolerance
+                                if apply_tolerance
                                 else positive_tolerance
                             )
                         right_side += self.reformulate(
@@ -1282,6 +1316,163 @@ class RuleMiner:
                     positive_tolerance=positive_tolerance,
                 )
             return "(" + res + ")"
+
+    def get_testcases(
+        self,
+        solver=None,
+        variable_range=range(0, 10),
+        all_different_constraint=True,
+    ):
+        """
+        Generate testcases from rules
+
+        Args:
+            solver (constraint.Solver): the solver to be used
+            variable (range): variable range to be used
+            all_different_constraint (bool): generate testcases with all different values
+
+        Returns:
+            pd.DataFrame with testcases
+
+        """
+        assert (
+            self.rules is not None
+        ), "Unable to generate test cases, no rules defined."
+
+        def setup_problem(
+            args,
+            solver,
+            variable_range,
+            all_different_constraint,
+        ):
+            problem = constraint.Problem(solver=solver)
+            if all_different_constraint:
+                logging.debug("Added all different constraint")
+                problem.addConstraint(constraint.AllDifferentConstraint())
+            logging.debug("Added variables: " + str(col2args.values()))
+            problem.addVariables(args, variable_range)
+            return problem
+
+        functions = {}
+        # column names are mapped to internal names because they can contains
+        # spaces and other symbols
+        col2args = dict()
+        for idx in self.rules.index:
+            expression = self.rules.loc[idx, RULE_DEF]
+            regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
+            rule = regex_condition.search(expression)
+            func_rule_def = {
+                "X": {
+                    "expr": rule.group(1).strip(),
+                },
+                "Y": {
+                    "expr": rule.group(2).strip(),
+                },
+                "not_Y": {
+                    "expr": "not " + rule.group(2).strip(),
+                },
+            }
+            for part in func_rule_def.keys():
+                if func_rule_def[part]["expr"] != "()":
+                    def_body = func_rule_def[part]["expr"]
+                    def_name = "_rule_" + str(idx) + "_" + part
+                    columns = list(
+                        set([item[2:-2] for item in re.findall(r'{".*?"}', def_body)])
+                    )
+                    for col in columns:
+                        if col not in col2args.keys():
+                            col2args[col] = "var_" + str(len(col2args.keys()))
+                    def_args = [col2args[arg] for arg in columns]
+                    for key, value in col2args.items():
+                        def_body = def_body.replace(key, value)
+                    def_code = (
+                        "def "
+                        + def_name
+                        + "("
+                        + ", ".join(def_args)
+                        + "):\n"
+                        + "    return "
+                        + def_body.replace('{"', "").replace('"}', "")
+                    )
+                    func_rule_def[part]["def_name"] = def_name
+                    func_rule_def[part]["def_args"] = def_args
+                    exec(def_code)
+                    logging.debug('Executed:\n"' + str(def_code) + '\n"')
+                functions[idx] = func_rule_def
+        args2col = {value: key for key, value in col2args.items()}
+        testcases = pd.DataFrame()
+
+        # testcase that satisfies all rules
+        problem = setup_problem(
+            args=col2args.values(),
+            solver=solver,
+            variable_range=variable_range,
+            all_different_constraint=all_different_constraint,
+        )
+        for idx in self.rules.index:
+            expression = self.rules.loc[idx, RULE_DEF]
+            for part in ["X", "Y"]:
+                if "def_name" in functions[idx][part].keys():
+                    def_name = functions[idx][part]["def_name"]
+                    def_args = functions[idx][part]["def_args"]
+                    logging.debug("Added constraint: " + str((def_name, def_args)))
+                    problem.addConstraint(eval(def_name), def_args)
+        solution = problem.getSolution()
+        if solution is not None:
+            testcases = pd.concat(
+                [
+                    testcases,
+                    pd.DataFrame(
+                        columns=["result"]
+                        + list(args2col[col] for col in solution.keys()),
+                        data=[["all satisfied"] + list(solution.values())],
+                    ),
+                ],
+                ignore_index=True,
+            )
+        else:
+            logging.error("No solution found that satisfy all rules")
+
+        # testcases that satisfy all but one rule
+        for idx2 in self.rules.index:
+            rule_id = self.rules.loc[idx2, RULE_ID]
+            problem = setup_problem(
+                args=col2args.values(),
+                solver=solver,
+                variable_range=variable_range,
+                all_different_constraint=all_different_constraint,
+            )
+            for idx in self.rules.index:
+                expression = self.rules.loc[idx, RULE_DEF]
+                parts = ["X", "Y" if idx != idx2 else "not_Y"]
+                for part in parts:
+                    if "def_name" in functions[idx][part].keys():
+                        def_name = functions[idx][part]["def_name"]
+                        def_args = functions[idx][part]["def_args"]
+                        logging.debug("Added constraint: " + str((def_name, def_args)))
+                        problem.addConstraint(eval(def_name), def_args)
+            solution = problem.getSolution()
+            if solution is not None:
+                testcases = pd.concat(
+                    [
+                        testcases,
+                        pd.DataFrame(
+                            columns=["result"]
+                            + list(args2col[col] for col in solution.keys()),
+                            data=[
+                                ["all satisfied, except " + str(rule_id)]
+                                + list(solution.values())
+                            ],
+                        ),
+                    ],
+                    ignore_index=True,
+                )
+            else:
+                logging.error(
+                    "No solution found that satisfy all rules except " + str(rule_id)
+                )
+
+        return testcases
 
 
 def flatten_and_sort(expression: str = ""):
@@ -1302,15 +1493,21 @@ def flatten_and_sort(expression: str = ""):
         parentheses.
 
     Example:
-        >>> expression = ["max", ["C", "A"]]
-        >>> result = ruleminer.flatten_and_sort(expression)
-        >>> print(result)
-        "(max((CA)))"
+        expression = ["max", ["C", "A"]]
+        
+        result = ruleminer.flatten_and_sort(expression)
+        
+        print(result)
+        
+            "(max((CA)))"
 
-        >>> expression = ["C", "==", ["A", "+", "B"]]
-        >>> result = ruleminer.flatten_and_sort(expression)
-        >>> print(result)
-        "((A+B)==C)"
+        expression = ["C", "==", ["A", "+", "B"]]
+        
+        result = ruleminer.flatten_and_sort(expression)
+        
+        print(result)
+        
+            "((A+B)==C)"
     """
     if isinstance(expression, str):
         return expression
@@ -1382,10 +1579,13 @@ def flatten(expression):
         str: The flattened expression as a string enclosed in parentheses.
 
     Example:
-        >>> expression = ["A", ["B", ["C", "D"]]]
-        >>> result = ruleminer.flatten(expression)
-        >>> print(result)
-        "(A(B(CD)))"
+        expression = ["A", ["B", ["C", "D"]]]
+        
+        result = ruleminer.flatten(expression)
+        
+        print(result)
+        
+            "(A(B(CD)))"
     """
     if isinstance(expression, str):
         return expression
@@ -1412,14 +1612,14 @@ def is_column(s):
         False otherwise.
 
     Example:
-        >>> is_column('{"A"}')
-        True
+        is_column('{"A"}')
+            True
 
-        >>> is_column('{"B"}')
-        True
+        is_column('{"B"}')
+            True
 
-        >>> is_column("Not a column reference")
-        False
+        is_column("Not a column reference")
+            False
     """
     return len(s) > 4 and (
         (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
@@ -1440,14 +1640,14 @@ def is_string(s):
         bool: True if the string is enclosed in quotes, False otherwise.
 
     Example:
-        >>> is_string("'Hello, World!'")
-        True
+        is_string("'Hello, World!'")
+            True
 
-        >>> is_string('"42"')
-        True
+        is_string('"42"')
+            True
 
-        >>> is_string("Not a string")
-        False
+        is_string("Not a string")
+            False
     """
     return len(s) > 2 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")

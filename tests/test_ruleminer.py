@@ -498,6 +498,64 @@ class TestRuleminer(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
 
+    def test_30_1_2(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [
+            {"expression": """(sumif([{"Assets"}, {"Own_funds"}],
+            [K=="life_insurer" for K in [{"Type"}, {"Type"}]]) > 0)"""}
+        ]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+            data=[
+                [
+                    0,
+                    0,
+                    'if () then sum(([{"Assets"}.where({"Type"}=="life_insurer"),\
+{"Own_funds"}.where({"Type"}=="life_insurer")]), axis=0)>0',
+                    "",
+                    5,
+                    5,
+                    0.5,
+                    {},
+                ]
+            ],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+
     def test_31(self):
         actual = (
             ruleminer.rule_expression()
@@ -659,7 +717,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"} >= 0))'
-        df = pd.DataFrame([['Test_1', 0]], columns=["Name", "1"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then (({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))>=(0))'
@@ -677,7 +734,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"}-{"2"}-{"3"}) == 0)'
-        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",)))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",)))))) <= (0)))'
@@ -695,7 +751,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"}-({"2"}+{"3"})) == 0)'
-        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))))) <= (0)))'
