@@ -35,7 +35,7 @@ _function = pyparsing.one_of(
 _for = pyparsing.one_of("for", "FOR")
 _in = pyparsing.one_of("in", "IN")
 _empty = pyparsing.one_of(["None", '""', "pd.NA", "np.nan"])
-_list_comprehension_var = pyparsing.one_of("k", "K")
+_list_comprehension_var = pyparsing.Word(pyparsing.alphas)
 _quote = pyparsing.Literal('"')
 _sep = pyparsing.Literal(",")
 _string = (
@@ -56,17 +56,9 @@ _compa_op = pyparsing.one_of(">= > <= < != == in IN")
 
 _list_element = _quoted_string | _column | _number | _empty
 _quoted_string_list = pyparsing.Group(
-    _lbra
-    + _list_element
-    + (_sep + _list_element)[0, ...]
-    + _rbra
+    _lbra + _list_element + (_sep + _list_element)[0, ...] + _rbra
 ) | pyparsing.Group(
-    _lpar
-    + _lbra
-    + _list_element
-    + (_sep + _list_element)[0, ...]
-    + _rbra
-    + _rpar
+    _lpar + _lbra + _list_element + (_sep + _list_element)[0, ...] + _rbra + _rpar
 )
 
 
@@ -91,7 +83,13 @@ def function_expression():
     params = pyparsing.Forward()
     math_expr = math_expression(expr)
     param_element = (
-        math_expr | _quoted_string_list | _quoted_string | _column | _number | _empty | _list_comprehension_var
+        math_expr
+        | _quoted_string_list
+        | _quoted_string
+        | _column
+        | _number
+        | _empty
+        | _list_comprehension_var
     )
     param_condition = param_element + _compa_op + param_element
 
@@ -109,13 +107,17 @@ def function_expression():
         + _in
         + _lbra
         + pyparsing.Group(
-            pyparsing.Group(_column)
-            + (_sep + pyparsing.Group(_column))[...]
+            pyparsing.Group(_column) + (_sep + pyparsing.Group(_column))[...]
         )
         + _rbra
         + _rbra
     )
-    param = param_condition_list_comprehension | param_condition_list | param_condition | param_element
+    param = (
+        param_condition_list_comprehension
+        | param_condition_list
+        | param_condition
+        | param_element
+    )
     params <<= param + (_sep + param)[...]
     expr <<= _function + pyparsing.Group(_lpar + params + _rpar)
     return expr
@@ -429,10 +431,16 @@ def dataframe_values(expression: str = ""):
         expression = "[(" + pandas_column(expression) + ")]"
     return DUNDER_DF + expression
 
-def python_function(expression: str, index: int):
 
-    return (
-        "def _func_if_"+str(index)+"("+if_params+"):\n    return "+if_part.replace('{"', '').replace('"}', '')
-        +'\n\n'
-        "def _func_then_"+str(index)+"("+then_params+"):\n    return "+then_part.replace('{"', '').replace('"}', '')
+def python_function(expression: str, index: int):
+    return "def _func_if_" + str(
+        index
+    ) + "(" + if_params + "):\n    return " + if_part.replace('{"', "").replace(
+        '"}', ""
+    ) + "\n\n" "def _func_then_" + str(
+        index
+    ) + "(" + then_params + "):\n    return " + then_part.replace(
+        '{"', ""
+    ).replace(
+        '"}', ""
     )

@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pandas as pd
 import constraint
+import ast
 
 from .parser import (
     dataframe_index,
@@ -927,7 +928,6 @@ class RuleMiner:
             else:
                 return expression
         else:
-
             if len(expression) == 1 and expression[0] in ["+", "-", "*", "/"]:
                 return expression[0]
 
@@ -1022,21 +1022,9 @@ class RuleMiner:
                                 + "))"
                             )
                         elif item in [">", ">="]:
-                            return (
-                                "(" 
-                                + left_side_pos
-                                + item
-                                + right_side_neg
-                                + ")"
-                            )
+                            return "(" + left_side_pos + item + right_side_neg + ")"
                         elif item in ["<", "<="]:
-                            return (
-                                "(" 
-                                + left_side_neg
-                                + item
-                                + right_side_pos
-                                + ")"
-                            )
+                            return "(" + left_side_neg + item + right_side_pos + ")"
                 if (
                     self.params.get("evaluate_quantile", False)
                     and isinstance(item, str)
@@ -1144,15 +1132,39 @@ class RuleMiner:
                             sumlist = sumlist.replace("}", "}.where(" + condition + ")")
                         else:
                             # the content of condition is a list of conditions
-                            conditions = []
-                            for condition_idx in range(1, len(condition_tree[0]), 2):
-                                conditions.append(
-                                    self.reformulate(
-                                        condition_tree[0][condition_idx],
-                                        apply_tolerance=apply_tolerance,
-                                        positive_tolerance=positive_tolerance,
+                            if condition_tree[0][2]=="for":
+                                # the content is a list comprehension
+                                # and is evaluated here to a list
+                                # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
+                                lc_expr = flatten(condition_tree[0][1]).replace('"', "'")
+                                lc_iter = flatten(condition_tree[0][6])[1:-1]
+                                lc_var = condition_tree[0][3]
+                                lc_eval = eval((
+                                    '["'
+                                    + lc_expr.replace(
+                                        lc_var,
+                                        '"+str(' + lc_var + ')+"',
                                     )
+                                    + '" for '
+                                    + lc_var
+                                    + " in ["
+                                    + lc_iter
+                                    + "]]")
                                 )
+                                conditions = [s.replace("'", '"') for s in lc_eval]
+                            else:
+                                # the content is a plain list
+                                conditions = []
+                                for condition_idx in range(
+                                    1, len(condition_tree[0]), 2
+                                ):
+                                    conditions.append(
+                                        self.reformulate(
+                                            condition_tree[0][condition_idx],
+                                            apply_tolerance=apply_tolerance,
+                                            positive_tolerance=positive_tolerance,
+                                        )
+                                    )
                             # apply list of condition to each respective column
                             parts = sumlist.split("}")
                             if len(parts) - 1 != len(conditions):
@@ -1252,21 +1264,21 @@ class RuleMiner:
                     # the rest of the expression if evaluated as a list with reversed tolerance
                     right_side = ""
                     current_positive_tolerance = (
-                        not positive_tolerance 
-                        if apply_tolerance 
+                        not positive_tolerance
+                        if apply_tolerance
                         else positive_tolerance
                     )
                     for right_side_item in expression[idx + 1 :]:
                         if right_side_item in ["+", "*"]:
                             current_positive_tolerance = (
-                                positive_tolerance 
-                                if apply_tolerance 
+                                positive_tolerance
+                                if apply_tolerance
                                 else positive_tolerance
                             )
                         elif right_side_item in ["-", "/"]:
                             current_positive_tolerance = (
-                                not positive_tolerance 
-                                if apply_tolerance 
+                                not positive_tolerance
+                                if apply_tolerance
                                 else positive_tolerance
                             )
                         right_side += self.reformulate(
@@ -1285,12 +1297,44 @@ class RuleMiner:
                 )
             return "(" + res + ")"
 
-    def get_testcases(self):
+    def get_testcases(
+        self,
+        solver=None,
+        variable_range=range(0, 10),
+        all_different_constraint=True,
+    ):
+        """
+        Generate testcases from rules
 
-        assert self.rules is not None, "Unable to generate test cases, no rules defined."
+        Args:
+            solver (constraint.Solver): the solver to be used
+            variable (range): variable range to be used
+            all_different_constraint (bool): generate testcases with all different values
+
+        Returns:
+            pd.DataFrame with testcases
+
+        """
+        assert (
+            self.rules is not None
+        ), "Unable to generate test cases, no rules defined."
+
+        def setup_problem(
+            args,
+            solver,
+            variable_range,
+            all_different_constraint,
+        ):
+            problem = constraint.Problem(solver=solver)
+            if all_different_constraint:
+                logging.debug("Added all different constraint")
+                problem.addConstraint(constraint.AllDifferentConstraint())
+            logging.debug("Added variables: " + str(col2args.values()))
+            problem.addVariables(args, variable_range)
+            return problem
 
         functions = {}
-        # column names are mapped to internal names because they can contains 
+        # column names are mapped to internal names because they can contains
         # spaces and other symbols
         col2args = dict()
         for idx in self.rules.index:
@@ -1298,100 +1342,118 @@ class RuleMiner:
             regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
             rule = regex_condition.search(expression)
             func_rule_def = {
-                'X': {
-                    'expr': rule.group(1).strip(),
+                "X": {
+                    "expr": rule.group(1).strip(),
                 },
-                'Y': {
-                    'expr': rule.group(2).strip(),
+                "Y": {
+                    "expr": rule.group(2).strip(),
                 },
-                'not_Y': {
-                    'expr': "not "+rule.group(2).strip(),
+                "not_Y": {
+                    "expr": "not " + rule.group(2).strip(),
                 },
             }
             for part in func_rule_def.keys():
-                if func_rule_def[part]['expr'] != '()':
-                    def_body = func_rule_def[part]['expr']
-                    def_name = "_rule_"+str(idx)+"_"+part
-                    columns = list(set([item[2:-2] for item in re.findall(r'{".*?"}', def_body)]))
+                if func_rule_def[part]["expr"] != "()":
+                    def_body = func_rule_def[part]["expr"]
+                    def_name = "_rule_" + str(idx) + "_" + part
+                    columns = list(
+                        set([item[2:-2] for item in re.findall(r'{".*?"}', def_body)])
+                    )
                     for col in columns:
                         if col not in col2args.keys():
-                            col2args[col] = "var_"+str(len(col2args.keys()))
+                            col2args[col] = "var_" + str(len(col2args.keys()))
                     def_args = [col2args[arg] for arg in columns]
                     for key, value in col2args.items():
                         def_body = def_body.replace(key, value)
                     def_code = (
                         "def "
                         + def_name
-                        + "("+", ".join(def_args)+"):\n"
-                        + "    return " + def_body.replace('{"', '').replace('"}', '')
+                        + "("
+                        + ", ".join(def_args)
+                        + "):\n"
+                        + "    return "
+                        + def_body.replace('{"', "").replace('"}', "")
                     )
-                    func_rule_def[part]['def_name'] = def_name
-                    func_rule_def[part]['def_args'] = def_args
+                    func_rule_def[part]["def_name"] = def_name
+                    func_rule_def[part]["def_args"] = def_args
                     exec(def_code)
-                    logging.debug('Executed:\n"'+str(def_code)+'\n"')
+                    logging.debug('Executed:\n"' + str(def_code) + '\n"')
                 functions[idx] = func_rule_def
         args2col = {value: key for key, value in col2args.items()}
         testcases = pd.DataFrame()
 
         # testcase that satisfies all rules
-        problem = constraint.Problem()
-        problem.addConstraint(constraint.AllDifferentConstraint())
-        for func_param in col2args.values():
-            logging.debug("Added variable: "+str(func_param))
-            problem.addVariable(func_param, range(0, 10))
-
+        problem = setup_problem(
+            args=col2args.values(),
+            solver=solver,
+            variable_range=variable_range,
+            all_different_constraint=all_different_constraint,
+        )
         for idx in self.rules.index:
             expression = self.rules.loc[idx, RULE_DEF]
-            for part in ['X', 'Y']:
-                if 'def_name' in functions[idx][part].keys():
-                    def_name = functions[idx][part]['def_name']
-                    def_args = functions[idx][part]['def_args']
-                    logging.debug("Added constraint: "+str((def_name, def_args)))
+            for part in ["X", "Y"]:
+                if "def_name" in functions[idx][part].keys():
+                    def_name = functions[idx][part]["def_name"]
+                    def_args = functions[idx][part]["def_args"]
+                    logging.debug("Added constraint: " + str((def_name, def_args)))
                     problem.addConstraint(eval(def_name), def_args)
-        solutions = problem.getSolutions()
-        if len(solutions) > 0:
+        solution = problem.getSolution()
+        if solution is not None:
             testcases = pd.concat(
-                [   
-                    testcases, 
+                [
+                    testcases,
                     pd.DataFrame(
-                        columns=['result']+list(args2col[col] for col in solutions[0].keys()), 
-                        data=[['all satisfied']+list(solutions[0].values())],
+                        columns=["result"]
+                        + list(args2col[col] for col in solution.keys()),
+                        data=[["all satisfied"] + list(solution.values())],
                     ),
-                ], ignore_index=True)
+                ],
+                ignore_index=True,
+            )
         else:
             logging.error("No solution found that satisfy all rules")
 
         # testcases that satisfy all but one rule
         for idx2 in self.rules.index:
             rule_id = self.rules.loc[idx2, RULE_ID]
-            problem = constraint.Problem()
-            problem.addConstraint(constraint.AllDifferentConstraint())
-            for func_param in col2args.values():
-                logging.debug("Added variable: "+str(func_param))
-                problem.addVariable(func_param, range(0, 10))
+            problem = setup_problem(
+                args=col2args.values(),
+                solver=solver,
+                variable_range=variable_range,
+                all_different_constraint=all_different_constraint,
+            )
             for idx in self.rules.index:
                 expression = self.rules.loc[idx, RULE_DEF]
-                parts = ['X', 'Y' if idx != idx2 else 'not_Y']
+                parts = ["X", "Y" if idx != idx2 else "not_Y"]
                 for part in parts:
-                    if 'def_name' in functions[idx][part].keys():
-                        def_name = functions[idx][part]['def_name']
-                        def_args = functions[idx][part]['def_args']
-                        logging.debug("Added constraint: "+str((def_name, def_args)))
+                    if "def_name" in functions[idx][part].keys():
+                        def_name = functions[idx][part]["def_name"]
+                        def_args = functions[idx][part]["def_args"]
+                        logging.debug("Added constraint: " + str((def_name, def_args)))
                         problem.addConstraint(eval(def_name), def_args)
-            solutions = problem.getSolutions()
-            if len(solutions) > 0:
+            solution = problem.getSolution()
+            if solution is not None:
                 testcases = pd.concat(
-                    [   
-                        testcases, 
+                    [
+                        testcases,
                         pd.DataFrame(
-                            columns=['result']+list(args2col[col] for col in solutions[0].keys()), 
-                            data=[['all satisfied, except '+str(rule_id)]+list(solutions[0].values())],
+                            columns=["result"]
+                            + list(args2col[col] for col in solution.keys()),
+                            data=[
+                                ["all satisfied, except " + str(rule_id)]
+                                + list(solution.values())
+                            ],
                         ),
-                    ], ignore_index=True)
+                    ],
+                    ignore_index=True,
+                )
             else:
-                logging.error("No solution found that satisfy all rules except "+str(rule_id))
+                logging.error(
+                    "No solution found that satisfy all rules except " + str(rule_id)
+                )
 
         return testcases
+
 
 def flatten_and_sort(expression: str = ""):
     """
