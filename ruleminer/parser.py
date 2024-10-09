@@ -430,17 +430,3 @@ def dataframe_values(expression: str = ""):
     if expression != "":
         expression = "[(" + pandas_column(expression) + ")]"
     return DUNDER_DF + expression
-
-
-def python_function(expression: str, index: int):
-    return "def _func_if_" + str(
-        index
-    ) + "(" + if_params + "):\n    return " + if_part.replace('{"', "").replace(
-        '"}', ""
-    ) + "\n\n" "def _func_then_" + str(
-        index
-    ) + "(" + then_params + "):\n    return " + then_part.replace(
-        '{"', ""
-    ).replace(
-        '"}', ""
-    )

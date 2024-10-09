@@ -6,7 +6,6 @@ import re
 import numpy as np
 import pandas as pd
 import constraint
-import ast
 
 from .parser import (
     dataframe_index,
@@ -14,7 +13,6 @@ from .parser import (
     dataframe_lengths,
     pandas_column,
     rule_expression,
-    python_function,
 )
 
 from .utils import generate_substitutions
@@ -266,12 +264,9 @@ class RuleMiner:
             None
 
         Example:
-            >>> rule_template = {
-            ...     "expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")'
-            ...     "group": 1,
-            ...     "encodings": {},
-            ... }
-            >>> generator.generate_rules(rule_template)
+            rule_template = {"expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")', "group": 1, "encodings": {}}
+
+            generator.generate_rules(rule_template)
 
         Note:
             - The method first parses the provided rule expression into
@@ -444,12 +439,15 @@ class RuleMiner:
             str or list: The expression with placeholders replaced by group names.
 
         Example:
-            >>> expression = "Column '\x01' contains values from group '\x02'"
-            >>> group_names = ['Group A', 'Numbers']
-            >>> result = ruleminer.RuleMiner().substitute_group_names(
-                expression, group_names)
-            >>> print(result)
-            "Column 'Group A' contains values from group 'Numbers'"
+            expression = "Column '\x01' contains values from group '\x02'"
+            
+            group_names = ['Group A', 'Numbers']
+            
+            result = ruleminer.RuleMiner().substitute_group_names(expression, group_names)
+            
+            print(result)
+            
+                "Column 'Group A' contains values from group 'Numbers'"
 
         Note:
             The method can be applied to both strings and lists of expressions.
@@ -483,12 +481,13 @@ class RuleMiner:
             list: A list containing the discovered column-value pairs as tuples.
 
         Example:
-
-            >>> expression = ['{"A"}', '==', '"b"']
-            >>> column_value_pairs = ruleminer.RuleMiner().search_column_value(
-                expression, [])
-            >>> print(column_value_pairs)
-            [('{"A"}', '"b"')]
+            expression = ['{"A"}', '==', '"b"']
+            
+            column_value_pairs = ruleminer.RuleMiner().search_column_value(expression, [])
+            
+            print(column_value_pairs)
+            
+                [('{"A"}', '"b"')]
 
         Note:
             The method examines the structure of the expression and identifies
@@ -530,14 +529,21 @@ class RuleMiner:
                 - list: The 'then' part of the rule as a parsed list.
 
         Example:
-            >>> rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
-            >>> parsed, if_part, then_part = split_rule(rule_expression)
-            >>> print(parsed)
-            ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
-            >>> print(if_part)
-            [['{"A"}', '>', '10']]
-            >>> print(then_part)
-            [['{"B"}', '==', '"C"']]
+            rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
+            
+            parsed, if_part, then_part = split_rule(rule_expression)
+            
+            print(parsed)
+            
+                ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
+            
+            print(if_part)
+            
+                [['{"A"}', '>', '10']]
+            
+            print(then_part)
+            
+                [['{"B"}', '==', '"C"']]
 
         Note:
             The method employs regular expressions to identify 'if' and 'then'
@@ -602,15 +608,21 @@ class RuleMiner:
                 - list: The remaining value substitutions.
 
         Example:
-            >>> expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
-            >>> columns = ['{"A.*"}', {"B.*"}]
-            >>> values = [10, 20]
-            >>> column_subs = ["Aa", "Bb"]
-            >>> value_subs = [30, 40]
-            >>> result = ruleminer.RuleMiner().substitute_list(expression,
-            columns, values, column_subs, value_subs)
-            >>> print(result)
-            ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
+            expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
+            
+            columns = ['{"A.*"}', {"B.*"}]
+            
+            values = [10, 20]
+            
+            column_subs = ["Aa", "Bb"]
+            
+            value_subs = [30, 40]
+            
+            result = ruleminer.RuleMiner().substitute_list(expression, columns, values, column_subs, value_subs)
+            
+            print(result)
+            
+                ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
 
         """
 
@@ -758,15 +770,16 @@ class RuleMiner:
             rule.
 
         Example:
-            >>> my_rule = {
-            ...     'rule_id': 'R001',
-            ...     'rule_group': 1,
-            ...     'rule_def': 'column_A > 10',
-            ...     'rule_status': 'active',
-            ...     'rule_metrics': {'coverage': 0.9, 'accuracy': 0.85},
-            ...     'encodings': {}
-            ... }
-            >>> add_rule(**my_rule)
+            my_rule = {
+                'rule_id': 'R001',
+                'rule_group': 1,
+                'rule_def': 'column_A > 10',
+                'rule_status': 'active',
+                'rule_metrics': {'coverage': 0.9, 'accuracy': 0.85},
+                'encodings': {}
+            }
+
+            add_rule(**my_rule)
 
         """
         row = pd.DataFrame(
@@ -801,15 +814,19 @@ class RuleMiner:
             None: This method updates the results list in-place.
 
         Example:
-            >>> rule_index = 0
-            >>> metrics = {
-            ...     'absolute_support': 50,
-            ...     'absolute_exceptions': 5,
-            ...     'confidence': 0.9
-            ... }
-            >>> co_indices = [1, 2, 3, 4, 5]
-            >>> ex_indices = [10, 11, 12, 13]
-            >>> add_results(rule_index, metrics, co_indices, ex_indices)
+            rule_index = 0
+
+            metrics = {
+                'absolute_support': 50,
+                'absolute_exceptions': 5,
+                'confidence': 0.9
+            }
+            
+            co_indices = [1, 2, 3, 4, 5]
+            
+            ex_indices = [10, 11, 12, 13]
+            
+            add_results(rule_index, metrics, co_indices, ex_indices)
 
         """
         logger = logging.getLogger(__name__)
@@ -891,10 +908,13 @@ class RuleMiner:
             str: The reformulated expression in Pandas code.
 
         Example:
-            >>> expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
-            >>> result = ruleminer.RuleMiner().reformulate(expression)
-            >>> print(result)
-            "({"A"}.str.slice(1,1))"
+            expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
+            
+            result = ruleminer.RuleMiner().reformulate(expression)
+            
+            print(result)
+            
+                "({"A"}.str.slice(1,1))"
 
         """
         if isinstance(expression, str):
@@ -1473,15 +1493,21 @@ def flatten_and_sort(expression: str = ""):
         parentheses.
 
     Example:
-        >>> expression = ["max", ["C", "A"]]
-        >>> result = ruleminer.flatten_and_sort(expression)
-        >>> print(result)
-        "(max((CA)))"
+        expression = ["max", ["C", "A"]]
+        
+        result = ruleminer.flatten_and_sort(expression)
+        
+        print(result)
+        
+            "(max((CA)))"
 
-        >>> expression = ["C", "==", ["A", "+", "B"]]
-        >>> result = ruleminer.flatten_and_sort(expression)
-        >>> print(result)
-        "((A+B)==C)"
+        expression = ["C", "==", ["A", "+", "B"]]
+        
+        result = ruleminer.flatten_and_sort(expression)
+        
+        print(result)
+        
+            "((A+B)==C)"
     """
     if isinstance(expression, str):
         return expression
@@ -1553,10 +1579,13 @@ def flatten(expression):
         str: The flattened expression as a string enclosed in parentheses.
 
     Example:
-        >>> expression = ["A", ["B", ["C", "D"]]]
-        >>> result = ruleminer.flatten(expression)
-        >>> print(result)
-        "(A(B(CD)))"
+        expression = ["A", ["B", ["C", "D"]]]
+        
+        result = ruleminer.flatten(expression)
+        
+        print(result)
+        
+            "(A(B(CD)))"
     """
     if isinstance(expression, str):
         return expression
@@ -1583,14 +1612,14 @@ def is_column(s):
         False otherwise.
 
     Example:
-        >>> is_column('{"A"}')
-        True
+        is_column('{"A"}')
+            True
 
-        >>> is_column('{"B"}')
-        True
+        is_column('{"B"}')
+            True
 
-        >>> is_column("Not a column reference")
-        False
+        is_column("Not a column reference")
+            False
     """
     return len(s) > 4 and (
         (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
@@ -1611,14 +1640,14 @@ def is_string(s):
         bool: True if the string is enclosed in quotes, False otherwise.
 
     Example:
-        >>> is_string("'Hello, World!'")
-        True
+        is_string("'Hello, World!'")
+            True
 
-        >>> is_string('"42"')
-        True
+        is_string('"42"')
+            True
 
-        >>> is_string("Not a string")
-        False
+        is_string("Not a string")
+            False
     """
     return len(s) > 2 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")

@@ -717,7 +717,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"} >= 0))'
-        df = pd.DataFrame([['Test_1', 0]], columns=["Name", "1"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then (({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))>=(0))'
@@ -735,7 +734,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"}-{"2"}-{"3"}) == 0)'
-        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",)))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",)))))) <= (0)))'
@@ -753,7 +751,6 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formula = '(({"1"}-({"2"}+{"3"})) == 0)'
-        df = pd.DataFrame([['Test_1', 2, 1.01, 1.01]], columns=["Name", "1", "2", "3"])
         rm_rules = ruleminer.RuleMiner(templates=[{'expression': formula}], params=parameters)
         actual = rm_rules.rules.values[0][2]
         expected = 'if () then ((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))))) >= (0)) & (((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-(({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",)))+{"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))))) <= (0)))'
