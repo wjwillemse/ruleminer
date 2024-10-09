@@ -8,7 +8,7 @@
 
 Python package to discover association rules in Pandas DataFrames. 
 
-This package implements the code of the paper `Discovering and ranking validation rules in supervisory data <https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf>`_.
+This package implements the code of the paper [Discovering and ranking validation rules in supervisory data](https://github.com/wjwillemse/ruleminer/tree/main/docs/paper.pdf).
 -   Free software: MIT/X license
 -   Documentation: <https://ruleminer.readthedocs.io/en/latest>.
 
