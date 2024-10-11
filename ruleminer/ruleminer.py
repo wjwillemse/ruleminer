@@ -440,13 +440,13 @@ class RuleMiner:
 
         Example:
             expression = "Column '\x01' contains values from group '\x02'"
-            
+
             group_names = ['Group A', 'Numbers']
-            
+
             result = ruleminer.RuleMiner().substitute_group_names(expression, group_names)
-            
+
             print(result)
-            
+
                 "Column 'Group A' contains values from group 'Numbers'"
 
         Note:
@@ -482,11 +482,11 @@ class RuleMiner:
 
         Example:
             expression = ['{"A"}', '==', '"b"']
-            
+
             column_value_pairs = ruleminer.RuleMiner().search_column_value(expression, [])
-            
+
             print(column_value_pairs)
-            
+
                 [('{"A"}', '"b"')]
 
         Note:
@@ -530,19 +530,19 @@ class RuleMiner:
 
         Example:
             rule_expression = 'if ({"A"} > 10) then ({"B"} == "C")'
-            
+
             parsed, if_part, then_part = split_rule(rule_expression)
-            
+
             print(parsed)
-            
+
                 ['if', ['{"A"}', '>', '10'], 'then', ['{"B"}', '==', '"C"']]
-            
+
             print(if_part)
-            
+
                 [['{"A"}', '>', '10']]
-            
+
             print(then_part)
-            
+
                 [['{"B"}', '==', '"C"']]
 
         Note:
@@ -609,19 +609,19 @@ class RuleMiner:
 
         Example:
             expression = '({"A.*"} > 10) & ({"B.*"} == 20)'
-            
+
             columns = ['{"A.*"}', {"B.*"}]
-            
+
             values = [10, 20]
-            
+
             column_subs = ["Aa", "Bb"]
-            
+
             value_subs = [30, 40]
-            
+
             result = ruleminer.RuleMiner().substitute_list(expression, columns, values, column_subs, value_subs)
-            
+
             print(result)
-            
+
                 ('({"Aa"} > 10) & ({"B.*"} == 20)', [{'B.*'}], [10, 20], ['Bb'], [30, 40])
 
         """
@@ -821,11 +821,11 @@ class RuleMiner:
                 'absolute_exceptions': 5,
                 'confidence': 0.9
             }
-            
+
             co_indices = [1, 2, 3, 4, 5]
-            
+
             ex_indices = [10, 11, 12, 13]
-            
+
             add_results(rule_index, metrics, co_indices, ex_indices)
 
         """
@@ -861,7 +861,10 @@ class RuleMiner:
 
             data = pd.DataFrame(columns=self.results.columns, data=data)
             data[INDICES] = co_indices
-            self.results = pd.concat([self.results, data], ignore_index=True)
+            if self.results.empty:
+                self.results = data
+            else:
+                self.results = pd.concat([self.results, data], ignore_index=True)
 
         if nex > 0:
             data = [
@@ -880,7 +883,10 @@ class RuleMiner:
 
             data = pd.DataFrame(columns=self.results.columns, data=data)
             data[INDICES] = ex_indices
-            self.results = pd.concat([self.results, data], ignore_index=True)
+            if self.results.empty:
+                self.results = data
+            else:
+                self.results = pd.concat([self.results, data], ignore_index=True)
 
         return None
 
@@ -909,11 +915,11 @@ class RuleMiner:
 
         Example:
             expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
-            
+
             result = ruleminer.RuleMiner().reformulate(expression)
-            
+
             print(result)
-            
+
                 "({"A"}.str.slice(1,1))"
 
         """
@@ -927,21 +933,23 @@ class RuleMiner:
                     args = ', args=("default",)'
                 if positive_tolerance:
                     return (
-                        expression
+                        "("
+                        + expression
                         + "+0.5*abs("
                         + expression
                         + ".apply(__tol__"
                         + args
-                        + "))"
+                        + ")))"
                     )
                 else:
                     return (
-                        expression
+                        "("
+                        + expression
                         + "-0.5*abs("
                         + expression
                         + ".apply(__tol__"
                         + args
-                        + "))"
+                        + ")))"
                     )
             elif expression.lower() == "in":
                 return ".isin"
@@ -1087,7 +1095,7 @@ class RuleMiner:
                             apply_tolerance=apply_tolerance,
                             positive_tolerance=positive_tolerance,
                         )
-                    return res
+                    return "(" + res + ")"
                 if isinstance(item, str) and item.lower() == "substr":
                     string, _, start, _, stop = expression[idx + 1]
                     res = (
@@ -1109,7 +1117,7 @@ class RuleMiner:
                             apply_tolerance=apply_tolerance,
                             positive_tolerance=positive_tolerance,
                         )
-                    return res
+                    return "(" + res + ")"
                 if isinstance(item, str) and item.lower() == "split":
                     string, _, separator, _, position = expression[idx + 1]
                     res = (
@@ -1131,7 +1139,7 @@ class RuleMiner:
                             apply_tolerance=apply_tolerance,
                             positive_tolerance=positive_tolerance,
                         )
-                    return res
+                    return "(" + res + ")"
                 if isinstance(item, str) and item.lower() in ["sum", "sumif"]:
                     sumlist = self.reformulate(
                         expression[idx + 1][0],
@@ -1152,24 +1160,28 @@ class RuleMiner:
                             sumlist = sumlist.replace("}", "}.where(" + condition + ")")
                         else:
                             # the content of condition is a list of conditions
-                            if condition_tree[0][2]=="for":
+                            if condition_tree[0][2] == "for":
                                 # the content is a list comprehension
                                 # and is evaluated here to a list
                                 # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
-                                lc_expr = flatten(condition_tree[0][1]).replace('"', "'")
+                                lc_expr = flatten(condition_tree[0][1]).replace(
+                                    '"', "'"
+                                )
                                 lc_iter = flatten(condition_tree[0][6])[1:-1]
                                 lc_var = condition_tree[0][3]
-                                lc_eval = eval((
-                                    '["'
-                                    + lc_expr.replace(
-                                        lc_var,
-                                        '"+str(' + lc_var + ')+"',
+                                lc_eval = eval(
+                                    (
+                                        '["'
+                                        + lc_expr.replace(
+                                            lc_var,
+                                            '"+str(' + lc_var + ')+"',
+                                        )
+                                        + '" for '
+                                        + lc_var
+                                        + " in ["
+                                        + lc_iter
+                                        + "]]"
                                     )
-                                    + '" for '
-                                    + lc_var
-                                    + " in ["
-                                    + lc_iter
-                                    + "]]")
                                 )
                                 conditions = [s.replace("'", '"') for s in lc_eval]
                             else:
@@ -1211,7 +1223,7 @@ class RuleMiner:
                             apply_tolerance=apply_tolerance,
                             positive_tolerance=positive_tolerance,
                         )
-                    return res
+                    return "(" + res + ")"
                 if isinstance(item, str) and item.lower() in ["count", "countif"]:
                     countlist = self.reformulate(
                         expression[idx + 1][0],
@@ -1272,7 +1284,7 @@ class RuleMiner:
                             apply_tolerance=apply_tolerance,
                             positive_tolerance=positive_tolerance,
                         )
-                    return res
+                    return "(" + res + ")"
 
                 if isinstance(item, str) and item in ["-", "/"]:
                     # if the operator is - or / then the tolerance direction should be reversed
@@ -1494,19 +1506,19 @@ def flatten_and_sort(expression: str = ""):
 
     Example:
         expression = ["max", ["C", "A"]]
-        
+
         result = ruleminer.flatten_and_sort(expression)
-        
+
         print(result)
-        
+
             "(max((CA)))"
 
         expression = ["C", "==", ["A", "+", "B"]]
-        
+
         result = ruleminer.flatten_and_sort(expression)
-        
+
         print(result)
-        
+
             "((A+B)==C)"
     """
     if isinstance(expression, str):
@@ -1580,11 +1592,11 @@ def flatten(expression):
 
     Example:
         expression = ["A", ["B", ["C", "D"]]]
-        
+
         result = ruleminer.flatten(expression)
-        
+
         print(result)
-        
+
             "(A(B(CD)))"
     """
     if isinstance(expression, str):
@@ -1640,15 +1652,15 @@ def is_string(s):
         bool: True if the string is enclosed in quotes, False otherwise.
 
     Example:
-        is_string("'Hello, World!'")
+        is_string('"life"')
             True
 
-        is_string('"42"')
-            True
-
-        is_string("Not a string")
+        is_string('{"A"}')
             False
+
+        is_string('""')
+            True
     """
-    return len(s) > 2 and (
+    return len(s) > 1 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
     )

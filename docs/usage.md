@@ -29,15 +29,15 @@ Examples below are based the following dataset.
 Take the rule
 
 ```
-if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)
+if ({"Type"} == "life") then ({"TP-life"} > 0)
 ```
 
-This rule says: if an insurer reports for column "Type" (noted by the curved brackets) the value "life_insurer" then the value of the column "TP-life" should be higher than zero. 
+This rule says: if an insurer reports for column "Type" (noted by the curved brackets) the value "life" then the value of the column "TP-life" should be higher than zero. 
 
 With the code
 
 ```python
-templates = [{'expression': 'if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)'}]
+templates = [{'expression': 'if ({"Type"} == "life") then ({"TP-life"} > 0)'}]
 
 r = ruleminer.RuleMiner(templates=templates, data=df)
 ```
@@ -46,7 +46,7 @@ you can generate the rule metrics of this rule given the data in the DataFrame a
 
 | id   | definition                                             | status | abs support | abs exceptions | confidence | encodings |
 |------|--------------------------------------------------------|--------|-------------|----------------|------------|-----------|
-| 0    | if ({"Type"} == "life_insurer") then ({"TP-life"} > 0) | None   | 5           | 0              | 1          | {}        |
+| 0    | if ({"Type"} == "life") then ({"TP-life"} > 0) | None   | 5           | 0              | 1          | {}        |
 
 There are 5 rows in the data that support this rule. There are no exceptions (i.e. where the if-clause is satisfied, but not the then-clause), so this rule has confidence 1.
 
@@ -71,8 +71,8 @@ then the following rules are generated
 
 | id   | definition                                                    | status | abs support | abs exceptions | confidence | encodings |
 |------|---------------------------------------------------------------|--------|-------------|----------------|------------|-----------|
-| 0    | if ({"Type"} == "non-life_insurer") then ({"TP-nonlife"} > 0) | None   | 4           | 1              | 0.8        | {}        |
-| 1    | if ({"Type"} == "life_insurer") then ({"TP-life"} > 0)        | None   | 5           | 0              | 1          | {}        |
+| 0    | if ({"Type"} == "non-life") then ({"TP-nonlife"} > 0) | None   | 4           | 1              | 0.8        | {}        |
+| 1    | if ({"Type"} == "life") then ({"TP-life"} > 0)        | None   | 5           | 0              | 1          | {}        |
 
 You can use rules without an if-clause, for example:
 ```
@@ -169,7 +169,7 @@ If no 'decimal' parameter is provided then the absolute difference should be exa
 
 ### Precision based on datapoint values
 
-If the precision should depend on the specific value, which is the case for some XBRL validation rules (see for example `EIOPA XBRL Taxonomy Documentation <https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Taxonomy_Documentation_2.8.0.pdf>`_), then you can define tolerances that depend on the values in this way ::
+If the precision should depend on the specific value, which is the case for some XBRL validation rules (see for example [EIOPA XBRL Taxonomy Documentation](https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Taxonomy_Documentation_2.8.0.pdf), then you can define tolerances that depend on the values in this way:
 
 ```python
 params = {
@@ -212,9 +212,9 @@ A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
 A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B))
 ```
 
-where tol(A) return 0.5*10**(precision), with precision based on value A and the tolerance defined in the 'tolerance' parameter.
+where tol(A) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
 
-The example can be reproduced in ruleminer in the following way ::
+The example can be reproduced in ruleminer in the following way:
 ```python
 df = pd.DataFrame(
     columns=[
@@ -243,7 +243,7 @@ And r.rules gives you the following output
 
 | id   | definition                                                    | status | abs support | abs exceptions | confidence | encodings |
 |------|---------------------------------------------------------------|--------|-------------|----------------|------------|-----------|
-| 0    | *if () then ((({"C"}-0.5*abs({"C"}.apply(__tol__, args=("default",)))) <= ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",)))+{"B"}+0.5*abs({"B"}.apply(__tol__, args=("default",))))) & ... )* | None   | 1           | 1              | 0.5        | {}        |
+| 0    | ```if () then ((({"C"}-0.5*abs({"C"}.apply(__tol__, (...)``` | None   | 1           | 1              | 0.5        | {}        |
 
 
 Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
