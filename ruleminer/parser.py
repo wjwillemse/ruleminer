@@ -151,7 +151,7 @@ def math_expression(base: pyparsing.core.Forward = None):
         element = (
             base | _quoted_string_list | _quoted_string | _column | _number | _empty
         )
-    atom = _addop[...] + (element | pyparsing.Group(_lpar + expr + _rpar))
+    atom = element | pyparsing.Group(_lpar + expr + _rpar)
     factor = pyparsing.Forward()
     factor <<= atom + (_expop + factor)[...]
     term = factor + (_multop + factor)[...]
