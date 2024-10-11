@@ -28,6 +28,7 @@ from .utils import (
     fit_ensemble_and_extract_expressions,
     fit_dataframe_to_ensemble,
 )
+
 __all__ = [
     RuleMiner,
     rule_expression,
