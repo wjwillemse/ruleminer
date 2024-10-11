@@ -168,10 +168,10 @@ class TestRuleminer(unittest.TestCase):
     def test_17(self):
         actual = (
             ruleminer.rule_expression()
-            .parse_string('if ("C" != "pd.NA") then ( "A" > - 1)', parse_all=True)
+            .parse_string('if ("C" != "pd.NA") then ( "A" > -1)', parse_all=True)
             .as_list()
         )
-        expected = ["if", ['"C"', "!=", '"pd.NA"'], "then", ['"A"', ">", "-", "1"]]
+        expected = ["if", ['"C"', "!=", '"pd.NA"'], "then", ['"A"', ">", "-1"]]
         self.assertTrue(actual == expected)
 
     def test_18(self):
