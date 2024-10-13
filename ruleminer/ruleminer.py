@@ -5,7 +5,7 @@ import itertools
 import re
 import numpy as np
 import pandas as pd
-import constraint
+from typing import Union
 
 from .parser import (
     dataframe_index,
@@ -63,7 +63,7 @@ class RuleMiner:
         rules: pd.DataFrame = None,
         data: pd.DataFrame = None,
         params: dict = None,
-    ):
+    ) -> None:
         """ """
         logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ class RuleMiner:
 
         return None
 
-    def generate(self):
+    def generate(self) -> None:
         """ """
         assert (
             self.templates is not None
@@ -139,7 +139,7 @@ class RuleMiner:
     def evaluate(
         self,
         data: pd.DataFrame = None,
-    ):
+    ) -> pd.DataFrame:
         """ """
         if data is not None:
             self.update(data=data)
@@ -185,7 +185,7 @@ class RuleMiner:
 
         return self.results
 
-    def setup_rules_dataframe(self):
+    def setup_rules_dataframe(self) -> None:
         """
         Helper function to set up the rules dataframe
         """
@@ -195,7 +195,7 @@ class RuleMiner:
             + [ENCODINGS]
         )
 
-    def setup_results_dataframe(self):
+    def setup_results_dataframe(self) -> None:
         """
         Helper function to set up the results dataframe
         """
@@ -206,9 +206,10 @@ class RuleMiner:
         )
         self.results[RESULT] = self.results[RESULT].astype(bool)
 
-    def convert_template(self, template: dict = {}):
+    def convert_template(self, template: dict = {}) -> None:
         """
         Main function to convert templates to rules without data and regexes
+
         """
         logger = logging.getLogger(__name__)
         group = template.get("group", 0)
@@ -243,7 +244,7 @@ class RuleMiner:
             encodings=encodings,
         )
 
-    def generate_rules(self, template: dict):
+    def generate_rules(self, template: dict) -> None:
         """
         Generate rules from data using a rule template.
 
@@ -419,7 +420,9 @@ class RuleMiner:
             for level in range(len(self.data.index.names)):
                 del self.data[str(self.data.index.names[level])]
 
-    def substitute_group_names(self, expr: str = None, group_names_list: list = []):
+    def substitute_group_names(
+        self, expr: str = None, group_names_list: list = []
+    ) -> list:
         """
         Substitute group names in an expression.
 
@@ -703,7 +706,7 @@ class RuleMiner:
         expressions: dict = {},
         dataframe: pd.DataFrame = None,
         encodings: dict = {},
-    ):
+    ) -> dict:
         """
         Evaluate a set of expressions and return their results.
 
@@ -748,7 +751,7 @@ class RuleMiner:
         rule_status: str = "",
         rule_metrics: dict = {},
         encodings: dict = {},
-    ):
+    ) -> None:
         """
         Add a rule with information to the discovered rule list.
 
@@ -890,15 +893,613 @@ class RuleMiner:
 
         return None
 
-    def reformulate(
+    def reformulate_substr(
         self,
-        expression: str = "",
+        idx: int,
+        expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
-    ):
+    ) -> str:
         """
-        Convert parameters, settings, and functions to Pandas code within
-        an expression.
+        Process substr function
+
+        Example:
+            expression = ['SUBSTR', ['{"C"}', ',', '2', ',', '4']]
+
+            result = ruleminer.RuleMiner().reformulate_substr(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                (({"C"}.str.slice(2,4)))
+                '
+        """
+        string, _, start, _, stop = expression[idx + 1]
+        res = (
+            "("
+            + self.reformulate(
+                string,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ".str.slice("
+            + start
+            + ","
+            + stop
+            + "))"
+        )
+        for i in expression[idx + 2 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return "(" + res + ")"
+
+    def reformulate_split(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        # process split function
+        string, _, separator, _, position = expression[idx + 1]
+        res = (
+            "("
+            + self.reformulate(
+                string,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ".str.split("
+            + separator
+            + ").str["
+            + position
+            + "])"
+        )
+        for i in expression[idx + 2 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return "(" + res + ")"
+
+    def reformulate_sum_sumif(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        # process sum and sumif functions
+        sumlist = self.reformulate(
+            expression[idx + 1][0],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        # if it is a sumif then parse the condition(s)
+        if item.lower() == "sumif":
+            condition_tree = expression[idx + 1][2:]
+            if isinstance(condition_tree[0], str):
+                # the content of condition is not a list of conditions
+                condition = self.reformulate(
+                    condition_tree,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+                # a single condition applied to all columns
+                sumlist = sumlist.replace("}", "}.where(" + condition + ")")
+            else:
+                # the content of condition is a list of conditions
+                if condition_tree[0][2] == "for":
+                    # the content is a list comprehension
+                    # and is evaluated here to a list
+                    # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
+                    lc_expr = flatten(condition_tree[0][1]).replace('"', "'")
+                    lc_iter = flatten(condition_tree[0][6])[1:-1]
+                    lc_var = condition_tree[0][3]
+                    lc_eval = eval(
+                        (
+                            '["'
+                            + lc_expr.replace(
+                                lc_var,
+                                '"+str(' + lc_var + ')+"',
+                            )
+                            + '" for '
+                            + lc_var
+                            + " in ["
+                            + lc_iter
+                            + "]]"
+                        )
+                    )
+                    conditions = [s.replace("'", '"') for s in lc_eval]
+                else:
+                    # the content is a plain list
+                    conditions = []
+                    for condition_idx in range(1, len(condition_tree[0]), 2):
+                        conditions.append(
+                            self.reformulate(
+                                condition_tree[0][condition_idx],
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+                        )
+                # apply list of condition to each respective column
+                parts = sumlist.split("}")
+                if len(parts) - 1 != len(conditions):
+                    logging.error(
+                        "Number of items to sum is not equal to number of conditions: "
+                        + str(parts[:-1])
+                        + " versus "
+                        + str(conditions)
+                    )
+                    return ""
+                sumlist = (
+                    "".join(
+                        [
+                            item + "}.where(" + conditions[idx][1:-1] + ")"
+                            for idx, item in enumerate(parts[:-1])
+                        ]
+                    )
+                    + parts[-1]
+                )
+        res = "sum(" + sumlist + ", axis=0)"
+        for i in expression[idx + 2 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return "(" + res + ")"
+
+    def reformulate_count_countif(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        # process count and countif functions
+        countlist = self.reformulate(
+            expression[idx + 1][0],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        # if it is a countif then parse the condition(s)
+        if item.lower() == "countif":
+            condition_tree = expression[idx + 1][2:]
+            if isinstance(condition_tree[0], str):
+                # the content of condition is not a list of conditions
+                condition = self.reformulate(
+                    condition_tree,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+                # a single condition applied to all columns
+                countlist = countlist.replace("{", "~{").replace(
+                    "}", "}.where(" + condition + ").isna()"
+                )
+            else:
+                # the content of condition is a list of conditions
+                conditions = []
+                for condition_idx in range(1, len(condition_tree[0]), 2):
+                    conditions.append(
+                        self.reformulate(
+                            condition_tree[0][condition_idx],
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+                    )
+                # apply list of condition to each respective column
+                parts = countlist.split("}")
+                if len(parts) - 1 != len(conditions):
+                    logging.error(
+                        "Number of items to count is not equal to number of conditions: "
+                        + str(parts[:-1])
+                        + " versus "
+                        + str(conditions)
+                    )
+                    return ""
+                countlist = (
+                    "".join(
+                        [
+                            item + "}.where(" + conditions[idx][1:-1] + ").isna()"
+                            for idx, item in enumerate(parts[:-1])
+                        ]
+                    )
+                    + parts[-1]
+                )
+        res = "sum(" + countlist + ", axis=0)"
+        for i in expression[idx + 2 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return "(" + res + ")"
+
+    def reformulate_in(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process in operator
+
+        Example:
+            expression = ['{"A"}', 'in', ['[', '"B"', ',', '"A"', ']']]
+
+            result = ruleminer.RuleMiner().reformulate_in(
+                idx=1,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                ({"A"}.isin(["B","A"]))
+                '
+        """
+        left_side = expression[:idx]
+        right_side = expression[idx + 1 :]
+        # process in operator
+        res = ""
+        for i in left_side:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        res += ".isin"
+        for i in right_side:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return "(" + res + ")"
+
+    def reformulate_quantile(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process quantile function
+
+        """
+        res = ""
+        for i in expression[:idx]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        quantile_code = {VAR_Z: pandas_column(flatten(expression[idx : idx + 2]))}
+        quantile_result = self.evaluate_code(
+            expressions=quantile_code, dataframe=self.data
+        )[VAR_Z]
+        res += str(np.round(quantile_result, 8))
+        for i in expression[idx + 2 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return res
+
+    def reformulate_comparison(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process tolerance parameter to comparison
+        Do not apply if left side or right side of the comparison is a string
+
+        Example:
+            expression = ['{"A"}', '<', '{"B"}']
+
+            parameters = {
+                "tolerance": {
+                    "default": {
+                        (0, 1e3): 0,
+                    },
+                },
+            }
+
+            result = ruleminer.RuleMiner(params=parameters).reformulate_comparison(
+                expression=expression,
+                apply_tolerance=True
+            )
+            print(result)
+                '
+                (
+                    (
+                        ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))
+                    )
+                    <
+                    (
+                        ({"B"}-0.5*abs({"B"}.apply(__tol__, args=("default",))))
+                    )
+                )
+                '
+        """
+        if "tolerance" in self.params.keys() and (
+            not (is_string(expression[idx - 1]) and len(expression[:idx]) == 1)
+            and (
+                not (is_string(expression[idx + 1]) and len(expression[idx + 1 :]) == 1)
+            )
+        ):
+            left_side_pos = self.reformulate(
+                expression=expression[:idx],
+                apply_tolerance=True,
+                positive_tolerance=True,
+            )
+            left_side_neg = self.reformulate(
+                expression=expression[:idx],
+                apply_tolerance=True,
+                positive_tolerance=False,
+            )
+            right_side_pos = self.reformulate(
+                expression=expression[idx + 1 :],
+                apply_tolerance=True,
+                positive_tolerance=True,
+            )
+            right_side_neg = self.reformulate(
+                expression=expression[idx + 1 :],
+                apply_tolerance=True,
+                positive_tolerance=False,
+            )
+            if item in ["=="]:
+                res = (
+                    "("
+                    + left_side_pos
+                    + " >= "
+                    + right_side_neg
+                    + ") & ("
+                    + left_side_neg
+                    + " <= "
+                    + right_side_pos
+                    + ")"
+                )
+            if item in ["!="]:
+                res = (
+                    "("
+                    + left_side_pos
+                    + " < "
+                    + right_side_neg
+                    + ") | ("
+                    + left_side_neg
+                    + " > "
+                    + right_side_pos
+                    + ")"
+                )
+            elif item in [">", ">="]:
+                res = left_side_pos + item + right_side_neg
+            elif item in ["<", "<="]:
+                res = left_side_neg + item + right_side_pos
+            return "(" + res + ")"
+
+        else:
+            left_side = expression[:idx]
+            right_side = expression[idx + 1 :]
+            res = (
+                self.reformulate(
+                    left_side,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+                + item
+                + self.reformulate(
+                    right_side,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+            )
+            return "(" + res + ")"
+
+    def reformulate_minus_divide(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process - and /
+        If the operator is - or / then the tolerance direction must be reversed
+
+        Example:
+            expression = ['{"A"}', '-', '{"B"}', '-', '{"C"}']
+
+            parameters = {
+                "tolerance": {
+                    "default": {
+                        (0, 1e3): 0,
+                    },
+                },
+            }
+
+            result = ruleminer.RuleMiner(params=parameters).reformulate_minus_divide(
+                idx=1,
+                item="-"
+                expression=expression,
+                apply_tolerance=True
+            )
+            print(result)
+                '
+                (
+                    (
+                        ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))
+                    )
+                    -
+                    (
+                        ({"B"}-0.5*abs({"B"}.apply(__tol__, args=("default",))))
+                    )
+                    -
+                    (
+                        ({"C"}-0.5*abs({"C"}.apply(__tol__, args=("default",))))
+                    )
+                )
+                '
+        """
+        left_side = self.reformulate(
+            expression=expression[:idx],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        # the rest of the expression if evaluated as a list with reversed tolerance
+        right_side = ""
+        current_positive_tolerance = (
+            not positive_tolerance if apply_tolerance else positive_tolerance
+        )
+        for right_side_item in expression[idx + 1 :]:
+            if right_side_item in ["+", "*"]:
+                current_positive_tolerance = (
+                    positive_tolerance if apply_tolerance else positive_tolerance
+                )
+            elif right_side_item in ["-", "/"]:
+                current_positive_tolerance = (
+                    not positive_tolerance if apply_tolerance else positive_tolerance
+                )
+            right_side += self.reformulate(
+                expression=[right_side_item],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=current_positive_tolerance,
+            )
+        return "(" + left_side + item + right_side + ")"
+
+    def reformulate_string(
+        self,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process expression with string
+
+        Example:
+            expression = ['"A"']
+
+            result = ruleminer.RuleMiner().reformulate_string(
+                expression=expression
+            )
+            print(result)
+                'A'
+
+            parameters = {
+                "tolerance": {
+                    "default": {
+                        (0, 1e3): 0,
+                    },
+                },
+            }
+            expression = '{"A"}'
+
+            result = ruleminer.RuleMiner(params=parameters).reformulate_string(
+                expression=expression,
+                apply_tolerance=True
+            )
+            print(result)
+                '({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))'
+
+        """
+        if is_column(expression) and apply_tolerance:
+            # process tolerance on column
+            args = ""
+            for key, tol in self.tolerance.items():
+                if re.fullmatch(key, expression[2:-2]):
+                    args = ', args=("' + key + '",)'
+            if args == "":
+                args = ', args=("default",)'
+            if positive_tolerance:
+                return (
+                    "("
+                    + expression
+                    + "+0.5*abs("
+                    + expression
+                    + ".apply(__tol__"
+                    + args
+                    + ")))"
+                )
+            else:
+                return (
+                    "("
+                    + expression
+                    + "-0.5*abs("
+                    + expression
+                    + ".apply(__tol__"
+                    + args
+                    + ")))"
+                )
+        elif expression.lower() == "in":
+            return ".isin"
+        else:
+            return expression
+
+    def reformulate_decimal(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process decimal parameter to expression with ==
+
+        Example:
+            expression = ['{"A"}', '==', '{"B"}']
+
+            result = ruleminer.RuleMiner().reformulate_decimal(
+                idx=1,
+                expression=expression
+            )
+            print(result)
+
+                '(abs(({"A"})-({"B"})) <= 1.5)'
+        """
+        decimal = self.params.get("decimal", 0)
+        precision = 1.5 * 10 ** (-decimal)
+        res = (
+            "abs("
+            + self.reformulate(
+                expression[:idx],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + "-"
+            + self.reformulate(
+                expression[idx + 1 :],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ") <= "
+            + str(precision)
+        )
+        return "(" + res + ")"
+
+    def reformulate(
+        self,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        convert parsed expression (tree structure) to pseudo code (str).
 
         This method takes an input expression and converts specific parameters,
         settings, and functions into their equivalent Pandas code. It allows
@@ -907,11 +1508,11 @@ class RuleMiner:
 
         Args:
             expression (str): The input expression to be reformulated into Pandas code.
-            apply_tolerance (bool):
-            positive_tolerance (bool):
+            apply_tolerance (bool): bool that indicates whether to apply tolerance
+            positive_tolerance (bool): bool that indicates the direction of the tolerance
 
         Returns:
-            str: The reformulated expression in Pandas code.
+            str: The reformulated expression in pseudo code.
 
         Example:
             expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
@@ -924,402 +1525,113 @@ class RuleMiner:
 
         """
         if isinstance(expression, str):
-            if is_column(expression) and apply_tolerance:
-                args = ""
-                for key, tol in self.tolerance.items():
-                    if re.fullmatch(key, expression[2:-2]):
-                        args = ', args=("' + key + '",)'
-                if args == "":
-                    args = ', args=("default",)'
-                if positive_tolerance:
-                    return (
-                        "("
-                        + expression
-                        + "+0.5*abs("
-                        + expression
-                        + ".apply(__tol__"
-                        + args
-                        + ")))"
-                    )
-                else:
-                    return (
-                        "("
-                        + expression
-                        + "-0.5*abs("
-                        + expression
-                        + ".apply(__tol__"
-                        + args
-                        + ")))"
-                    )
-            elif expression.lower() == "in":
-                return ".isin"
-            else:
-                return expression
+            return self.reformulate_string(
+                expression,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+
         else:
             if len(expression) == 1 and expression[0] in ["+", "-", "*", "/"]:
                 return expression[0]
 
             for idx, item in enumerate(expression):
                 if (
-                    "decimal" in self.params.keys()
-                    and isinstance(item, str)
+                    isinstance(item, str)
+                    and "decimal" in self.params.keys()
                     and (item in ["=="])
-                ):
-                    if not (
-                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
-                    ) and (
+                    and (
                         not (
-                            is_string(expression[idx + 1])
-                            and len(expression[idx + 1 :]) == 1
+                            is_string(expression[idx - 1])
+                            and len(expression[:idx]) == 1
                         )
-                    ):
-                        decimal = self.params.get("decimal", 0)
-                        precision = 1.5 * 10 ** (-decimal)
-                        return (
-                            "(abs("
-                            + self.reformulate(
-                                expression[:idx],
-                                apply_tolerance=apply_tolerance,
-                                positive_tolerance=positive_tolerance,
+                        and (
+                            not (
+                                is_string(expression[idx + 1])
+                                and len(expression[idx + 1 :]) == 1
                             )
-                            + "-"
-                            + self.reformulate(
-                                expression[idx + 1 :],
-                                apply_tolerance=apply_tolerance,
-                                positive_tolerance=positive_tolerance,
-                            )
-                            + ") <= "
-                            + str(precision)
-                            + ")"
                         )
-                if (
-                    "tolerance" in self.params.keys()
-                    and isinstance(item, str)
-                    and item in ["==", "!=", "<", "<=", ">", ">="]
+                    )
                 ):
-                    if not (
-                        is_string(expression[idx - 1]) and len(expression[:idx]) == 1
-                    ) and (
-                        not (
-                            is_string(expression[idx + 1])
-                            and len(expression[idx + 1 :]) == 1
-                        )
-                    ):
-                        left_side_pos = self.reformulate(
-                            expression=expression[:idx],
-                            apply_tolerance=True,
-                            positive_tolerance=True,
-                        )
-                        left_side_neg = self.reformulate(
-                            expression=expression[:idx],
-                            apply_tolerance=True,
-                            positive_tolerance=False,
-                        )
-                        right_side_pos = self.reformulate(
-                            expression=expression[idx + 1 :],
-                            apply_tolerance=True,
-                            positive_tolerance=True,
-                        )
-                        right_side_neg = self.reformulate(
-                            expression=expression[idx + 1 :],
-                            apply_tolerance=True,
-                            positive_tolerance=False,
-                        )
-                        if item in ["=="]:
-                            return (
-                                "(("
-                                + left_side_pos
-                                + " >= "
-                                + right_side_neg
-                                + ") & ("
-                                + left_side_neg
-                                + " <= "
-                                + right_side_pos
-                                + "))"
-                            )
-                        if item in ["!="]:
-                            return (
-                                "(("
-                                + left_side_pos
-                                + " < "
-                                + right_side_neg
-                                + ") | ("
-                                + left_side_neg
-                                + " > "
-                                + right_side_pos
-                                + "))"
-                            )
-                        elif item in [">", ">="]:
-                            return "(" + left_side_pos + item + right_side_neg + ")"
-                        elif item in ["<", "<="]:
-                            return "(" + left_side_neg + item + right_side_pos + ")"
+                    return self.reformulate_decimal(
+                        idx,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+
+                if isinstance(item, str) and item in ["==", "!=", "<", "<=", ">", ">="]:
+                    return self.reformulate_comparison(
+                        idx,
+                        item,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+
                 if (
-                    self.params.get("evaluate_quantile", False)
-                    and isinstance(item, str)
+                    isinstance(item, str)
+                    and self.params.get("evaluate_quantile", False)
                     and item.lower() == "quantile"
                 ):
-                    res = ""
-                    for i in expression[:idx]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    quantile_code = {
-                        VAR_Z: pandas_column(flatten(expression[idx : idx + 2]))
-                    }
-                    quantile_result = self.evaluate_code(
-                        expressions=quantile_code, dataframe=self.data
-                    )[VAR_Z]
-                    res += str(np.round(quantile_result, 8))
-                    for i in expression[idx + 2 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
+                    return self.reformulate_quantile(
+                        idx,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+
                 if isinstance(item, str) and item.lower() == "in":
-                    # replace in by .isin
-                    res = ""
-                    for i in expression[:idx]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    res += ".isin"
-                    for i in expression[idx + 1 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
+                    return self.reformulate_in(
+                        idx,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+
                 if isinstance(item, str) and item.lower() == "substr":
-                    string, _, start, _, stop = expression[idx + 1]
-                    res = (
-                        "("
-                        + self.reformulate(
-                            string,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                        + ".str.slice("
-                        + start
-                        + ","
-                        + stop
-                        + "))"
+                    return self.reformulate_substr(
+                        idx,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
                     )
-                    for i in expression[idx + 2 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
+
                 if isinstance(item, str) and item.lower() == "split":
-                    string, _, separator, _, position = expression[idx + 1]
-                    res = (
-                        "("
-                        + self.reformulate(
-                            string,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                        + ".str.split("
-                        + separator
-                        + ").str["
-                        + position
-                        + "])"
+                    return self.reformulate_split(
+                        idx,
+                        expression,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
                     )
-                    for i in expression[idx + 2 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
+
                 if isinstance(item, str) and item.lower() in ["sum", "sumif"]:
-                    sumlist = self.reformulate(
-                        expression[idx + 1][0],
+                    return self.reformulate_sum_sumif(
+                        idx,
+                        item,
+                        expression,
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=positive_tolerance,
                     )
-                    # if it is a sumif then parse the condition(s)
-                    if item.lower() == "sumif":
-                        condition_tree = expression[idx + 1][2:]
-                        if isinstance(condition_tree[0], str):
-                            # the content of condition is not a list of conditions
-                            condition = self.reformulate(
-                                condition_tree,
-                                apply_tolerance=apply_tolerance,
-                                positive_tolerance=positive_tolerance,
-                            )
-                            # a single condition applied to all columns
-                            sumlist = sumlist.replace("}", "}.where(" + condition + ")")
-                        else:
-                            # the content of condition is a list of conditions
-                            if condition_tree[0][2] == "for":
-                                # the content is a list comprehension
-                                # and is evaluated here to a list
-                                # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
-                                lc_expr = flatten(condition_tree[0][1]).replace(
-                                    '"', "'"
-                                )
-                                lc_iter = flatten(condition_tree[0][6])[1:-1]
-                                lc_var = condition_tree[0][3]
-                                lc_eval = eval(
-                                    (
-                                        '["'
-                                        + lc_expr.replace(
-                                            lc_var,
-                                            '"+str(' + lc_var + ')+"',
-                                        )
-                                        + '" for '
-                                        + lc_var
-                                        + " in ["
-                                        + lc_iter
-                                        + "]]"
-                                    )
-                                )
-                                conditions = [s.replace("'", '"') for s in lc_eval]
-                            else:
-                                # the content is a plain list
-                                conditions = []
-                                for condition_idx in range(
-                                    1, len(condition_tree[0]), 2
-                                ):
-                                    conditions.append(
-                                        self.reformulate(
-                                            condition_tree[0][condition_idx],
-                                            apply_tolerance=apply_tolerance,
-                                            positive_tolerance=positive_tolerance,
-                                        )
-                                    )
-                            # apply list of condition to each respective column
-                            parts = sumlist.split("}")
-                            if len(parts) - 1 != len(conditions):
-                                logging.error(
-                                    "Number of items to sum is not equal to number of conditions: "
-                                    + str(parts[:-1])
-                                    + " versus "
-                                    + str(conditions)
-                                )
-                                return ""
-                            sumlist = (
-                                "".join(
-                                    [
-                                        item + "}.where(" + conditions[idx][1:-1] + ")"
-                                        for idx, item in enumerate(parts[:-1])
-                                    ]
-                                )
-                                + parts[-1]
-                            )
-                    res = "sum(" + sumlist + ", axis=0)"
-                    for i in expression[idx + 2 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
+
                 if isinstance(item, str) and item.lower() in ["count", "countif"]:
-                    countlist = self.reformulate(
-                        expression[idx + 1][0],
+                    return self.reformulate_count_countif(
+                        idx,
+                        item,
+                        expression,
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=positive_tolerance,
                     )
-                    # if it is a countif then parse the condition(s)
-                    if item.lower() == "countif":
-                        condition_tree = expression[idx + 1][2:]
-                        if isinstance(condition_tree[0], str):
-                            # the content of condition is not a list of conditions
-                            condition = self.reformulate(
-                                condition_tree,
-                                apply_tolerance=apply_tolerance,
-                                positive_tolerance=positive_tolerance,
-                            )
-                            # a single condition applied to all columns
-                            countlist = countlist.replace("{", "~{").replace(
-                                "}", "}.where(" + condition + ").isna()"
-                            )
-                        else:
-                            # the content of condition is a list of conditions
-                            conditions = []
-                            for condition_idx in range(1, len(condition_tree[0]), 2):
-                                conditions.append(
-                                    self.reformulate(
-                                        condition_tree[0][condition_idx],
-                                        apply_tolerance=apply_tolerance,
-                                        positive_tolerance=positive_tolerance,
-                                    )
-                                )
-                            # apply list of condition to each respective column
-                            parts = countlist.split("}")
-                            if len(parts) - 1 != len(conditions):
-                                logging.error(
-                                    "Number of items to count is not equal to number of conditions: "
-                                    + str(parts[:-1])
-                                    + " versus "
-                                    + str(conditions)
-                                )
-                                return ""
-                            countlist = (
-                                "".join(
-                                    [
-                                        item
-                                        + "}.where("
-                                        + conditions[idx][1:-1]
-                                        + ").isna()"
-                                        for idx, item in enumerate(parts[:-1])
-                                    ]
-                                )
-                                + parts[-1]
-                            )
-                    res = "sum(" + countlist + ", axis=0)"
-                    for i in expression[idx + 2 :]:
-                        res += self.reformulate(
-                            i,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-                    return "(" + res + ")"
 
                 if isinstance(item, str) and item in ["-", "/"]:
-                    # if the operator is - or / then the tolerance direction should be reversed
-                    left_side = self.reformulate(
-                        expression=expression[:idx],
+                    return self.reformulate_minus_divide(
+                        idx,
+                        item,
+                        expression,
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=positive_tolerance,
                     )
-                    # the rest of the expression if evaluated as a list with reversed tolerance
-                    right_side = ""
-                    current_positive_tolerance = (
-                        not positive_tolerance
-                        if apply_tolerance
-                        else positive_tolerance
-                    )
-                    for right_side_item in expression[idx + 1 :]:
-                        if right_side_item in ["+", "*"]:
-                            current_positive_tolerance = (
-                                positive_tolerance
-                                if apply_tolerance
-                                else positive_tolerance
-                            )
-                        elif right_side_item in ["-", "/"]:
-                            current_positive_tolerance = (
-                                not positive_tolerance
-                                if apply_tolerance
-                                else positive_tolerance
-                            )
-                        right_side += self.reformulate(
-                            expression=[right_side_item],
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=current_positive_tolerance,
-                        )
-                    return "(" + left_side + item + right_side + ")"
-
+            # nothing special, so parse tree and generate string
             res = ""
             for i in expression:
                 res += self.reformulate(
@@ -1327,164 +1639,10 @@ class RuleMiner:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            return "(" + res + ")"
-
-    def get_testcases(
-        self,
-        solver=None,
-        variable_range=range(0, 10),
-        all_different_constraint=True,
-    ):
-        """
-        Generate testcases from rules
-
-        Args:
-            solver (constraint.Solver): the solver to be used
-            variable (range): variable range to be used
-            all_different_constraint (bool): generate testcases with all different values
-
-        Returns:
-            pd.DataFrame with testcases
-
-        """
-        assert (
-            self.rules is not None
-        ), "Unable to generate test cases, no rules defined."
-
-        def setup_problem(
-            args,
-            solver,
-            variable_range,
-            all_different_constraint,
-        ):
-            problem = constraint.Problem(solver=solver)
-            if all_different_constraint:
-                logging.debug("Added all different constraint")
-                problem.addConstraint(constraint.AllDifferentConstraint())
-            logging.debug("Added variables: " + str(col2args.values()))
-            problem.addVariables(args, variable_range)
-            return problem
-
-        functions = {}
-        # column names are mapped to internal names because they can contains
-        # spaces and other symbols
-        col2args = dict()
-        for idx in self.rules.index:
-            expression = self.rules.loc[idx, RULE_DEF]
-            regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
-            rule = regex_condition.search(expression)
-            func_rule_def = {
-                "X": {
-                    "expr": rule.group(1).strip(),
-                },
-                "Y": {
-                    "expr": rule.group(2).strip(),
-                },
-                "not_Y": {
-                    "expr": "not " + rule.group(2).strip(),
-                },
-            }
-            for part in func_rule_def.keys():
-                if func_rule_def[part]["expr"] != "()":
-                    def_body = func_rule_def[part]["expr"]
-                    def_name = "_rule_" + str(idx) + "_" + part
-                    columns = list(
-                        set([item[2:-2] for item in re.findall(r'{".*?"}', def_body)])
-                    )
-                    for col in columns:
-                        if col not in col2args.keys():
-                            col2args[col] = "var_" + str(len(col2args.keys()))
-                    def_args = [col2args[arg] for arg in columns]
-                    for key, value in col2args.items():
-                        def_body = def_body.replace(key, value)
-                    def_code = (
-                        "def "
-                        + def_name
-                        + "("
-                        + ", ".join(def_args)
-                        + "):\n"
-                        + "    return "
-                        + def_body.replace('{"', "").replace('"}', "")
-                    )
-                    func_rule_def[part]["def_name"] = def_name
-                    func_rule_def[part]["def_args"] = def_args
-                    exec(def_code)
-                    logging.debug('Executed:\n"' + str(def_code) + '\n"')
-                functions[idx] = func_rule_def
-        args2col = {value: key for key, value in col2args.items()}
-        testcases = pd.DataFrame()
-
-        # testcase that satisfies all rules
-        problem = setup_problem(
-            args=col2args.values(),
-            solver=solver,
-            variable_range=variable_range,
-            all_different_constraint=all_different_constraint,
-        )
-        for idx in self.rules.index:
-            expression = self.rules.loc[idx, RULE_DEF]
-            for part in ["X", "Y"]:
-                if "def_name" in functions[idx][part].keys():
-                    def_name = functions[idx][part]["def_name"]
-                    def_args = functions[idx][part]["def_args"]
-                    logging.debug("Added constraint: " + str((def_name, def_args)))
-                    problem.addConstraint(eval(def_name), def_args)
-        solution = problem.getSolution()
-        if solution is not None:
-            testcases = pd.concat(
-                [
-                    testcases,
-                    pd.DataFrame(
-                        columns=["result"]
-                        + list(args2col[col] for col in solution.keys()),
-                        data=[["all satisfied"] + list(solution.values())],
-                    ),
-                ],
-                ignore_index=True,
-            )
-        else:
-            logging.error("No solution found that satisfy all rules")
-
-        # testcases that satisfy all but one rule
-        for idx2 in self.rules.index:
-            rule_id = self.rules.loc[idx2, RULE_ID]
-            problem = setup_problem(
-                args=col2args.values(),
-                solver=solver,
-                variable_range=variable_range,
-                all_different_constraint=all_different_constraint,
-            )
-            for idx in self.rules.index:
-                expression = self.rules.loc[idx, RULE_DEF]
-                parts = ["X", "Y" if idx != idx2 else "not_Y"]
-                for part in parts:
-                    if "def_name" in functions[idx][part].keys():
-                        def_name = functions[idx][part]["def_name"]
-                        def_args = functions[idx][part]["def_args"]
-                        logging.debug("Added constraint: " + str((def_name, def_args)))
-                        problem.addConstraint(eval(def_name), def_args)
-            solution = problem.getSolution()
-            if solution is not None:
-                testcases = pd.concat(
-                    [
-                        testcases,
-                        pd.DataFrame(
-                            columns=["result"]
-                            + list(args2col[col] for col in solution.keys()),
-                            data=[
-                                ["all satisfied, except " + str(rule_id)]
-                                + list(solution.values())
-                            ],
-                        ),
-                    ],
-                    ignore_index=True,
-                )
+            if len(expression) == 1 and len(expression[0]) == 1:
+                return res
             else:
-                logging.error(
-                    "No solution found that satisfy all rules except " + str(rule_id)
-                )
-
-        return testcases
+                return "(" + res + ")"
 
 
 def flatten_and_sort(expression: str = ""):
@@ -1602,9 +1760,7 @@ def flatten(expression):
     if isinstance(expression, str):
         return expression
     else:
-        res = ""
-        for item in expression:
-            res += flatten(item)
+        res = "".join([flatten(item) for item in expression])
         return "(" + res + ")"
 
 
