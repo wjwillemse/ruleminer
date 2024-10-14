@@ -953,7 +953,7 @@ class RuleMiner:
             + ".str.split("
             + separator
             + ").str["
-            + position
+            + position - 1
             + "])"
         )
         for i in expression[idx + 2 :]:
@@ -996,7 +996,11 @@ class RuleMiner:
                     # the content is a list comprehension
                     # and is evaluated here to a list
                     # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
-                    lc_expr = flatten(condition_tree[0][1]).replace('"', "'")
+                    lc_expr = self.reformulate(
+                        condition_tree[0][1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    ).replace('"', "'")
                     lc_iter = flatten(condition_tree[0][6])[1:-1]
                     lc_var = condition_tree[0][3]
                     lc_eval = eval(
@@ -1082,16 +1086,45 @@ class RuleMiner:
                     "}", "}.where(" + condition + ").isna()"
                 )
             else:
+
                 # the content of condition is a list of conditions
-                conditions = []
-                for condition_idx in range(1, len(condition_tree[0]), 2):
-                    conditions.append(
-                        self.reformulate(
-                            condition_tree[0][condition_idx],
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
+                if condition_tree[0][2] == "for":
+                    # the content is a list comprehension
+                    # and is evaluated here to a list
+                    # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
+                    lc_expr = self.reformulate(
+                        condition_tree[0][1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    ).replace('"', "'")
+                    lc_iter = flatten(condition_tree[0][6])[1:-1]
+                    lc_var = condition_tree[0][3]
+                    lc_eval = eval(
+                        (
+                            '["'
+                            + lc_expr.replace(
+                                lc_var,
+                                '"+str(' + lc_var + ')+"',
+                            )
+                            + '" for '
+                            + lc_var
+                            + " in ["
+                            + lc_iter
+                            + "]]"
                         )
                     )
+                    conditions = [s.replace("'", '"') for s in lc_eval]
+                else:
+                    # the content is a plain list
+                    conditions = []
+                    for condition_idx in range(1, len(condition_tree[0]), 2):
+                        conditions.append(
+                            self.reformulate(
+                                condition_tree[0][condition_idx],
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+                        )
                 # apply list of condition to each respective column
                 parts = countlist.split("}")
                 if len(parts) - 1 != len(conditions):
@@ -1105,7 +1138,7 @@ class RuleMiner:
                 countlist = (
                     "".join(
                         [
-                            item + "}.where(" + conditions[idx][1:-1] + ").isna()"
+                            item.replace("{", "~{") + "}.where(" + conditions[idx][1:-1] + ").isna()"
                             for idx, item in enumerate(parts[:-1])
                         ]
                     )
