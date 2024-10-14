@@ -1,0 +1,40 @@
+site_name: ruleminer
+site_url: https://ruleminer.readthedocs.io
+repo_name: ruleminer
+repo_url: https://github.com/wjwillemse/ruleminer
+
+theme: 
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+plugins:
+- mkdocstrings
+
+nav:
+  - Home: 'index.md'
+  - Installation: 'installation.md'
+  - Usage: 'usage.md'
+  - Contributing: 'contributing.md'
+  - History: 'history.md'
+  - API documentation: 'api_docs.md'
+
