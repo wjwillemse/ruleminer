@@ -98,3 +98,12 @@
 - Bug fix for tolerances in formulas like A - B - C
 - Added tests for these bug fixes
 
+### 0.2.0 (2024-10-14)
+
+- Converted docs to mkdocs and added ruff
+- Changed setup.py to pyproject.toml
+- Deleted (some) redundant parentheses in rule code
+- Restructured code to parse rule tree to rule code
+- Fixed incorrect parsing of negative numbers in rule expressions
+- Fixed issue when applying tolerance and decimal to comparisons with strings
+- Fixed issue with identifying empty strings in rule expressions
