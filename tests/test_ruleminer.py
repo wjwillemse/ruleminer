@@ -305,7 +305,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if(({"Type"})==("life_insurer"))then(({"TP-life"})>0)',
+                    'if(({"Type"})=="life_insurer")then(({"TP-life"})>(0))',
                     "",
                     5,
                     0,
@@ -315,7 +315,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     1,
                     0,
-                    'if(({"Type"})==("non-life_insurer"))then(({"TP-nonlife"})>0)',
+                    'if(({"Type"})=="non-life_insurer")then(({"TP-nonlife"})>(0))',
                     "",
                     4,
                     1,
@@ -470,8 +470,8 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum(([{"Assets"}.where((({"Type"})==("life_insurer"))),\
-{"Own_funds"}.where((({"Type"})==("life_insurer")))]), axis=0)>0)',
+                    'if () then (sum(([{"Assets"}.where((({"Type"})=="life_insurer")),\
+{"Own_funds"}.where((({"Type"})=="life_insurer"))]), axis=0)>0)',
                     "",
                     5,
                     5,
@@ -716,7 +716,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then ((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))>=0)'
+        expected = 'if () then ((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))>=(0))'
         self.assertTrue(actual == expected)
 
     def test_42(self):
@@ -735,7 +735,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))-(({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",)))))-(({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))))) >= 0) & ((((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",)))))-(({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",)))))-(({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))))) <= 0))'
+        expected = 'if () then (((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))-(({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",)))))-(({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))))) >= (0)) & ((((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",)))))-(({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",)))))-(({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))))) <= (0)))'
         self.assertTrue(actual == expected)
 
     def test_43(self):
@@ -754,7 +754,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))-((({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",)))))))) >= 0) & ((((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",)))))-((({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",)))))))) <= 0))'
+        expected = 'if () then (((((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",)))))-((({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",)))))))) >= (0)) & ((((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",)))))-((({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",)))))))) <= (0)))'
         self.assertTrue(actual == expected)
 
     def test_44(self):

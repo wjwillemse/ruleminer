@@ -2,7 +2,6 @@
 
 __author__ = """Willem Jan Willemse"""
 __email__ = "w.j.willemse@dnb.nl"
-__version__ = "0.1.30"
 
 from .ruleminer import (
     rule_expression,

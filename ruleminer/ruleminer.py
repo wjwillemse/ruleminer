@@ -1238,9 +1238,9 @@ class RuleMiner:
                 '
         """
         if "tolerance" in self.params.keys() and (
-            not (is_string(expression[idx - 1]) and len(expression[:idx]) == 1)
-            and (
-                not (is_string(expression[idx + 1]) and len(expression[idx + 1 :]) == 1)
+            not (
+                contains_string(expression[:idx])
+                or contains_string(expression[idx + 1 :])
             )
         ):
             left_side_pos = self.reformulate(
@@ -1542,14 +1542,8 @@ class RuleMiner:
                     and (item in ["=="])
                     and (
                         not (
-                            is_string(expression[idx - 1])
-                            and len(expression[:idx]) == 1
-                        )
-                        and (
-                            not (
-                                is_string(expression[idx + 1])
-                                and len(expression[idx + 1 :]) == 1
-                            )
+                            contains_string(expression[:idx])
+                            or contains_string(expression[idx + 1 :])
                         )
                     )
                 ):
@@ -1639,7 +1633,10 @@ class RuleMiner:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            if len(expression) == 1 and len(expression[0]) == 1:
+            if len(expression) == 1 and (
+                    is_string(expression[0]
+                )
+            ):
                 return res
             else:
                 return "(" + res + ")"
@@ -1820,3 +1817,32 @@ def is_string(s):
     return len(s) > 1 and (
         (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
     )
+
+
+def contains_string(expression: Union[str, list]):
+    """
+    Check if a given expression contains a string
+
+    Args:
+        s (str, list): The expression or string to be checked.
+
+    Returns:
+        bool: True if the string is enclosed in quotes, False otherwise.
+
+    Example:
+        contains_string('"A"')
+            True
+
+        contains_string('{"A"}')
+            False
+
+        contains_string(['{"A"}', '"0"'])
+            True
+    """
+    if isinstance(expression, str):
+        return is_string(expression)
+    else:
+        for item in expression:
+            if contains_string(item):
+                return True
+        return False
