@@ -107,3 +107,9 @@
 - Fixed incorrect parsing of negative numbers in rule expressions
 - Fixed issue when applying tolerance and decimal to comparisons with strings
 - Fixed issue with identifying empty strings in rule expressions
+
+### 0.2.1 (2024-10-14)
+
+- Added list comprehension for countif
+- Fixed issue with evaluating first part of list comprehension
+- Second parameter of split starts at 1
