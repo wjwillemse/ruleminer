@@ -230,8 +230,7 @@ class RuleMiner:
             )
         except Exception as e:
             logger.error("Parsing error in " + repr(template_expression))
-            if logging.root.level == logging.DEBUG:
-                logger.debug("Parsing error message: " + repr(e))
+            logger.debug("Parsing error message: " + repr(e))
             return None
 
         reformulated_expression = self.reformulate(parsed)[1:-1]
@@ -305,8 +304,7 @@ class RuleMiner:
             parsed, if_part, then_part = self.split_rule(expression=template_expression)
         except Exception as e:
             logger.error("Parsing error in expression " + repr(template_expression))
-            if logging.root.level == logging.DEBUG:
-                logger.debug("Parsing error message: " + repr(e))
+            logger.debug("Parsing error message: " + repr(e))
             return None
 
         sorted_expressions = {}
@@ -390,21 +388,20 @@ class RuleMiner:
                         rule_metrics = calculate_metrics(
                             len_results=len_results, metrics=self.metrics
                         )
-                        if logging.root.level == logging.DEBUG:
-                            logger.debug(
-                                "Rule code: \n"
-                                + str(
-                                    "\n".join(
-                                        [key + ": " + s for key, s in rule_code.items()]
-                                    )
+                        logger.debug(
+                            "Rule code: \n"
+                            + str(
+                                "\n".join(
+                                    [key + ": " + s for key, s in rule_code.items()]
                                 )
                             )
-                            logger.debug(
-                                "Candidate expression "
-                                + reformulated_expression
-                                + " has rule metrics "
-                                + str(rule_metrics)
-                            )
+                        )
+                        logger.debug(
+                            "Candidate expression "
+                            + reformulated_expression
+                            + " has rule metrics "
+                            + str(rule_metrics)
+                        )
                         if self.apply_filter(metrics=rule_metrics):
                             self.add_rule(
                                 rule_id=len(self.rules.index),
@@ -733,13 +730,12 @@ class RuleMiner:
             try:
                 variables[key] = eval(expressions[key], dict_values, encodings)
             except Exception as e:
-                if logging.root.level == logging.DEBUG:
-                    logger.debug(
-                        "Error evaluating the code '"
-                        + expressions[key]
-                        + "': "
-                        + repr(e)
-                    )
+                logger.debug(
+                    "Error evaluating the code '"
+                    + expressions[key]
+                    + "': "
+                    + repr(e)
+                )
                 variables[key] = np.nan
         return variables
 
