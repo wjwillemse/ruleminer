@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "ruleminer"
+version = "0.2.0"
+description = "Python package to mine association rules in datasets"
+authors = ["Willem Jan Willemse <w.j.willemse@freedom.nl>"]
+license = "MIT/X"
+readme = "README.md"
+keywords = ["association rules", "pandas"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+homepage = "https://github.com/DeNederlandscheBank/ruleminer"
+documentation = "https://ruleminer.readthedocs.io/en/latest/"
+repository = "https://github.com/DeNederlandscheBank/ruleminer"
+
+[tool.poetry.dependencies]
+python = ">=3.9, <3.13"
+pyparsing = ">=3.0.0"
+scikit-learn = "*"
+numpy = "*"
+pandas = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dev-dependencies]
+ruff = "^0.6.9"
+pre-commit = "^4.0.1"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.5.39"
+mkdocstrings-python = "^1.11.1"
+
+[tool.setuptools_scm]
