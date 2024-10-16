@@ -731,10 +731,7 @@ class RuleMiner:
                 variables[key] = eval(expressions[key], dict_values, encodings)
             except Exception as e:
                 logger.debug(
-                    "Error evaluating the code '"
-                    + expressions[key]
-                    + "': "
-                    + repr(e)
+                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
                 )
                 variables[key] = np.nan
         return variables
@@ -941,8 +938,30 @@ class RuleMiner:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
-        # process split function
+        """
+        Process split function
+
+        Example:
+            expression = ['SPLIT', ['{"C"}', ',', '"C"', ',', '2'], 'IN', [['"D"']]]
+
+            result = ruleminer.RuleMiner().reformulate_substr(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                (({"C"}.str.slice("C",2)).isin("D"))
+                '
+        """
         string, _, separator, _, position = expression[idx + 1]
+        if not position.isdigit():
+            logging.error(
+                "Third parameter of split function is not a digit, taking first position"
+            )
+            position = 0
+        else:
+            position = str(int(position) - 1)
         res = (
             "("
             + self.reformulate(
@@ -953,7 +972,7 @@ class RuleMiner:
             + ".str.split("
             + separator
             + ").str["
-            + position - 1
+            + position
             + "])"
         )
         for i in expression[idx + 2 :]:
@@ -1086,7 +1105,6 @@ class RuleMiner:
                     "}", "}.where(" + condition + ").isna()"
                 )
             else:
-
                 # the content of condition is a list of conditions
                 if condition_tree[0][2] == "for":
                     # the content is a list comprehension
@@ -1138,7 +1156,10 @@ class RuleMiner:
                 countlist = (
                     "".join(
                         [
-                            item.replace("{", "~{") + "}.where(" + conditions[idx][1:-1] + ").isna()"
+                            item.replace("{", "~{")
+                            + "}.where("
+                            + conditions[idx][1:-1]
+                            + ").isna()"
                             for idx, item in enumerate(parts[:-1])
                         ]
                     )
@@ -1662,10 +1683,7 @@ class RuleMiner:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            if len(expression) == 1 and (
-                    is_string(expression[0]
-                )
-            ):
+            if len(expression) == 1 and (is_string(expression[0])):
                 return res
             else:
                 return "(" + res + ")"
