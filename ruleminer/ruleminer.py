@@ -731,10 +731,7 @@ class RuleMiner:
                 variables[key] = eval(expressions[key], dict_values, encodings)
             except Exception as e:
                 logger.debug(
-                    "Error evaluating the code '"
-                    + expressions[key]
-                    + "': "
-                    + repr(e)
+                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
                 )
                 variables[key] = np.nan
         return variables
@@ -941,8 +938,30 @@ class RuleMiner:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
-        # process split function
+        """
+        Process split function
+
+        Example:
+            expression = ['SPLIT', ['{"C"}', ',', '"C"', ',', '2'], 'IN', [['"D"']]]
+
+            result = ruleminer.RuleMiner().reformulate_substr(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                (({"C"}.str.slice("C",2)).isin("D"))
+                '
+        """
         string, _, separator, _, position = expression[idx + 1]
+        if not position.isdigit():
+            logging.error(
+                "Third parameter of split function is not a digit, taking first position"
+            )
+            position = "0"
+        else:
+            position = str(int(position) - 1)
         res = (
             "("
             + self.reformulate(
@@ -953,7 +972,7 @@ class RuleMiner:
             + ".str.split("
             + separator
             + ").str["
-            + position - 1
+            + position
             + "])"
         )
         for i in expression[idx + 2 :]:
@@ -973,9 +992,11 @@ class RuleMiner:
         positive_tolerance: bool = True,
     ) -> str:
         # process sum and sumif functions
+        # do not apply tolerance on the list of datapoints
+        # because we use list comprehension below
         sumlist = self.reformulate(
             expression[idx + 1][0],
-            apply_tolerance=apply_tolerance,
+            apply_tolerance=False,
             positive_tolerance=positive_tolerance,
         )
         # if it is a sumif then parse the condition(s)
@@ -998,7 +1019,7 @@ class RuleMiner:
                     # condition with var: 1, for: 2, var: 3, in: 4, iter: 6
                     lc_expr = self.reformulate(
                         condition_tree[0][1],
-                        apply_tolerance=apply_tolerance,
+                        apply_tolerance=False,
                         positive_tolerance=positive_tolerance,
                     ).replace('"', "'")
                     lc_iter = flatten(condition_tree[0][6])[1:-1]
@@ -1025,7 +1046,7 @@ class RuleMiner:
                         conditions.append(
                             self.reformulate(
                                 condition_tree[0][condition_idx],
-                                apply_tolerance=apply_tolerance,
+                                apply_tolerance=False,
                                 positive_tolerance=positive_tolerance,
                             )
                         )
@@ -1048,7 +1069,13 @@ class RuleMiner:
                     )
                     + parts[-1]
                 )
-        res = "sum(" + sumlist + ", axis=0)"
+        # add tolerance to list comprehension variable
+        var_k = self.reformulate_string(
+            expression="K",
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        res = "sum(" + "["+var_k+" for K in " + sumlist[1:-1] + "]" + ", axis=0)"
         for i in expression[idx + 2 :]:
             res += self.reformulate(
                 i,
@@ -1066,9 +1093,11 @@ class RuleMiner:
         positive_tolerance: bool = True,
     ) -> str:
         # process count and countif functions
+        # do not apply tolerance on the list of datapoints
+        # because we use list comprehension below
         countlist = self.reformulate(
             expression[idx + 1][0],
-            apply_tolerance=apply_tolerance,
+            apply_tolerance=False,
             positive_tolerance=positive_tolerance,
         )
         # if it is a countif then parse the condition(s)
@@ -1086,7 +1115,6 @@ class RuleMiner:
                     "}", "}.where(" + condition + ").isna()"
                 )
             else:
-
                 # the content of condition is a list of conditions
                 if condition_tree[0][2] == "for":
                     # the content is a list comprehension
@@ -1138,13 +1166,22 @@ class RuleMiner:
                 countlist = (
                     "".join(
                         [
-                            item.replace("{", "~{") + "}.where(" + conditions[idx][1:-1] + ").isna()"
+                            item.replace("{", "~{")
+                            + "}.where("
+                            + conditions[idx][1:-1]
+                            + ").isna()"
                             for idx, item in enumerate(parts[:-1])
                         ]
                     )
                     + parts[-1]
                 )
-        res = "sum(" + countlist + ", axis=0)"
+        # add tolerance to list comprehension variable
+        var_k = self.reformulate_string(
+            expression="K",
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        res = "sum(" + "["+var_k+" for K in " + countlist[1:-1] + "]" + ", axis=0)"
         for i in expression[idx + 2 :]:
             res += self.reformulate(
                 i,
@@ -1447,7 +1484,7 @@ class RuleMiner:
                 '({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))'
 
         """
-        if is_column(expression) and apply_tolerance:
+        if (is_column(expression) or expression == "K") and apply_tolerance:
             # process tolerance on column
             args = ""
             for key, tol in self.tolerance.items():
@@ -1662,10 +1699,7 @@ class RuleMiner:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            if len(expression) == 1 and (
-                    is_string(expression[0]
-                )
-            ):
+            if len(expression) == 1 and (is_string(expression[0])):
                 return res
             else:
                 return "(" + res + ")"
@@ -1871,7 +1905,9 @@ def contains_string(expression: Union[str, list]):
     if isinstance(expression, str):
         return is_string(expression)
     else:
-        for item in expression:
+        for idx, item in enumerate(expression):
+            if item in ["SUMIF", "COUNTIF"]:
+                return contains_string(expression[idx+1][0])
             if contains_string(item):
                 return True
         return False
