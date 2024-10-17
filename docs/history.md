@@ -113,3 +113,7 @@
 - Added list comprehension for countif
 - Fixed issue with evaluating first part of list comprehension
 - Second parameter of split starts at 1
+
+### 0.2.2 (2024-10-17)
+
+- Fix for sum, sumif, count and countif with list comprehensions
