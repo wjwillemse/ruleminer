@@ -959,7 +959,7 @@ class RuleMiner:
             logging.error(
                 "Third parameter of split function is not a digit, taking first position"
             )
-            position = 0
+            position = "0"
         else:
             position = str(int(position) - 1)
         res = (
@@ -1067,7 +1067,7 @@ class RuleMiner:
                     )
                     + parts[-1]
                 )
-        res = "sum(" + sumlist + ", axis=0)"
+        res = "sum(" + "[K for K in " + sumlist[1:-1] + "]" + ", axis=0)"
         for i in expression[idx + 2 :]:
             res += self.reformulate(
                 i,
@@ -1165,7 +1165,7 @@ class RuleMiner:
                     )
                     + parts[-1]
                 )
-        res = "sum(" + countlist + ", axis=0)"
+        res = "sum(" + "[K for K in " + countlist[1:-1] + "]" + ", axis=0)"
         for i in expression[idx + 2 :]:
             res += self.reformulate(
                 i,
