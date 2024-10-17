@@ -1110,6 +1110,106 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
 
+    def test_51(self):
+        # Specify tolerance input parameters for ruleminer
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, 1e3): 0,  # 1,
+                    (1e3, 1e6): 0,  # 2,
+                    (1e6, 1e8): 0,  # 3,
+                    (1e8, np.inf): 0,  # 4,
+                },
+            },
+        }
+        formulas = [
+            '((SUM([{"A"}, {"B"}])) == 0)',
+        ]
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.25, 1.0, "ABCD", "ABCD"],
+                ["Test_2", 1.0, 1.0, "", "ABCD"],
+                ["Test_3", 0.0, 0.0, "ABCD", "EFGH"],
+            ],
+            columns=["Name", "A", "B", "C", "D"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        self.assertTrue(
+            r.rules.values[0][2],
+            'if () then ((((sum([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) >= (0)) & (((sum([(K-0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) <= (0)))'
+        )
+        r.evaluate()
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", False],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_52(self):
+        # Specify tolerance input parameters for ruleminer
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, 1e3): 0,  # 1,
+                    (1e3, 1e6): 0,  # 2,
+                    (1e6, 1e8): 0,  # 3,
+                    (1e8, np.inf): 0,  # 4,
+                },
+            },
+        }
+        formulas = [
+            '((SUMIF([{"A"}, {"B"}], [SUBSTR(K, 2, 4) IN ["CD"] for K IN [{"C"}, {"D"}]])) == 0)',
+        ]
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.25, 1.0, "ABCD", "ABCD"],
+                ["Test_2", 1.0, 1.0, "", "ABCD"],
+                ["Test_3", 0.0, 0.0, "ABCD", "EFGH"],
+            ],
+            columns=["Name", "A", "B", "C", "D"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        self.assertTrue(
+            r.rules.values[0][2],
+            'if () then ((((sum([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) >= (0)) & (((sum([(K-0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) <= (0)))'
+        )
+        r.evaluate()
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", False],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+
+
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""
     #     templates = ["template"]
