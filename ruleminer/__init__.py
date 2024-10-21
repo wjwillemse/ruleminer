@@ -17,6 +17,7 @@ from .ruleminer import (
     ENCODINGS,
 )
 from .parser import (
+    condition_expression,
     math_expression,
     function_expression,
     _quoted_string,
