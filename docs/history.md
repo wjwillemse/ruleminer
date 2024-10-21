@@ -117,3 +117,9 @@
 ### 0.2.2 (2024-10-17)
 
 - Fix for sum, sumif, count and countif with list comprehensions
+
+### 0.2.3 (2024-20-21)
+
+- Use zip for sumif and countif so list comprehensions need not to be evaluated 
+- Suppressed brackets in parser and changed code accordingly
+- Some refactoring for readability
