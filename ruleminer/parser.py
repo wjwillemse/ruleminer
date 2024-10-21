@@ -7,8 +7,9 @@ from typing import Dict
 from .const import DUNDER_DF
 
 _lpar, _rpar = map(pyparsing.Suppress, "()")
-_lbra = pyparsing.Literal("[")
-_rbra = pyparsing.Literal("]")
+_lbra, _rbra = map(pyparsing.Suppress, "[]")
+# _sep = pyparsing.Suppress(",")
+_sep = pyparsing.Literal(",")
 _number = pyparsing.Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
 _function = pyparsing.one_of(
     "min \
@@ -37,7 +38,6 @@ _in = pyparsing.one_of("in", "IN")
 _empty = pyparsing.one_of(["None", '""', "pd.NA", "np.nan"])
 _list_comprehension_var = pyparsing.Word(pyparsing.alphas)
 _quote = pyparsing.Literal('"')
-_sep = pyparsing.Literal(",")
 _string = (
     pyparsing.srange(r"[a-zA-Z0-9_.,:;<>*=+-/?|@#$%^&\[\]{}\(\)\\']")
     + " "
@@ -101,7 +101,7 @@ def function_expression():
     )
     param_condition_list_comprehension = pyparsing.Group(
         _lbra
-        + pyparsing.Group(param_condition)
+        + pyparsing.Group(param_condition | param_element)
         + _for
         + _list_comprehension_var
         + _in
@@ -119,7 +119,7 @@ def function_expression():
         | param_element
     )
     params <<= param + (_sep + param)[...]
-    expr <<= _function + pyparsing.Group(_lpar + params + _rpar)
+    expr <<= pyparsing.Group(_function + pyparsing.Group(_lpar + params + _rpar))
     return expr
 
 
@@ -159,24 +159,24 @@ def math_expression(base: pyparsing.core.Forward = None):
     return expr
 
 
-def rule_expression():
+def condition_expression(base: pyparsing.core.Forward = None):
     """
-    Define a ruleminer rule expression
+    Define a ruleminer condition expression
 
-    This function defines a ruleminer rule expression. It uses pyparsing to define
-    the syntax for conditions and rule syntax
+    This function defines a ruleminer condition expression. It uses pyparsing to define
+    the syntax for conditions and condition syntax
 
     Args:
         None
 
     Returns:
-        pyparsing.core.Forward: a ruleminer rule expression
+        pyparsing.core.Forward: a ruleminer condition expression
 
     Example:
-        >>> expression = 'if ({"A"} > 0) then ({"B"} < 0)'
-        >>> result = ruleminer.rule_expression().parse_string(expression)
+        >>> expression = '({"A"} > 0)'
+        >>> result = ruleminer.condition_expression().parse_string(expression)
         >>> print(result)
-        ['if', ['{"A"}', '>', '0'], 'then', ['{"B"}', '<', '0']]
+        [['{"A"}', '>', '0']]
     """
     condition_item = (
         math_expression(function_expression())
@@ -204,11 +204,42 @@ def rule_expression():
             ),
         ],
     )
+    return condition
+
+
+def rule_expression():
+    """
+    Define a ruleminer rule expression
+
+    This function defines a ruleminer rule expression. It uses pyparsing to define
+    the syntax for conditions and rule syntax
+
+    Args:
+        None
+
+    Returns:
+        pyparsing.core.Forward: a ruleminer rule expression
+
+    Example:
+        >>> expression = 'if ({"A"} > 0) then ({"B"} < 0)'
+        >>> result = ruleminer.rule_expression().parse_string(expression)
+        >>> print(result)
+        ['if', ['{"A"}', '>', '0'], 'then', ['{"B"}', '<', '0']]
+    """
+
+    if_expr = pyparsing.Forward()
+    if_condition = condition_expression(if_expr)
+    then_expr = pyparsing.Forward()
+    then_condition = condition_expression(then_expr)
     if_then = (
-        "if" + condition + "then" + condition | "IF" + condition + "THEN" + condition
+        "if" + if_condition + "then" + then_condition
+        | "IF" + if_condition + "THEN" + then_condition
     )
     rule_syntax = (
-        if_then | "if () then " + condition | "IF () THEN " + condition | condition
+        if_then
+        | "if () then " + then_condition
+        | "IF () THEN " + then_condition
+        | then_condition
     )
     return rule_syntax
 
