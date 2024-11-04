@@ -267,6 +267,13 @@ params = {
     }
 }
 ```
+### Rule results
+
+Add the following parameters to the parameter dictionary to specify the output:
+
+* 'output_confirmations': a boolean to specify whether the indices of the data that satisfy a rule should be returned (default=True)
+* 'output_exceptions': a boolean to specify whether the indicesof the data that do not satisfy a rule should be returned (default=True)
+* 'output_not_applicable': a boolean to specify whether the indices of the data to which a rule does not apply (i.e. where the antecedent is not true) should be returned (default=False)
 
 ## Evaluating results within rules
 
