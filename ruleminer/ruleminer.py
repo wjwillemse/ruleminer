@@ -18,7 +18,7 @@ try:
 
     logging.debug("polars imported")
 except Exception:
-    pass
+    import pandas as pl
 
 from .parser import (
     rule_expression,
@@ -201,19 +201,36 @@ class RuleMiner:
                 results[VAR_X_AND_NOT_Y],
             )
         if self.results is None:
-            self.results = pd.DataFrame(
-                columns=[
-                    RULE_ID,
-                    RULE_GROUP,
-                    RULE_DEF,
-                    RULE_STATUS,
-                    ABSOLUTE_SUPPORT,
-                    ABSOLUTE_EXCEPTIONS,
-                    CONFIDENCE,
-                    RESULT,
-                    INDICES,
-                ]
-            )
+            if self.results_datatype == pd.DataFrame:
+                self.results = pd.DataFrame(
+                    columns=[
+                        RULE_ID,
+                        RULE_GROUP,
+                        RULE_DEF,
+                        RULE_STATUS,
+                        ABSOLUTE_SUPPORT,
+                        ABSOLUTE_EXCEPTIONS,
+                        CONFIDENCE,
+                        RESULT,
+                        INDICES,
+                    ]
+                )
+            elif self.results_datatype == pl.DataFrame:
+                data = OrderedDict(
+                    {
+                        RULE_ID: [],
+                        RULE_GROUP: [],
+                        RULE_DEF: [],
+                        RULE_STATUS: [],
+                        ABSOLUTE_SUPPORT: [],
+                        ABSOLUTE_EXCEPTIONS: [],
+                        CONFIDENCE: [],
+                        RESULT: [],
+                        INDICES: [],
+                    }
+                )
+                self.results = pl.DataFrame(data)
+
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
             del self.data[str(self.data.index.names[level])]
@@ -289,11 +306,26 @@ class RuleMiner:
             encodings=encodings,
         )
         if self.rules is None:
-            self.rules = pd.DataFrame(
-                columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
-                + self.metrics
-                + [ENCODINGS]
-            )
+            if self.results_datatype == pd.DataFrame:
+                self.rules = pd.DataFrame(
+                    columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
+                    + self.metrics
+                    + [ENCODINGS]
+                )
+            elif self.results_datatype == pl.DataFrame:
+                data = OrderedDict(
+                    {
+                        **{
+                            RULE_ID: [],
+                            RULE_GROUP: [],
+                            RULE_DEF: [],
+                            RULE_STATUS: [],
+                        },
+                        **{metric: [] for metric in self.metrics},
+                        **{ENCODINGS: []},
+                    }
+                )
+                self.rules = pl.DataFrame(data)
 
     def generate_rules(self, template: dict) -> None:
         """
@@ -466,11 +498,27 @@ class RuleMiner:
                                 encodings=encodings,
                             )
         if self.rules is None:
-            self.rules = pd.DataFrame(
-                columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
-                + self.metrics
-                + [ENCODINGS]
-            )
+            if self.rules_datatype == pd.DataFrame:
+                self.rules = pd.DataFrame(
+                    columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
+                    + self.metrics
+                    + [ENCODINGS]
+                )
+            elif self.rules_datatype == pl.DataFrame:
+                data = OrderedDict(
+                    {
+                        **{
+                            RULE_ID: [],
+                            RULE_GROUP: [],
+                            RULE_DEF: [],
+                            RULE_STATUS: [],
+                        },
+                        **{metric: [] for metric in self.metrics},
+                        **{ENCODINGS: []},
+                    }
+                )
+                self.rules = pl.DataFrame(data)
+
         # remove temporarily added index columns
         if self.data is not None:
             for level in range(len(self.data.index.names)):
@@ -921,17 +969,19 @@ class RuleMiner:
             )
         if self.params.get("output_confirmations", True):
             if nco > 0:
-                data = {
-                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nco,
-                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nco,
-                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nco,
-                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nco,
-                    ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nco,
-                    ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nco,
-                    CONFIDENCE: [rule_metrics[CONFIDENCE]] * nco,
-                    RESULT: [True] * nco,
-                    INDICES: co_indices,
-                }
+                data = OrderedDict(
+                    {
+                        RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nco,
+                        RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nco,
+                        RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nco,
+                        RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nco,
+                        ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nco,
+                        ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nco,
+                        CONFIDENCE: [rule_metrics[CONFIDENCE]] * nco,
+                        RESULT: [True] * nco,
+                        INDICES: co_indices,
+                    }
+                )
                 df_data = self.generate_results_dataframe(data=data)
                 if self.results is None:
                     self.results = df_data
@@ -947,17 +997,19 @@ class RuleMiner:
 
         if self.params.get("output_exceptions", True):
             if nex > 0:
-                data = {
-                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nex,
-                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nex,
-                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nex,
-                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nex,
-                    ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nex,
-                    ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nex,
-                    CONFIDENCE: [rule_metrics[CONFIDENCE]] * nex,
-                    RESULT: [False] * nex,
-                    INDICES: ex_indices,
-                }
+                data = OrderedDict(
+                    {
+                        RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nex,
+                        RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nex,
+                        RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nex,
+                        RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nex,
+                        ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nex,
+                        ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nex,
+                        CONFIDENCE: [rule_metrics[CONFIDENCE]] * nex,
+                        RESULT: [False] * nex,
+                        INDICES: ex_indices,
+                    }
+                )
                 df_data = self.generate_results_dataframe(data=data)
                 if self.results is None:
                     self.results = df_data
@@ -975,17 +1027,19 @@ class RuleMiner:
             n_indices = [i for i in self.data.index if i not in indices]
             n = len(n_indices)
             if n > 0:
-                data = {
-                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * n,
-                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * n,
-                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * n,
-                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * n,
-                    ABSOLUTE_SUPPORT: [None] * n,
-                    ABSOLUTE_EXCEPTIONS: [None] * n,
-                    CONFIDENCE: [None] * n,
-                    RESULT: [None] * n,
-                    INDICES: [None] * n,
-                }
+                data = OrderedDict(
+                    {
+                        RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * n,
+                        RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * n,
+                        RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * n,
+                        RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * n,
+                        ABSOLUTE_SUPPORT: [None] * n,
+                        ABSOLUTE_EXCEPTIONS: [None] * n,
+                        CONFIDENCE: [None] * n,
+                        RESULT: [None] * n,
+                        INDICES: [None] * n,
+                    }
+                )
                 df_data = self.generate_results_dataframe(data=data)
                 if self.results is None:
                     self.results = df_data
