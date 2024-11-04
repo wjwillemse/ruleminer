@@ -123,3 +123,11 @@
 - Use zip for sumif and countif so list comprehensions need not to be evaluated 
 - Suppressed brackets in parser and changed code accordingly
 - Some refactoring for readability
+
+### 0.2.4 (2024-23-10)
+
+- Added parameters 'output_confirmations', 'output_exceptions', 'output_not_applicable' to specify which results to return
+- Fixed issue with parenthesis in combination with max, min and abs functions
+- Added parameters 'rules_datatype' and 'results_datatype' for output in pandas or polars dataframes
+- Separated pandas parser code from general parser.py
+- Moved tolerance code to pandas parsing instead including it in rule definition
