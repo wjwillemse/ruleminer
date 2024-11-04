@@ -32,6 +32,7 @@ from .utils import (
 __all__ = [
     RuleMiner,
     rule_expression,
+    condition_expression,
     flatten_and_sort,
     RULE_ID,
     RULE_GROUP,
