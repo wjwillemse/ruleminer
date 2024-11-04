@@ -185,7 +185,8 @@ class TestRuleminer(unittest.TestCase):
         actual = (
             ruleminer.rule_expression()
             .parse_string(
-                'if (0 > min({"C"},{"B"})) then (1 == sum({"A"},{"B"}))', parse_all=True
+                'if (0 > min({"C"}, {"B"})) then (1 == sum({"A"}, {"B"}))',
+                parse_all=True,
             )
             .as_list()
         )
@@ -419,7 +420,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then ({"Own_funds"}<=quantile({"Own_funds"},0.95))',
+                    'if () then ({"Own_funds"}<=quantile({"Own_funds"}, 0.95))',
                     "",
                     9,
                     1,
@@ -477,7 +478,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer")),{"Own_funds"}.where(({"Type"}=="life_insurer"))]], axis=0)>0)',
+                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer")), {"Own_funds"}.where(({"Type"}=="life_insurer"))]], axis=0)>0)',
                     "",
                     5,
                     5,
@@ -535,7 +536,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([v.where(c) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"},{"Type"}]])], axis=0)>0)',
+                    'if () then (sum([v.where(c) for (v,c) in zip([K for K in [{"Assets"}, {"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"}, {"Type"}]])], axis=0)>0)',
                     "",
                     5,
                     5,
@@ -588,7 +589,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0)>0)',
+                    'if () then (sum([K for K in [{"Assets"}, {"Own_funds"}]], axis=0)>0)',
                     "",
                     10,
                     0,
@@ -788,9 +789,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = (
-            'if () then (({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))>=0)'
-        )
+        expected = 'if () then ({"1" + default}>=0)'
         self.assertTrue(actual == expected)
 
     def test_42(self):
@@ -809,7 +808,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))) >= 0) & ((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))-({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))) <= 0))'
+        expected = 'if () then ((({"1" + default}-{"2" - default}-{"3" - default}) >= 0) & (({"1" - default}-{"2" + default}-{"3" + default}) <= 0))'
         self.assertTrue(actual == expected)
 
     def test_43(self):
@@ -828,7 +827,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((({"1"}+0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}-0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}-0.5*abs({"3"}.apply(__tol__, args=("default",))))) >= 0) & ((({"1"}-0.5*abs({"1"}.apply(__tol__, args=("default",))))-({"2"}+0.5*abs({"2"}.apply(__tol__, args=("default",))))+({"3"}+0.5*abs({"3"}.apply(__tol__, args=("default",))))) <= 0))'
+        expected = 'if () then ((({"1" + default}-{"2" - default}+{"3" - default}) >= 0) & (({"1" - default}-{"2" + default}+{"3" + default}) <= 0))'
         self.assertTrue(actual == expected)
 
     def test_44(self):
@@ -850,7 +849,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas], params=parameters
         )
         actual = r.rules.values[0][2]
-        expected = 'if () then ((({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",)))) >= ({"B"}-0.5*abs({"B"}.apply(__tol__, args=("default",))))*0.25) & (({"A"}-0.5*abs({"A"}.apply(__tol__, args=("default",)))) <= ({"B"}+0.5*abs({"B"}.apply(__tol__, args=("default",))))*0.25))'
+        expected = 'if () then (({"A" + default} >= {"B" - default}*0.25) & ({"A" - default} <= {"B" + default}*0.25))'
         self.assertTrue(actual == expected)
 
     def test_45(self):
@@ -1062,9 +1061,9 @@ class TestRuleminer(unittest.TestCase):
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
-            r.rules.values[0][2] ==
-            'if () then (sum([v.where(c) for (v,c) in zip([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0)>1.0)'
-         )
+            r.rules.values[0][2]
+            == 'if () then (sum([v.where(c) for (v,c) in zip([K for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0)>1.0)'
+        )
         r.evaluate()
         actual = (
             r.results.sort_values(by=["indices"], ignore_index=True)
@@ -1157,7 +1156,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2],
-            'if () then ((((sum([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) >= 0) & (((sum([(K-0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"},{"B"}]], axis=0))) <= 0))',
+            'if () then ((((sum([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) >= 0) & (((sum([(K-0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) <= 0))',
         )
         r.evaluate()
         actual = (
@@ -1206,7 +1205,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2],
-            'if () then ((((sum([v.where(c) for (v,c) in zip([K for K in ([{"A"},{"B"}])],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0))))==0)',
+            'if () then ((((sum([v.where(c) for (v,c) in zip([K for K in ([{"A"}, {"B"}])],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0))))==0)',
         )
         r.evaluate()
         actual = (
@@ -1224,6 +1223,115 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_53(self):
+        formulas = [
+            '(MAX(0, {"A"}) > 0)',
+            '(MAX(0, ({"A"})) > 0)',
+            '((MAX(0, ({"A"}))) > (0))',
+            '(MAX(0, {"A"} - {"B"}) > 0)',
+            '(MAX(0, ({"A"}- {"B"})) > 0)',
+            '((MAX(0, ({"A"}- {"B"}))) > (0))',
+            '(MAX(0, ({"A"}) - {"B"}) > 0)',
+            '((MAX(0, (({"A"})- {"B"}))) > (0))',
+            '({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))',
+        ]
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params={},
+        )
+        self.assertTrue(r.rules.values[0][2] == 'if () then (MAX(0, {"A"})>0)')
+        self.assertTrue(r.rules.values[1][2] == 'if () then (MAX(0, {"A"})>0)')
+        self.assertTrue(r.rules.values[2][2] == 'if () then (MAX(0, {"A"})>0)')
+        self.assertTrue(r.rules.values[3][2] == 'if () then (MAX(0, {"A"}-{"B"})>0)')
+        self.assertTrue(r.rules.values[4][2] == 'if () then (MAX(0, ({"A"}-{"B"}))>0)')
+        self.assertTrue(r.rules.values[5][2] == 'if () then (MAX(0, ({"A"}-{"B"}))>0)')
+        self.assertTrue(r.rules.values[6][2] == 'if () then (MAX(0, {"A"}-{"B"})>0)')
+        self.assertTrue(r.rules.values[7][2] == 'if () then (MAX(0, ({"A"}-{"B"}))>0)')
+        self.assertTrue(r.rules.values[8][2] == 'if () then ({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))')
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.5, 1.0],
+                ["Test_2", 1.0, 0.5],
+                ["Test_3", 0.0, 0.0],
+            ],
+            columns=["Name", "A", "B"],
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df)
+        r.evaluate()
+        actual = list(
+            r.results.sort_values(by=["rule_id", "indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                [
+                    "rule_id",
+                    "rule_group",
+                    "rule_definition",
+                    "rule_status",
+                    "abs support",
+                    "abs exceptions",
+                    "confidence",
+                    "result",
+                    "indices",
+                ]
+            ]
+            .values
+        )
+        self.assertListEqual(
+            list(actual[0]),
+            [
+                0,
+                0,
+                'if () then (MAX(0, {"A"})>0)',
+                "",
+                2,
+                1,
+                0.6666666666666666,
+                True,
+                0,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[1]),
+            [
+                0,
+                0,
+                'if () then (MAX(0, {"A"})>0)',
+                "",
+                2,
+                1,
+                0.6666666666666666,
+                True,
+                1,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[2]),
+            [
+                0,
+                0,
+                'if () then (MAX(0, {"A"})>0)',
+                "",
+                2,
+                1,
+                0.6666666666666666,
+                False,
+                2,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[26]),
+            [
+                8,
+                0,
+                'if () then ({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))',
+                '',
+                1,
+                2,
+                0.3333333333333333,
+                True,
+                2
+            ]
+        )
 
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""

@@ -4,17 +4,31 @@ import logging
 import itertools
 import re
 import numpy as np
-import pandas as pd
 from typing import Union
+from collections import OrderedDict
+
+try:
+    import pandas as pd
+
+    logging.debug("pandas imported")
+except:
+    pass
+try:
+    import polars as pl
+
+    logging.debug("polars imported")
+except:
+    pass
 
 from .parser import (
+    rule_expression,
+)
+from .pandas_parser import (
+    pandas_column,
     dataframe_index,
     dataframe_values,
     dataframe_lengths,
-    pandas_column,
-    rule_expression,
 )
-
 from .utils import generate_substitutions
 from .metrics import metrics, required_variables, calculate_metrics
 from .const import (
@@ -49,8 +63,8 @@ class RuleMiner:
     def __init__(
         self,
         templates: list = None,
-        rules: pd.DataFrame = None,
-        data: pd.DataFrame = None,
+        rules: Union[pd.DataFrame, pl.DataFrame] = None,
+        data: Union[pd.DataFrame, pl.DataFrame] = None,
         params: dict = None,
     ):
         """ """
@@ -60,8 +74,8 @@ class RuleMiner:
     def update(
         self,
         templates: list = None,
-        rules: pd.DataFrame = None,
-        data: pd.DataFrame = None,
+        rules: Union[pd.DataFrame, pl.DataFrame] = None,
+        data: Union[pd.DataFrame, pl.DataFrame] = None,
         params: dict = None,
     ) -> None:
         """ """
@@ -79,6 +93,13 @@ class RuleMiner:
         if self.tolerance is not None:
             if "default" not in self.tolerance.keys():
                 raise Exception("No 'default' key found in tolerance definition.")
+            for key in self.tolerance.keys():
+                if " " in key:
+                    raise Exception(
+                        "No spaces allowed in keys of tolerance definition."
+                    )
+        self.rules_datatype = self.params.get("rules_datatype", pd.DataFrame)
+        self.results_datatype = self.params.get("results_datatype", pd.DataFrame)
 
         self.data = data
         self.eval_dict = {
@@ -125,8 +146,7 @@ class RuleMiner:
             self.templates is not None
         ), "Unable to generate rules, no templates defined."
 
-        self.setup_rules_dataframe()
-
+        self.rules = None
         if self.data is None:
             for template in self.templates:
                 self.convert_template(template=template)
@@ -147,7 +167,7 @@ class RuleMiner:
         assert self.rules is not None, "Unable to evaluate data, no rules defined."
         assert self.data is not None, "Unable to evaluate data, no data defined."
 
-        self.setup_results_dataframe()
+        self.results = None
 
         # add temporary index columns (to allow rules based on index data)
         for level in range(len(self.data.index.names)):
@@ -161,7 +181,9 @@ class RuleMiner:
             )
 
             expression = self.rules.loc[idx, RULE_DEF]
-            rule_code = dataframe_index(expression=expression, required=required_vars)
+            rule_code = dataframe_index(
+                expression=expression, required=required_vars, data=self.data
+            )
             results = self.evaluate_code(expressions=rule_code, dataframe=self.data)
             len_results = {
                 key: len(results[key]) if not isinstance(results[key], float) else 0
@@ -185,26 +207,38 @@ class RuleMiner:
 
         return self.results
 
-    def setup_rules_dataframe(self) -> None:
+    def generate_rules_dataframe(
+        self,
+        data: dict = None,
+    ) -> None:
         """
         Helper function to set up the rules dataframe
         """
-        self.rules = pd.DataFrame(
-            columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
-            + self.metrics
-            + [ENCODINGS]
-        )
+        if self.rules_datatype == pd.DataFrame:
+            if data is not None:
+                df = pd.DataFrame.from_dict(data)
+            else:
+                df = pd.DataFrame(columns=columns)
+        elif self.rules_datatype == pl.DataFrame:
+            df = pl.DataFrame(data)
+        return df
 
-    def setup_results_dataframe(self) -> None:
+    def generate_results_dataframe(
+        self,
+        data: list = None,
+    ) -> None:
         """
         Helper function to set up the results dataframe
         """
-        self.results = pd.DataFrame(
-            columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
-            + [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
-            + [RESULT, INDICES]
-        )
-        self.results[RESULT] = self.results[RESULT].astype(bool)
+        if self.results_datatype == pd.DataFrame:
+            if data is not None:
+                df = pd.DataFrame.from_dict(data)
+            else:
+                df = pd.DataFrame(columns=columns)
+            df[RESULT] = df[RESULT].astype(bool)
+        elif self.results_datatype == pl.DataFrame:
+            df = pl.DataFrame(data)
+        return df
 
     def convert_template(self, template: dict = {}) -> None:
         """
@@ -235,7 +269,6 @@ class RuleMiner:
 
         reformulated_expression = self.reformulate(parsed)
         self.add_rule(
-            rule_id=len(self.rules.index),
             rule_group=group,
             rule_def=reformulated_expression,
             rule_status="",
@@ -326,7 +359,9 @@ class RuleMiner:
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             candidate = self.reformulate(candidate)
-            df_code = {VAR_Z: dataframe_values(expression=flatten(candidate))}
+            df_code = {
+                VAR_Z: dataframe_values(expression=flatten(candidate), data=self.data)
+            }
             df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
                 VAR_Z
             ]
@@ -381,6 +416,7 @@ class RuleMiner:
                         rule_code = dataframe_lengths(
                             expression=reformulated_expression,
                             required=self.required_vars,
+                            data=self.data,
                         )
                         len_results = self.evaluate_code(
                             expressions=rule_code, dataframe=self.data
@@ -404,7 +440,6 @@ class RuleMiner:
                         )
                         if self.apply_filter(metrics=rule_metrics):
                             self.add_rule(
-                                rule_id=len(self.rules.index),
                                 rule_group=group,
                                 rule_def=reformulated_expression,
                                 rule_status="",
@@ -738,7 +773,6 @@ class RuleMiner:
 
     def add_rule(
         self,
-        rule_id: str = "",
         rule_group: int = 0,
         rule_def: str = "",
         rule_status: str = "",
@@ -778,19 +812,36 @@ class RuleMiner:
             add_rule(**my_rule)
 
         """
-        row = pd.DataFrame(
-            data=[
-                [rule_id, rule_group, rule_def, rule_status]
-                + [rule_metrics[metric] for metric in self.metrics]
-                + [encodings]
-            ],
-            columns=self.rules.columns,
-        )
-        if not self.rules.empty:
-            self.rules = pd.concat([self.rules, row], ignore_index=True)
+        if self.rules is not None:
+            if self.rules_datatype == pd.DataFrame:
+                rule_id = len(self.rules.index)
+            elif self.rules_datatype == pl.DataFrame:
+                rule_id = self.rules.select(pl.len())[0, 0]
         else:
-            self.rules = row
-
+            rule_id = 0
+        data = [
+            OrderedDict(
+                {
+                    **{
+                        RULE_ID: rule_id,
+                        RULE_GROUP: rule_group,
+                        RULE_DEF: rule_def,
+                        RULE_STATUS: rule_status,
+                    },
+                    **{metric: rule_metrics[metric] for metric in self.metrics},
+                    **{ENCODINGS: encodings},
+                }
+            )
+        ]
+        new_rule = self.generate_rules_dataframe(data=data)
+        if self.rules is None:
+            self.rules = new_rule
+        else:
+            if self.rules_datatype == pd.DataFrame:
+                self.rules = pd.concat([self.rules, new_rule], ignore_index=True)
+            elif self.rules_datatype == pl.DataFrame:
+                self.rules = pl.concat([self.rules, new_rule], how="vertical")
+    
     def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices) -> None:
         """
         Add results for a rule to the results list.
@@ -826,63 +877,96 @@ class RuleMiner:
 
         """
         logger = logging.getLogger(__name__)
+        indices = []
         if co_indices is not None and not isinstance(co_indices, float):
             nco = len(co_indices)
+            indices += list(co_indices)
         else:
             nco = 0
         if ex_indices is not None and not isinstance(ex_indices, float):
             nex = len(ex_indices)
+            indices += list(ex_indices)
         else:
             nex = 0
 
         if nco == 0 and nex == 0:
             logger.debug(
-                "Rule id " + str(rule_idx) + " resulted in 0 confirmations and 0 exceptions."
+                "Rule id "
+                + str(rule_idx)
+                + " resulted in 0 confirmations and 0 exceptions."
             )
+        columns = (
+            [RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
+            + [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
+            + [RESULT, INDICES]
+        )
+        if self.params.get("output_confirmations", True):
+            if nco > 0:
+                data = {
+                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nco,
+                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nco,
+                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nco,
+                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nco,
+                    ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nco,
+                    ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nco,
+                    CONFIDENCE: [rule_metrics[CONFIDENCE]] * nco,
+                    RESULT: [True] * nco,
+                    INDICES: co_indices,
+                }
+                df_data = self.generate_results_dataframe(data=data)
+                if self.results is None:
+                    self.results = df_data
+                else:
+                    if self.results_datatype == pd.DataFrame:
+                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                    elif self.results_datatype == pl.DataFrame:
+                        self.results = pl.concat([self.results, df_data], how="vertical")
 
-        if nco > 0:
-            data = [
-                [
-                    self.rules.loc[rule_idx, RULE_ID],
-                    self.rules.loc[rule_idx, RULE_GROUP],
-                    self.rules.loc[rule_idx, RULE_DEF],
-                    self.rules.loc[rule_idx, RULE_STATUS],
-                    rule_metrics[ABSOLUTE_SUPPORT],
-                    rule_metrics[ABSOLUTE_EXCEPTIONS],
-                    rule_metrics[CONFIDENCE],
-                    True,
-                    None,
-                ]
-            ] * nco
+        if self.params.get("output_exceptions", True):
+            if nex > 0:
+                data = {
+                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * nex,
+                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * nex,
+                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * nex,
+                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * nex,
+                    ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nex,
+                    ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nex,
+                    CONFIDENCE: [rule_metrics[CONFIDENCE]] * nex,
+                    RESULT: [False] * nex,
+                    INDICES: ex_indices,
+                }
+                df_data = self.generate_results_dataframe(data=data)
+                if self.results is None:
+                    self.results = df_data
+                else:
+                    if self.results_datatype == pd.DataFrame:
+                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                    elif self.results_datatype == pl.DataFrame:
+                        self.results = pl.concat([self.results, df_data], how="vertical")
 
-            data = pd.DataFrame(columns=self.results.columns, data=data)
-            data[INDICES] = co_indices
-            if self.results.empty:
-                self.results = data
-            else:
-                self.results = pd.concat([self.results, data], ignore_index=True)
-
-        if nex > 0:
-            data = [
-                [
-                    self.rules.loc[rule_idx, RULE_ID],
-                    self.rules.loc[rule_idx, RULE_GROUP],
-                    self.rules.loc[rule_idx, RULE_DEF],
-                    self.rules.loc[rule_idx, RULE_STATUS],
-                    rule_metrics[ABSOLUTE_SUPPORT],
-                    rule_metrics[ABSOLUTE_EXCEPTIONS],
-                    rule_metrics[CONFIDENCE],
-                    False,
-                    None,
-                ]
-            ] * nex
-
-            data = pd.DataFrame(columns=self.results.columns, data=data)
-            data[INDICES] = ex_indices
-            if self.results.empty:
-                self.results = data
-            else:
-                self.results = pd.concat([self.results, data], ignore_index=True)
+        if self.params.get("output_not_applicable", False):
+            n_indices = [i for i in self.data.index if i not in indices]
+            n = len(n_indices)
+            if n > 0:
+                data = {
+                    RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * n,
+                    RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * n,
+                    RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * n,
+                    RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * n,
+                    ABSOLUTE_SUPPORT: [None] * n,
+                    ABSOLUTE_EXCEPTIONS: [None] * n,
+                    CONFIDENCE: [None] * n,
+                    RESULT: [None] * n,
+                    INDICES: [None] * n,
+                }
+                df_data = self.generate_results_dataframe(data=data)
+                if self.results is None:
+                    self.results = df_data
+                else:
+                    if self.results_datatype == pd.DataFrame:
+                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                    elif self.results_datatype == pl.DataFrame:
+                        self.results = pl.concat([self.results, df_data], how="vertical")
 
         return None
 
@@ -1190,7 +1274,12 @@ class RuleMiner:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            quantile_code = {VAR_Z: pandas_column(flatten(expression[idx : idx + 2]))}
+            quantile_code = {
+                VAR_Z: pandas_column(
+                    expression=flatten(expression[idx : idx + 2]),
+                    data=self.data,
+                )
+            }
             quantile_result = self.evaluate_code(
                 expressions=quantile_code, dataframe=self.data
             )[VAR_Z]
@@ -1330,8 +1419,6 @@ class RuleMiner:
                 res = left_side_pos + item + right_side_neg
             elif item in ["<", "<="]:
                 res = left_side_neg + item + right_side_pos
-            return "(" + res + ")"
-
         else:
             left_side = expression[:idx]
             right_side = expression[idx + 1 :]
@@ -1348,7 +1435,7 @@ class RuleMiner:
                     positive_tolerance=positive_tolerance,
                 )
             )
-            return "(" + res + ")"
+        return "(" + res + ")"
 
     def reformulate_minus_divide(
         self,
@@ -1462,33 +1549,80 @@ class RuleMiner:
             args = ""
             for key, tol in self.tolerance.items():
                 if re.fullmatch(key, expression[2:-2]):
-                    args = ', args=("' + key + '",)'
+                    arg = key
             if args == "":
-                args = ', args=("default",)'
+                args = "default"
             if positive_tolerance:
-                return (
-                    "("
-                    + expression
-                    + "+0.5*abs("
-                    + expression
-                    + ".apply(__tol__"
-                    + args
-                    + ")))"
-                )
+                return expression.replace("}", " + " + args + "}")
+                # return (
+                #     "("
+                #     + expression
+                #     + "+0.5*abs("
+                #     + expression
+                #     + '.apply(__tol__, args=("'
+                #     + args
+                #     + '",)'
+                #     +")))"
+                # )
             else:
-                return (
-                    "("
-                    + expression
-                    + "-0.5*abs("
-                    + expression
-                    + ".apply(__tol__"
-                    + args
-                    + ")))"
-                )
+                return expression.replace("}", " - " + args + "}")
+                # return (
+                #     "("
+                #     + expression
+                #     + "-0.5*abs("
+                #     + expression
+                #     + '.apply(__tol__, args=("'
+                #     + args
+                #     + '",)'
+                #     + ")))"
+                # )
         elif expression.lower() == "in":
             return ".isin"
         else:
             return expression
+
+    def reformulate_maxminabs(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process min, max, abs operator
+        """
+        res = ""
+        for i in expression[idx + 1 :]:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        if res[0] == "(" and res[-1] == ")":
+            return item + res
+        else:
+            return item + "(" + res + ")"
+
+    def reformulate_list(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        res = ""
+        for i in expression:
+            i_str = self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            if i_str == ",":
+                res += i_str + " "
+            else:
+                res += i_str
+        return res
 
     def reformulate_decimal(
         self,
@@ -1670,6 +1804,15 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
+                    elif item.lower() in ["max", "min", "abs"]:
+                        return self.reformulate_maxminabs(
+                            idx,
+                            item,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
                     elif item in ["-", "/"]:
                         return self.reformulate_minus_divide(
                             idx,
@@ -1679,14 +1822,25 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
+                    elif item in [","]:
+                        return self.reformulate_list(
+                            idx,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
             # nothing special, so parse tree and generate string
-            res = ""
-            for i in expression:
-                res += self.reformulate(
-                    i,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
+            res = "".join(
+                [
+                    self.reformulate(
+                        i,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+                    for i in expression
+                ]
+            )
             return res
 
 
