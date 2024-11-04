@@ -131,4 +131,3 @@
 - Added parameters 'rules_datatype' and 'results_datatype' for output in pandas or polars dataframes
 - Separated pandas parser code from general parser.py
 - Moved tolerance code to pandas parsing instead including it in rule definition
-- RuleMiner.rules and RuleMiner.results are now initially set to None and are created when at least one rule or result is generated

@@ -200,7 +200,20 @@ class RuleMiner:
                 results[VAR_X_AND_Y],
                 results[VAR_X_AND_NOT_Y],
             )
-
+        if self.results is None:
+            self.results = pd.DataFrame(
+                columns=[
+                    RULE_ID,
+                    RULE_GROUP,
+                    RULE_DEF,
+                    RULE_STATUS,
+                    ABSOLUTE_SUPPORT,
+                    ABSOLUTE_EXCEPTIONS,
+                    CONFIDENCE,
+                    RESULT,
+                    INDICES,
+                ]
+            )
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
             del self.data[str(self.data.index.names[level])]
@@ -275,6 +288,12 @@ class RuleMiner:
             rule_metrics={m: np.nan for m in self.metrics},
             encodings=encodings,
         )
+        if self.rules is None:
+            self.rules = pd.DataFrame(
+                columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
+                + self.metrics
+                + [ENCODINGS]
+            )
 
     def generate_rules(self, template: dict) -> None:
         """
@@ -446,7 +465,12 @@ class RuleMiner:
                                 rule_metrics=rule_metrics,
                                 encodings=encodings,
                             )
-
+        if self.rules is None:
+            self.rules = pd.DataFrame(
+                columns=[RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
+                + self.metrics
+                + [ENCODINGS]
+            )
         # remove temporarily added index columns
         if self.data is not None:
             for level in range(len(self.data.index.names)):
