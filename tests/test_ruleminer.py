@@ -2,7 +2,6 @@
 
 """Tests for `ruleminer` package."""
 
-
 import unittest
 import pandas as pd
 import numpy as np
@@ -1248,7 +1247,10 @@ class TestRuleminer(unittest.TestCase):
         self.assertTrue(r.rules.values[5][2] == 'if () then (MAX(0, ({"A"}-{"B"}))>0)')
         self.assertTrue(r.rules.values[6][2] == 'if () then (MAX(0, {"A"}-{"B"})>0)')
         self.assertTrue(r.rules.values[7][2] == 'if () then (MAX(0, ({"A"}-{"B"}))>0)')
-        self.assertTrue(r.rules.values[8][2] == 'if () then ({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))')
+        self.assertTrue(
+            r.rules.values[8][2]
+            == 'if () then ({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))'
+        )
         df = pd.DataFrame(
             [
                 ["Test_1", 0.5, 1.0],
@@ -1324,13 +1326,13 @@ class TestRuleminer(unittest.TestCase):
                 8,
                 0,
                 'if () then ({"A"}==MAX(0, MAX(0, {"A"})-MAX(0, {"B"})))',
-                '',
+                "",
                 1,
                 2,
                 0.3333333333333333,
                 True,
-                2
-            ]
+                2,
+            ],
         )
 
     # def setUp_templates(self):

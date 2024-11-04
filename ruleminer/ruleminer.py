@@ -11,13 +11,13 @@ try:
     import pandas as pd
 
     logging.debug("pandas imported")
-except:
+except Exception:
     pass
 try:
     import polars as pl
 
     logging.debug("polars imported")
-except:
+except Exception:
     pass
 
 from .parser import (
@@ -171,9 +171,9 @@ class RuleMiner:
 
         # add temporary index columns (to allow rules based on index data)
         for level in range(len(self.data.index.names)):
-            self.data[
-                str(self.data.index.names[level])
-            ] = self.data.index.get_level_values(level=level)
+            self.data[str(self.data.index.names[level])] = (
+                self.data.index.get_level_values(level=level)
+            )
 
         for idx in self.rules.index:
             required_vars = required_variables(
@@ -218,7 +218,7 @@ class RuleMiner:
             if data is not None:
                 df = pd.DataFrame.from_dict(data)
             else:
-                df = pd.DataFrame(columns=columns)
+                df = None
         elif self.rules_datatype == pl.DataFrame:
             df = pl.DataFrame(data)
         return df
@@ -234,7 +234,7 @@ class RuleMiner:
             if data is not None:
                 df = pd.DataFrame.from_dict(data)
             else:
-                df = pd.DataFrame(columns=columns)
+                df = None
             df[RESULT] = df[RESULT].astype(bool)
         elif self.results_datatype == pl.DataFrame:
             df = pl.DataFrame(data)
@@ -327,9 +327,9 @@ class RuleMiner:
         # temporarily add index names as columns, so we derive rules with index names
         if self.data is not None:
             for level in range(len(self.data.index.names)):
-                self.data[
-                    str(self.data.index.names[level])
-                ] = self.data.index.get_level_values(level=level)
+                self.data[str(self.data.index.names[level])] = (
+                    self.data.index.get_level_values(level=level)
+                )
 
         # if the template expression is not a if then rule then it is changed
         # into an if then rule
@@ -841,7 +841,7 @@ class RuleMiner:
                 self.rules = pd.concat([self.rules, new_rule], ignore_index=True)
             elif self.rules_datatype == pl.DataFrame:
                 self.rules = pl.concat([self.rules, new_rule], how="vertical")
-    
+
     def add_results(self, rule_idx, rule_metrics, co_indices, ex_indices) -> None:
         """
         Add results for a rule to the results list.
@@ -895,11 +895,6 @@ class RuleMiner:
                 + str(rule_idx)
                 + " resulted in 0 confirmations and 0 exceptions."
             )
-        columns = (
-            [RULE_ID, RULE_GROUP, RULE_DEF, RULE_STATUS]
-            + [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
-            + [RESULT, INDICES]
-        )
         if self.params.get("output_confirmations", True):
             if nco > 0:
                 data = {
@@ -918,9 +913,13 @@ class RuleMiner:
                     self.results = df_data
                 else:
                     if self.results_datatype == pd.DataFrame:
-                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                        self.results = pd.concat(
+                            [self.results, df_data], ignore_index=True
+                        )
                     elif self.results_datatype == pl.DataFrame:
-                        self.results = pl.concat([self.results, df_data], how="vertical")
+                        self.results = pl.concat(
+                            [self.results, df_data], how="vertical"
+                        )
 
         if self.params.get("output_exceptions", True):
             if nex > 0:
@@ -940,9 +939,13 @@ class RuleMiner:
                     self.results = df_data
                 else:
                     if self.results_datatype == pd.DataFrame:
-                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                        self.results = pd.concat(
+                            [self.results, df_data], ignore_index=True
+                        )
                     elif self.results_datatype == pl.DataFrame:
-                        self.results = pl.concat([self.results, df_data], how="vertical")
+                        self.results = pl.concat(
+                            [self.results, df_data], how="vertical"
+                        )
 
         if self.params.get("output_not_applicable", False):
             n_indices = [i for i in self.data.index if i not in indices]
@@ -964,9 +967,13 @@ class RuleMiner:
                     self.results = df_data
                 else:
                     if self.results_datatype == pd.DataFrame:
-                        self.results = pd.concat([self.results, df_data], ignore_index=True)
+                        self.results = pd.concat(
+                            [self.results, df_data], ignore_index=True
+                        )
                     elif self.results_datatype == pl.DataFrame:
-                        self.results = pl.concat([self.results, df_data], how="vertical")
+                        self.results = pl.concat(
+                            [self.results, df_data], how="vertical"
+                        )
 
         return None
 
@@ -1315,9 +1322,7 @@ class RuleMiner:
             else apply_tolerance,
             positive_tolerance=positive_tolerance,
         )
-        lc_for = expression[1]
         lc_var = expression[2]
-        lc_in = expression[3]
         lc_iter = self.reformulate(
             expression[4],
             apply_tolerance=False,
@@ -1549,7 +1554,7 @@ class RuleMiner:
             args = ""
             for key, tol in self.tolerance.items():
                 if re.fullmatch(key, expression[2:-2]):
-                    arg = key
+                    args = key
             if args == "":
                 args = "default"
             if positive_tolerance:
