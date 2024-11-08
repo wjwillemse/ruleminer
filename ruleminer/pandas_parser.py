@@ -217,7 +217,7 @@ def pandas_column(
         elif c == "}":
             end_column = offset + idx
             params = expression[start_column - offset : end_column - offset + 1].rsplit(
-                " "
+                " ", 2
             )
             if len(params) == 3:
                 column, direction, key = params
@@ -240,7 +240,7 @@ def pandas_column(
                 result = result[:start_column] + params[0]
         else:
             result += c
-    return result.replace("{", DUNDER_DF + "[").replace("}", "]")
+    return result.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
 
 
 def dataframe_values(expression: str, data: pd.DataFrame()):

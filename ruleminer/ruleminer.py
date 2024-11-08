@@ -1037,7 +1037,7 @@ class RuleMiner:
                         ABSOLUTE_EXCEPTIONS: [None] * n,
                         CONFIDENCE: [None] * n,
                         RESULT: [None] * n,
-                        INDICES: [None] * n,
+                        INDICES: n_indices,
                     }
                 )
                 df_data = self.generate_results_dataframe(data=data)
@@ -1664,6 +1664,48 @@ class RuleMiner:
         else:
             return expression
 
+    def reformulate_match(
+        self,
+        idx: int,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process in operator
+
+        Example:
+            expression = ['{"A"}', 'match', '"A"']
+
+            result = ruleminer.RuleMiner().reformulate_in(
+                idx=1,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                ({"A"}.str.match("A"))
+                '
+        """
+        left_side = expression[:idx]
+        right_side = expression[idx + 1 :]
+        # process in operator
+        res = ""
+        for i in left_side:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        res += ".str.match("
+        for i in right_side:
+            res += self.reformulate(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return res + ", na=False)"
+
     def reformulate_maxminabs(
         self,
         idx: int,
@@ -1887,6 +1929,14 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
+                    elif item.lower() == "match":
+                        return self.reformulate_match(
+                            idx,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
                     elif item.lower() in ["max", "min", "abs"]:
                         return self.reformulate_maxminabs(
                             idx,
@@ -1914,6 +1964,15 @@ class RuleMiner:
                         )
 
             # nothing special, so parse tree and generate string
+            if (
+                isinstance(expression, list)
+                and len(expression) == 1
+                and isinstance(expression[0], str)
+                and not is_column(expression[0])
+                and not is_string(expression[0])
+                and not expression[0] == "K"
+            ):
+                return "(" + expression[0] + ")"
             res = "".join(
                 [
                     self.reformulate(

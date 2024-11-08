@@ -48,7 +48,7 @@ _column = pyparsing.Combine("{" + _quote + pyparsing.Word(_string) + _quote + "}
 _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
-_compa_op = pyparsing.one_of(">= > <= < != == in IN")
+_compa_op = pyparsing.one_of(">= > <= < != == in IN match MATCH")
 
 _list_element = _quoted_string | _column | _number | _empty
 _quoted_string_list = pyparsing.Group(
