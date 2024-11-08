@@ -131,3 +131,9 @@
 - Added parameters 'rules_datatype' and 'results_datatype' for output in pandas or polars dataframes
 - Separated pandas parser code from general parser.py
 - Moved tolerance code to pandas parsing instead including it in rule definition
+
+### 0.2.5 (2024-11-08)
+
+- Fix when applying tolerances with column names that contain strings
+- When applying 'output_not_applicable' the results now contain the indices of the rows to which a rule does not apply
+- Added match logical operator to check if column that contains strings satisfies a regular expression
