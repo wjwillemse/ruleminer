@@ -219,25 +219,32 @@ def pandas_column(
             params = expression[start_column - offset : end_column - offset + 1].rsplit(
                 " ", 2
             )
-            if len(params) == 3:
+            if len(params) == 3 and params[0][-1] in ['"', "'"]:
                 column, direction, key = params
-                column_expr = (
-                    "("
-                    + column
-                    + "}"
-                    + direction
-                    + "0.5*abs("
-                    + column
-                    + "}"
-                    + '.apply(__tol__, args=("'
-                    + key[:-1]
-                    + '",)'
-                    + ")))"
-                )
-                result = result[:start_column] + column_expr
-                offset += len(column_expr) - (end_column - start_column) - 1
+                if (
+                    (not pd.api.types.is_string_dtype(data[column[2:-1]]))
+                    and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
+                    and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
+                ):
+                    column_expr = (
+                        "("
+                        + column
+                        + "}"
+                        + direction
+                        + "0.5*abs("
+                        + column
+                        + "}"
+                        + '.apply(__tol__, args=("'
+                        + key[:-1]
+                        + '",)'
+                        + ")))"
+                    )
+                    result = result[:start_column] + column_expr
+                    offset += len(column_expr) - (end_column - start_column) - 1
+                else:
+                    result = result[:start_column] + " ".join(params)
             else:
-                result = result[:start_column] + params[0]
+                result = result[:start_column] + " ".join(params)
         else:
             result += c
     return result.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
