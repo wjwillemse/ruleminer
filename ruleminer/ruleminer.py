@@ -79,8 +79,6 @@ class RuleMiner:
         params: dict = None,
     ) -> None:
         """ """
-        logger = logging.getLogger(__name__)
-
         if params is not None:
             self.params = params
         self.metrics = self.params.get(
@@ -120,6 +118,8 @@ class RuleMiner:
         if self.tolerance is not None:
 
             def __tol__(value, column=None):
+                if pd.isna(value):
+                    return np.nan
                 for key, tol in self.tolerance.items():
                     if key == column:
                         for ((start, end)), decimals in tol.items():
@@ -135,8 +135,6 @@ class RuleMiner:
         if rules is not None:
             self.rules = rules
             self.evaluate()
-
-        logger.info("Finished")
 
         return None
 
@@ -161,6 +159,7 @@ class RuleMiner:
         data: pd.DataFrame = None,
     ) -> pd.DataFrame:
         """ """
+        logger = logging.getLogger(__name__)
         if data is not None:
             self.update(data=data)
 
@@ -230,6 +229,8 @@ class RuleMiner:
                     }
                 )
                 self.results = pl.DataFrame(data)
+
+            logger.info("Finished rule_id " + str(self.rules.loc[idx, RULE_ID]))
 
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
