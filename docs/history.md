@@ -138,7 +138,7 @@
 - When applying 'output_not_applicable' the results now contain the indices of the rows to which a rule does not apply
 - Added match logical operator to check if column that contains strings satisfies a regular expression
 
-### 0.2.6 (2024-11-12)
+### 0.2.7 (2024-11-13)
 
 - Better fix when applying tolerances with column names that contain strings
 - Tolerances are not applied to columns where dtype is string, bool or datetime64_ns

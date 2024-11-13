@@ -221,11 +221,13 @@ def pandas_column(
             )
             if len(params) == 3 and params[0][-1] in ['"', "'"]:
                 column, direction, key = params
+                # column does not contain the last "}", but key does
                 if (
                     (not pd.api.types.is_string_dtype(data[column[2:-1]]))
                     and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
                     and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
                 ):
+                    # apply tolerance
                     column_expr = (
                         "("
                         + column
@@ -242,8 +244,11 @@ def pandas_column(
                     result = result[:start_column] + column_expr
                     offset += len(column_expr) - (end_column - start_column) - 1
                 else:
-                    result = result[:start_column] + " ".join(params)
+                    # do not apply tolerance
+                    result = result[:start_column] + column + "}"
+                    offset += len(column) - (end_column - start_column) 
             else:
+                # does not contain tolerance, so add all
                 result = result[:start_column] + " ".join(params)
         else:
             result += c
