@@ -246,7 +246,7 @@ def pandas_column(
                 else:
                     # do not apply tolerance
                     result = result[:start_column] + column + "}"
-                    offset += len(column) - (end_column - start_column) 
+                    offset += len(column) - (end_column - start_column)
             else:
                 # does not contain tolerance, so add all
                 result = result[:start_column] + " ".join(params)
