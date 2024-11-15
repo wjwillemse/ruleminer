@@ -127,7 +127,7 @@
 ### 0.2.4 (2024-23-10)
 
 - Added parameters 'output_confirmations', 'output_exceptions', 'output_not_applicable' to specify which results to return
-- Fixed issue with parenthesis in combination with max, min and abs functions
+- Fixed issue with parentheses in combination with max, min and abs functions
 - Added parameters 'rules_datatype' and 'results_datatype' for output in pandas or polars dataframes
 - Separated pandas parser code from general parser.py
 - Moved tolerance code to pandas parsing instead including it in rule definition
@@ -144,3 +144,11 @@
 - Tolerances are not applied to columns where dtype is string, bool or datetime64_ns
 - Logging 'finished' with rule_id per rule_id
 - Fix for data DataFrames that contain 'pd.libs.missing.NAType()'
+
+### 0.2.8 (2024-11-15)
+
+- Added 'not applicable' as a default metric to be calculated (n - confirmations - exceptions)
+- Restructured the parsing of parentheses (deleted some unnecessary pyparsing.groups)
+- Fix for unnecessary parentheses around power function (**)
+- Fix for necessary parentheses around mathematical expressions
+- Adapted all unittests accordingly

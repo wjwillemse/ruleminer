@@ -90,10 +90,7 @@ def function_expression():
     param_condition = param_element + _compa_op + param_element
 
     param_condition_list = pyparsing.Group(
-        _lbra
-        + pyparsing.Group(param_condition)
-        + (_sep + pyparsing.Group(param_condition))[...]
-        + _rbra
+        _lbra + param_condition + (_sep + param_condition)[...] + _rbra
     )
     param_condition_list_comprehension = pyparsing.Group(
         _lbra
@@ -102,9 +99,8 @@ def function_expression():
         + _list_comprehension_var
         + _in
         + _lbra
-        + pyparsing.Group(
-            pyparsing.Group(_column) + (_sep + pyparsing.Group(_column))[...]
-        )
+        + _column
+        + (_sep + _column)[...]
         + _rbra
         + _rbra
     )

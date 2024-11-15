@@ -14,6 +14,7 @@ from .ruleminer import (
     ABSOLUTE_SUPPORT,
     ABSOLUTE_EXCEPTIONS,
     CONFIDENCE,
+    NOT_APPLICABLE,
     ENCODINGS,
 )
 from .parser import (

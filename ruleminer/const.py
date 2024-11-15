@@ -2,6 +2,7 @@
 
 ABSOLUTE_SUPPORT = "abs support"
 ABSOLUTE_EXCEPTIONS = "abs exceptions"
+NOT_APPLICABLE = "not applicable"
 CONFIDENCE = "confidence"
 SUPPORT = "support"
 ADDED_VALUE = "added value"
