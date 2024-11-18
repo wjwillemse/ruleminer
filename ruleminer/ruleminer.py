@@ -35,6 +35,7 @@ from .const import (
     CONFIDENCE,
     ABSOLUTE_SUPPORT,
     ABSOLUTE_EXCEPTIONS,
+    NOT_APPLICABLE,
     RULE_ID,
     RULE_GROUP,
     RULE_DEF,
@@ -82,7 +83,8 @@ class RuleMiner:
         if params is not None:
             self.params = params
         self.metrics = self.params.get(
-            "metrics", [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
+            "metrics",
+            [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE],
         )
         self.metrics = metrics(self.metrics)
         self.required_vars = required_variables(self.metrics)
@@ -176,9 +178,8 @@ class RuleMiner:
 
         for idx in self.rules.index:
             required_vars = required_variables(
-                [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE]
+                [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE]
             )
-
             expression = self.rules.loc[idx, RULE_DEF]
             rule_code = dataframe_index(
                 expression=expression, required=required_vars, data=self.data
@@ -191,13 +192,21 @@ class RuleMiner:
             }
             rule_metrics = calculate_metrics(
                 len_results=len_results,
-                metrics=[ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE],
+                metrics=[
+                    ABSOLUTE_SUPPORT,
+                    ABSOLUTE_EXCEPTIONS,
+                    CONFIDENCE,
+                    NOT_APPLICABLE,
+                ],
             )
             self.add_results(
                 idx,
                 rule_metrics,
                 results[VAR_X_AND_Y],
                 results[VAR_X_AND_NOT_Y],
+            )
+            logger.info(
+                "Finished: " + str(idx) + " (" + str(self.rules.loc[idx, RULE_ID]) + ")"
             )
         if self.results is None:
             if self.results_datatype == pd.DataFrame:
@@ -210,6 +219,7 @@ class RuleMiner:
                         ABSOLUTE_SUPPORT,
                         ABSOLUTE_EXCEPTIONS,
                         CONFIDENCE,
+                        NOT_APPLICABLE,
                         RESULT,
                         INDICES,
                     ]
@@ -224,13 +234,12 @@ class RuleMiner:
                         ABSOLUTE_SUPPORT: [],
                         ABSOLUTE_EXCEPTIONS: [],
                         CONFIDENCE: [],
+                        NOT_APPLICABLE: [],
                         RESULT: [],
                         INDICES: [],
                     }
                 )
                 self.results = pl.DataFrame(data)
-
-            logger.info("Finished rule_id " + str(self.rules.loc[idx, RULE_ID]))
 
         # remove temporarily added index columns
         for level in range(len(self.data.index.names)):
@@ -962,10 +971,16 @@ class RuleMiner:
         else:
             nex = 0
 
+        n_indices = [i for i in self.data.index if i not in indices]
+        n = len(n_indices)
+
         if nco == 0 and nex == 0:
             logger.debug(
-                "Rule id "
+                "Rule "
                 + str(rule_idx)
+                + " ("
+                + str(self.rules.loc[rule_idx, RULE_ID])
+                + ")"
                 + " resulted in 0 confirmations and 0 exceptions."
             )
         if self.params.get("output_confirmations", True):
@@ -979,6 +994,7 @@ class RuleMiner:
                         ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nco,
                         ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nco,
                         CONFIDENCE: [rule_metrics[CONFIDENCE]] * nco,
+                        NOT_APPLICABLE: [rule_metrics[NOT_APPLICABLE]] * nco,
                         RESULT: [True] * nco,
                         INDICES: co_indices,
                     }
@@ -1007,6 +1023,7 @@ class RuleMiner:
                         ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]] * nex,
                         ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]] * nex,
                         CONFIDENCE: [rule_metrics[CONFIDENCE]] * nex,
+                        NOT_APPLICABLE: [rule_metrics[NOT_APPLICABLE]] * nex,
                         RESULT: [False] * nex,
                         INDICES: ex_indices,
                     }
@@ -1025,20 +1042,19 @@ class RuleMiner:
                         )
 
         if self.params.get("output_not_applicable", False):
-            n_indices = [i for i in self.data.index if i not in indices]
-            n = len(n_indices)
             if n > 0:
                 data = OrderedDict(
                     {
-                        RULE_ID: [self.rules.loc[rule_idx, RULE_ID]] * n,
-                        RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]] * n,
-                        RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]] * n,
-                        RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]] * n,
-                        ABSOLUTE_SUPPORT: [None] * n,
-                        ABSOLUTE_EXCEPTIONS: [None] * n,
-                        CONFIDENCE: [None] * n,
-                        RESULT: [None] * n,
-                        INDICES: n_indices,
+                        RULE_ID: [self.rules.loc[rule_idx, RULE_ID]],
+                        RULE_GROUP: [self.rules.loc[rule_idx, RULE_GROUP]],
+                        RULE_DEF: [self.rules.loc[rule_idx, RULE_DEF]],
+                        RULE_STATUS: [self.rules.loc[rule_idx, RULE_STATUS]],
+                        ABSOLUTE_SUPPORT: [rule_metrics[ABSOLUTE_SUPPORT]],
+                        ABSOLUTE_EXCEPTIONS: [rule_metrics[ABSOLUTE_EXCEPTIONS]],
+                        CONFIDENCE: [rule_metrics[CONFIDENCE]],
+                        NOT_APPLICABLE: [rule_metrics[NOT_APPLICABLE]],
+                        RESULT: [None],
+                        INDICES: None,
                     }
                 )
                 df_data = self.generate_results_dataframe(data=data)
@@ -1091,6 +1107,42 @@ class RuleMiner:
             + ","
             + stop
             + ")"
+        )
+        return res
+
+    def reformulate_datefunction(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process substr function
+
+        Example:
+            expression = ['day', ['{"C"}']]
+
+            result = ruleminer.RuleMiner().reformulate_datefunction(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                (({"C"}.dt.day))
+                '
+        """
+        date = expression[idx + 1]
+        res = (
+            self.reformulate(
+                date,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ".dt."
+            + item.lower()
         )
         return res
 
@@ -1213,9 +1265,11 @@ class RuleMiner:
                 positive_tolerance=positive_tolerance,
             )
             # a single condition applied to all columns
+            # other=0 is used so that we have zero instead of NaN
+            # we then sum so this has no influence on the result
             res = (
                 "sum("
-                + sumlist.replace("}", "}.where(" + condition + ")")
+                + sumlist.replace("}", "}.where(" + condition + ", other=0)")
                 + ", axis=0)"
             )
         else:
@@ -1225,9 +1279,11 @@ class RuleMiner:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
+            # other=0 is used so that we have zero instead of NaN
+            # we then sum so this has no influence on the result
             res = (
                 "sum("
-                + "[v.where(c) for (v,c) in zip("
+                + "[v.where(c, other=0) for (v,c) in zip("
                 + sumlist
                 + ","
                 + conditionlist
@@ -1274,6 +1330,8 @@ class RuleMiner:
                 positive_tolerance=positive_tolerance,
             )
             # a single condition applied to all columns
+            # if the condition does not apply, it results in NaN
+            # and then we check if it is not NaN
             res = (
                 "(sum("
                 + countlist.replace("{", "~{").replace(
@@ -1403,7 +1461,7 @@ class RuleMiner:
         )
         lc_var = expression[2]
         lc_iter = self.reformulate(
-            expression[4],
+            expression[4:],
             apply_tolerance=False,
             positive_tolerance=positive_tolerance,
         )
@@ -1698,7 +1756,7 @@ class RuleMiner:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        res += ".str.match("
+        res += ".str.match(r"
         for i in right_side:
             res += self.reformulate(
                 i,
@@ -1832,7 +1890,7 @@ class RuleMiner:
 
         else:
             # to avoid constructions like (() - (...))
-            if len(expression) == 1 and expression[0] in ["+", "-", "*", "/"]:
+            if len(expression) == 1 and expression[0] in ["+", "-", "*", "/", "**"]:
                 return expression[0]
 
             for idx, item in enumerate(expression):
@@ -1947,6 +2005,35 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
+                    elif item.lower() in [
+                        "day",
+                        "month",
+                        "quarter",
+                        "year",
+                        "day_name",
+                        "month_name",
+                        "days_in_month",
+                        "daysinmonth",
+                        "is_leap_year",
+                        "is_year_end",
+                        "dayofweek",
+                        "weekofyear",
+                        "weekday",
+                        "week",
+                        "is_month_end",
+                        "is_month_start",
+                        "is_year_start",
+                        "is_quarter_end",
+                        "is_quarter_start",
+                    ]:
+                        return self.reformulate_datefunction(
+                            idx,
+                            item,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
                     elif item in ["-", "/"]:
                         return self.reformulate_minus_divide(
                             idx,
@@ -1965,15 +2052,33 @@ class RuleMiner:
                         )
 
             # nothing special, so parse tree and generate string
-            if (
-                isinstance(expression, list)
-                and len(expression) == 1
-                and isinstance(expression[0], str)
-                and not is_column(expression[0])
-                and not is_string(expression[0])
-                and not expression[0] == "K"
-            ):
-                return "(" + expression[0] + ")"
+            if isinstance(expression, list) and len(expression) == 1:
+                if (
+                    isinstance(expression[0], str)
+                    and not is_column(expression[0])
+                    and not is_string(expression[0])
+                    and not is_number(expression[0])
+                    and not expression[0] == "K"
+                ):
+                    # if not column, string or number or list comprehension variable then add parentheses
+                    return "(" + expression[0] + ")"
+                if isinstance(expression[0], list):
+                    if len(expression[0]) > 1 and not (
+                        len(expression[0]) == 2
+                        and isinstance(expression[0][0], str)
+                        and isinstance(expression[0][1], list)
+                    ):
+                        # if list and not of the form [str, list] then add parentheses
+                        # [str, list] is a function with parameters which does not require parentheses
+                        return (
+                            "("
+                            + self.reformulate(
+                                expression[0],
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+                            + ")"
+                        )
             res = "".join(
                 [
                     self.reformulate(
@@ -2132,7 +2237,7 @@ def is_column(s):
             False
     """
     return len(s) > 4 and (
-        (s[:2] == '{"' and s[-2:] == '"}') or (s[:2] == "{'" and s[-2:] == "'}")
+        (s[:2] == '{"' and s[-1:] == "}") or (s[:2] == "{'" and s[-1:] == "}")
     )
 
 

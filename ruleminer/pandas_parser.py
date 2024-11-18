@@ -3,8 +3,17 @@
 import re
 import pandas as pd
 from typing import Dict
+import logging
 
 from .const import DUNDER_DF
+from .const import VAR_X
+from .const import VAR_NOT_X
+from .const import VAR_Y
+from .const import VAR_NOT_Y
+from .const import VAR_N
+from .const import VAR_X_AND_Y
+from .const import VAR_X_AND_NOT_Y
+from .const import VAR_NOT_X_AND_NOT_Y
 
 
 def dataframe_lengths(
@@ -45,20 +54,20 @@ def dataframe_lengths(
 
     expressions = {}
     for variable in required:
-        if variable == "N":
+        if variable == VAR_N:
             expressions[variable] = "len(" + DUNDER_DF + ".values)"
-        if variable == "X":
+        if variable == VAR_X:
             if if_part == "()":
                 expressions[variable] = "len(" + DUNDER_DF + ".index)"
             else:
                 expressions[variable] = "(" + pandas_column(if_part, data) + ").sum()"
-        elif variable == "~X":
+        elif variable == VAR_NOT_X:
             expressions[variable] = "(~(" + pandas_column(if_part, data) + ")).sum()"
-        elif variable == "Y":
+        elif variable == VAR_Y:
             expressions[variable] = "(" + pandas_column(then_part, data) + ").sum()"
-        elif variable == "~Y":
+        elif variable == VAR_NOT_Y:
             expressions[variable] = "(~(" + pandas_column(then_part, data) + ")).sum()"
-        elif variable == "X and Y":
+        elif variable == VAR_X_AND_Y:
             expressions[variable] = (
                 "(("
                 + pandas_column(if_part, data)
@@ -66,7 +75,7 @@ def dataframe_lengths(
                 + pandas_column(then_part, data)
                 + ")).sum()"
             )
-        elif variable == "X and ~Y":
+        elif variable == VAR_X_AND_NOT_Y:
             expressions[variable] = (
                 "(("
                 + pandas_column(if_part, data)
@@ -74,7 +83,7 @@ def dataframe_lengths(
                 + pandas_column(then_part, data)
                 + ")).sum()"
             )
-        elif variable == "~X and ~Y":
+        elif variable == VAR_NOT_X_AND_NOT_Y:
             expressions[variable] = (
                 "(~("
                 + pandas_column(if_part, data)
@@ -131,25 +140,25 @@ def dataframe_index(
 
     expressions = {}
     for variable in required:
-        if variable == "N":
+        if variable == VAR_N:
             expressions[variable] = DUNDER_DF + ".index"
-        if variable == "X":
+        if variable == VAR_X:
             expressions[variable] = (
                 DUNDER_DF + ".index[(" + pandas_column(if_part, data) + ")]"
             )
-        elif variable == "~X":
+        elif variable == VAR_NOT_X:
             expressions[variable] = (
                 DUNDER_DF + ".index[~(" + pandas_column(if_part, data) + ")]"
             )
-        elif variable == "Y":
+        elif variable == VAR_Y:
             expressions[variable] = (
                 DUNDER_DF + ".index[(" + pandas_column(then_part, data) + ")]"
             )
-        elif variable == "~Y":
+        elif variable == VAR_NOT_Y:
             expressions[variable] = (
                 DUNDER_DF + ".index[~(" + pandas_column(then_part, data) + ")]"
             )
-        elif variable == "X and Y":
+        elif variable == VAR_X_AND_Y:
             expressions[variable] = (
                 DUNDER_DF
                 + ".index[("
@@ -158,7 +167,7 @@ def dataframe_index(
                 + pandas_column(then_part, data)
                 + ")]"
             )
-        elif variable == "X and ~Y":
+        elif variable == VAR_X_AND_NOT_Y:
             expressions[variable] = (
                 DUNDER_DF
                 + ".index[("
@@ -167,7 +176,7 @@ def dataframe_index(
                 + pandas_column(then_part, data)
                 + ")]"
             )
-        elif variable == "~X and ~Y":
+        elif variable == VAR_NOT_X_AND_NOT_Y:
             expressions[variable] = (
                 DUNDER_DF
                 + ".index[~("
@@ -190,22 +199,46 @@ def pandas_column(
     """
     Replace column names with Pandas DataFrame expressions.
 
-    This function takes a string containing column names enclosed in curly braces,
-    e.g., {"A"}, and converts them to Pandas DataFrame syntax, e.g., __df__["A"].
+    This function searches for specific patterns in the string expression, particularly column names
+    enclosed in curly braces `{}`. If there is an additional instruction for tolerance (e.g., direction
+    and key), it applies a custom operation. Specific data types (such as strings, booleans, and datetimes)
+    are checked, and if the column's data type is neither of these types, a tolerance is applied in the calculation.
 
-    Args:
-        expression (str): A string with column names enclosed in curly
-        braces, e.g., {"A"}.
+    Parameters:
+    ----------
+    expression: str
+        A string containing an expression with column names enclosed in curly braces `{}`. The expression
+        may include additional parameters specifying the operation on the columns (e.g., direction and key).
+
+    data: pd.DataFrame
+        A Pandas DataFrame that is used to check the columns referenced in the expression. This DataFrame
+        is used to verify if a column is a string, boolean, or datetime type, which influences how the expression is processed.
 
     Returns:
-        str: The Pandas DataFrame expression with columns in the
-        format __df__["A"].
+    --------
+    str
+        The modified expression where the columns have been processed based on their data type and any
+        tolerance instruction present. The resulting string can be used for further operations or query execution.
 
     Example:
         >>> expression = '{"A"}'
         >>> result = ruleminer.pandas_column(expression)
         >>> print(result)
         "__df__[A]"
+
+        >>> expression = '{"A" + default}'
+        >>> result = ruleminer.pandas_column(expression)
+        >>> print(result)
+        "__df__[A] + 0.5*abs(__df__[A].apply(__tol__, args=('key',))))"
+
+    Errors may occur if the expression is not correctly formatted or if column names do not exist in the DataFrame.
+
+    Notes:
+    ------
+    - The expression should only contain `{}` for column names and not for other parts of the string.
+    - Tolerance is applied if the column is numeric and satisfies the given conditions.
+    - The output is a modified version of the original expression.
+
     """
     result = ""
     offset = 0
@@ -221,11 +254,19 @@ def pandas_column(
             )
             if len(params) == 3 and params[0][-1] in ['"', "'"]:
                 column, direction, key = params
-                if (
+                # column does not contain the last "}", but key does
+                if column[2:-1] not in data.columns:
+                    logging.warning(
+                        "Could not check the dtype of column "
+                        + column[2:-1]
+                        + " because it is not in the data DataFrame. Tolerances are not applied."
+                    )
+                if column[2:-1] in data.columns and (
                     (not pd.api.types.is_string_dtype(data[column[2:-1]]))
                     and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
                     and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
                 ):
+                    # apply tolerance
                     column_expr = (
                         "("
                         + column
@@ -242,8 +283,11 @@ def pandas_column(
                     result = result[:start_column] + column_expr
                     offset += len(column_expr) - (end_column - start_column) - 1
                 else:
-                    result = result[:start_column] + " ".join(params)
+                    # do not apply tolerance
+                    result = result[:start_column] + column + "}"
+                    offset += len(column) - (end_column - start_column)
             else:
+                # does not contain tolerance, so add all
                 result = result[:start_column] + " ".join(params)
         else:
             result += c

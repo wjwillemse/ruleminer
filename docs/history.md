@@ -127,7 +127,7 @@
 ### 0.2.4 (2024-23-10)
 
 - Added parameters 'output_confirmations', 'output_exceptions', 'output_not_applicable' to specify which results to return
-- Fixed issue with parenthesis in combination with max, min and abs functions
+- Fixed issue with parentheses in combination with max, min and abs functions
 - Added parameters 'rules_datatype' and 'results_datatype' for output in pandas or polars dataframes
 - Separated pandas parser code from general parser.py
 - Moved tolerance code to pandas parsing instead including it in rule definition
@@ -138,9 +138,23 @@
 - When applying 'output_not_applicable' the results now contain the indices of the rows to which a rule does not apply
 - Added match logical operator to check if column that contains strings satisfies a regular expression
 
-### 0.2.6 (2024-11-12)
+### 0.2.7 (2024-11-13)
 
 - Better fix when applying tolerances with column names that contain strings
 - Tolerances are not applied to columns where dtype is string, bool or datetime64_ns
 - Logging 'finished' with rule_id per rule_id
 - Fix for data DataFrames that contain 'pd.libs.missing.NAType()'
+
+### 0.2.8 (2024-11-15)
+
+- Added 'not applicable' as a default metric to be calculated (n - confirmations - exceptions)
+- Restructured the parsing of parentheses (deleted some unnecessary pyparsing.groups)
+- Fix for unnecessary parentheses around power function (**)
+- Fix for necessary parentheses around mathematical expressions
+- Adapted all unittests accordingly
+
+### 0.2.9 (2024-11-18)
+
+- Fix for SUMIF when data DataFrame contains pd.NA's
+- Added date functions to extract day, month, quarter and year from a column
+- Added date functions day_name, month_name, days_in_month, daysinmonth, is_leap_year, is_year_end, dayofweek, weekofyear, weekday, week, is_month_end, is_month_start, is_year_start, is_quarter_end and is_quarter_start
