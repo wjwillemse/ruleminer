@@ -156,4 +156,5 @@
 ### 0.2.9 (2024-11-18)
 
 - Fix for SUMIF when data DataFrame contains pd.NA's
-- Added functions to extract day, month, quarter and year from a column
+- Added date functions to extract day, month, quarter and year from a column
+- Added date functions day_name, month_name, days_in_month, daysinmonth, is_leap_year, is_year_end, dayofweek, weekofyear, weekday, week, is_month_end, is_month_start, is_year_start, is_quarter_end and is_quarter_start

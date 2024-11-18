@@ -7,8 +7,49 @@ _lbra, _rbra = map(pyparsing.Suppress, "[]")
 # _sep = pyparsing.Suppress(",")
 _sep = pyparsing.Literal(",")
 _number = pyparsing.Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
-_function = pyparsing.one_of(
-    "min \
+_datefunction = pyparsing.one_of(
+    "day_name \
+    month_name \
+    days_in_month \
+    daysinmonth \
+    is_leap_year \
+    is_year_end \
+    dayofweek \
+    weekofyear \
+    weekday \
+    week \
+    is_month_end \
+    is_month_start \
+    is_year_start \
+    is_quarter_end \
+    is_quarter_start \
+    day \
+    month \
+    quarter \
+    year \
+    DAY_NAME \
+    MONTH_NAME \
+    DAYS_IN_MONTH \
+    DAYSINMONTH \
+    IS_LEAP_YEAR \
+    IS_YEAR_END \
+    DAYOFWEEK \
+    WEEKOFYEAR \
+    WEEKDAY \
+    WEEK \
+    IS_MONTH_END \
+    IS_MONTH_START \
+    IS_YEAR_START \
+    IS_QUARTER_END \
+    IS_QUARTER_START \
+    DAY \
+    MONTH \
+    QUARTER \
+    YEAR"
+)
+_function = (
+    pyparsing.one_of(
+        "min \
     max \
     abs \
     quantile \
@@ -18,10 +59,6 @@ _function = pyparsing.one_of(
     count \
     sumif \
     countif \
-    day \
-    month \
-    quarter \
-    year \
     MIN \
     MAX \
     ABS \
@@ -31,11 +68,9 @@ _function = pyparsing.one_of(
     SPLIT \
     COUNT \
     SUMIF \
-    COUNTIF \
-    DAY \
-    MONTH \
-    QUARTER \
-    YEAR"
+    COUNTIF"
+    )
+    | _datefunction
 )
 _for = pyparsing.one_of("for", "FOR")
 _in = pyparsing.one_of("in", "IN")

@@ -1141,10 +1141,10 @@ class RuleMiner:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-            + ".dt."+item.lower()
+            + ".dt."
+            + item.lower()
         )
         return res
-
 
     def reformulate_split(
         self,
@@ -2005,7 +2005,27 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
-                    elif item.lower() in ["day", "month", "quarter", "year"]:
+                    elif item.lower() in [
+                        "day",
+                        "month",
+                        "quarter",
+                        "year",
+                        "day_name",
+                        "month_name",
+                        "days_in_month",
+                        "daysinmonth",
+                        "is_leap_year",
+                        "is_year_end",
+                        "dayofweek",
+                        "weekofyear",
+                        "weekday",
+                        "week",
+                        "is_month_end",
+                        "is_month_start",
+                        "is_year_start",
+                        "is_quarter_end",
+                        "is_quarter_start",
+                    ]:
                         return self.reformulate_datefunction(
                             idx,
                             item,
@@ -2048,7 +2068,7 @@ class RuleMiner:
                         and isinstance(expression[0][0], str)
                         and isinstance(expression[0][1], list)
                     ):
-                        # if list and not of the form [str, list] then add parentheses 
+                        # if list and not of the form [str, list] then add parentheses
                         # [str, list] is a function with parameters which does not require parentheses
                         return (
                             "("

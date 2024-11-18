@@ -42,6 +42,7 @@ __all__ = [
     ABSOLUTE_SUPPORT,
     ABSOLUTE_EXCEPTIONS,
     CONFIDENCE,
+    NOT_APPLICABLE,
     ENCODINGS,
     math_expression,
     function_expression,
