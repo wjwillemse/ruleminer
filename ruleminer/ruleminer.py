@@ -2005,7 +2005,7 @@ class RuleMiner:
                             positive_tolerance=positive_tolerance,
                         )
 
-                    elif item.lower() in ["day", "month", "year"]:
+                    elif item.lower() in ["day", "month", "quarter", "year"]:
                         return self.reformulate_datefunction(
                             idx,
                             item,

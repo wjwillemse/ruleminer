@@ -18,9 +18,10 @@ _function = pyparsing.one_of(
     count \
     sumif \
     countif \
-    day\
-    month\
-    year\
+    day \
+    month \
+    quarter \
+    year \
     MIN \
     MAX \
     ABS \
@@ -30,9 +31,10 @@ _function = pyparsing.one_of(
     SPLIT \
     COUNT \
     SUMIF \
-    COUNTIF\
-    DAY\
-    MONTH\
+    COUNTIF \
+    DAY \
+    MONTH \
+    QUARTER \
     YEAR"
 )
 _for = pyparsing.one_of("for", "FOR")
