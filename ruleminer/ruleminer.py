@@ -1110,6 +1110,42 @@ class RuleMiner:
         )
         return res
 
+    def reformulate_datefunction(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process substr function
+
+        Example:
+            expression = ['day', ['{"C"}']]
+
+            result = ruleminer.RuleMiner().reformulate_datefunction(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                (({"C"}.dt.day))
+                '
+        """
+        date = expression[idx + 1]
+        res = (
+            self.reformulate(
+                date,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ".dt."+item.lower()
+        )
+        return res
+
+
     def reformulate_split(
         self,
         idx: int,
@@ -1229,9 +1265,11 @@ class RuleMiner:
                 positive_tolerance=positive_tolerance,
             )
             # a single condition applied to all columns
+            # other=0 is used so that we have zero instead of NaN
+            # we then sum so this has no influence on the result
             res = (
                 "sum("
-                + sumlist.replace("}", "}.where(" + condition + ")")
+                + sumlist.replace("}", "}.where(" + condition + ", other=0)")
                 + ", axis=0)"
             )
         else:
@@ -1241,9 +1279,11 @@ class RuleMiner:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
+            # other=0 is used so that we have zero instead of NaN
+            # we then sum so this has no influence on the result
             res = (
                 "sum("
-                + "[v.where(c) for (v,c) in zip("
+                + "[v.where(c, other=0) for (v,c) in zip("
                 + sumlist
                 + ","
                 + conditionlist
@@ -1290,6 +1330,8 @@ class RuleMiner:
                 positive_tolerance=positive_tolerance,
             )
             # a single condition applied to all columns
+            # if the condition does not apply, it results in NaN
+            # and then we check if it is not NaN
             res = (
                 "(sum("
                 + countlist.replace("{", "~{").replace(
@@ -1956,6 +1998,15 @@ class RuleMiner:
 
                     elif item.lower() in ["max", "min", "abs"]:
                         return self.reformulate_maxminabs(
+                            idx,
+                            item,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
+                    elif item.lower() in ["day", "month", "year"]:
+                        return self.reformulate_datefunction(
                             idx,
                             item,
                             expression,

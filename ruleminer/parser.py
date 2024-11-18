@@ -18,6 +18,9 @@ _function = pyparsing.one_of(
     count \
     sumif \
     countif \
+    day\
+    month\
+    year\
     MIN \
     MAX \
     ABS \
@@ -27,7 +30,10 @@ _function = pyparsing.one_of(
     SPLIT \
     COUNT \
     SUMIF \
-    COUNTIF"
+    COUNTIF\
+    DAY\
+    MONTH\
+    YEAR"
 )
 _for = pyparsing.one_of("for", "FOR")
 _in = pyparsing.one_of("in", "IN")

@@ -483,7 +483,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer")), {"Own_funds"}.where(({"Type"}=="life_insurer"))]], axis=0)>0)',
+                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer"), other=0), {"Own_funds"}.where(({"Type"}=="life_insurer"), other=0)]], axis=0)>0)',
                     "",
                     5,
                     5,
@@ -543,7 +543,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([v.where(c) for (v,c) in zip([K for K in [{"Assets"}, {"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"}, {"Type"}]])], axis=0)>0)',
+                    'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"}, {"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"}, {"Type"}]])], axis=0)>0)',
                     "",
                     5,
                     5,
@@ -1073,7 +1073,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (sum([v.where(c) for (v,c) in zip([K for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0)>1.0)'
+            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0)>1.0)'
         )
         r.evaluate()
         actual = (
@@ -1216,7 +1216,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2],
-            'if () then ((((sum([v.where(c) for (v,c) in zip([K for K in ([{"A"}, {"B"}])],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0))))==0)',
+            'if () then ((((sum([v.where(c, other=0) for (v,c) in zip([K for K in ([{"A"}, {"B"}])],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0))))==0)',
         )
         r.evaluate()
         actual = (
@@ -1372,65 +1372,69 @@ class TestRuleminer(unittest.TestCase):
             ],
         )
         rm_eval = ruleminer.RuleMiner(rules=rm_rules.rules, data=df)
-        # rm_eval.evaluate()
-        # actual = rm_eval.results.values
+        rm_eval.evaluate()
+        actual = rm_eval.results.values
 
-        # self.assertListEqual(
-        #     list(actual[0]),
-        #     [
-        #         0,
-        #         0,
-        #         r'if () then {"C0450"}.str.match("^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
-        #         "",
-        #         2,
-        #         2,
-        #         0.5,
-        #         True,
-        #         1,
-        #     ],
-        # )
-        # self.assertListEqual(
-        #     list(actual[1]),
-        #     [
-        #         0,
-        #         0,
-        #         r'if () then {"C0450"}.str.match("^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
-        #         "",
-        #         2,
-        #         2,
-        #         0.5,
-        #         True,
-        #         3,
-        #     ],
-        # )
-        # self.assertListEqual(
-        #     list(actual[2]),
-        #     [
-        #         0,
-        #         0,
-        #         r'if () then {"C0450"}.str.match("^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
-        #         "",
-        #         2,
-        #         2,
-        #         0.5,
-        #         False,
-        #         0,
-        #     ],
-        # )
-        # self.assertListEqual(
-        #     list(actual[3]),
-        #     [
-        #         0,
-        #         0,
-        #         r'if () then {"C0450"}.str.match("^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
-        #         "",
-        #         2,
-        #         2,
-        #         0.5,
-        #         False,
-        #         2,
-        #     ],
-        # )
+        self.assertListEqual(
+            list(actual[0]),
+            [
+                0,
+                0,
+                r'if () then {"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
+                "",
+                2,
+                2,
+                0.5,
+                0,
+                True,
+                1,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[1]),
+            [
+                0,
+                0,
+                r'if () then {"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
+                "",
+                2,
+                2,
+                0.5,
+                0,
+                True,
+                3,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[2]),
+            [
+                0,
+                0,
+                r'if () then {"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
+                "",
+                2,
+                2,
+                0.5,
+                0,
+                False,
+                0,
+            ],
+        )
+        self.assertListEqual(
+            list(actual[3]),
+            [
+                0,
+                0,
+                r'if () then {"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False)',
+                "",
+                2,
+                2,
+                0.5,
+                0,
+                False,
+                2,
+            ],
+        )
 
     def test_55(self):
         # Specify tolerance input parameters for ruleminer
