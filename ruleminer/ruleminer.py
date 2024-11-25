@@ -107,12 +107,12 @@ class RuleMiner:
             "MIN": np.minimum,
             "ABS": np.abs,
             "QUANTILE": np.quantile,
-            "SUM": np.nansum,
+            "SUM": np.sum,
             "max": np.maximum,
             "min": np.minimum,
             "abs": np.abs,
             "quantile": np.quantile,
-            "sum": np.nansum,
+            "sum": np.sum,
             "np": np,
             "nan": np.nan,
         }
@@ -1042,7 +1042,7 @@ class RuleMiner:
                         )
 
         if self.params.get("output_not_applicable", False):
-            if n > 0:
+            if (nco == 0 and nex == 0) and n > 0:
                 data = OrderedDict(
                     {
                         RULE_ID: [self.rules.loc[rule_idx, RULE_ID]],
@@ -1110,7 +1110,7 @@ class RuleMiner:
         )
         return res
 
-    def reformulate_datefunction(
+    def reformulate_timedate_function(
         self,
         idx: int,
         item: str,
@@ -1119,12 +1119,12 @@ class RuleMiner:
         positive_tolerance: bool = True,
     ) -> str:
         """
-        Process substr function
+        Process date function
 
         Example:
             expression = ['day', ['{"C"}']]
 
-            result = ruleminer.RuleMiner().reformulate_datefunction(
+            result = ruleminer.RuleMiner().reformulate_timedatefunction(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
@@ -1143,6 +1143,50 @@ class RuleMiner:
             )
             + ".dt."
             + item.lower()
+        )
+        return res
+
+    def reformulate_timedelta_function(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process timedelta function
+
+        Example:
+            expression = ['days', ['{"C"}', '-', '{"D"}']]
+
+            result = ruleminer.RuleMiner().reformulate_timedelta_function(
+                idx=0,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                ((({"C"}-{"D"}) / np.timedelta64(1, 'D')))
+                '
+        """
+        date = expression[idx + 1]
+        if item.lower() == "days":
+            s = "'D'"
+        elif item.lower() == "months":
+            s = "'M'"
+        elif item.lower() == "years":
+            s = "'Y'"
+        res = (
+            "(("
+            + self.reformulate(
+                date,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ") / np.timedelta64(1, "
+            + s
+            + "))"
         )
         return res
 
@@ -1214,14 +1258,14 @@ class RuleMiner:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-            res = "sum([" + var_k + " for K in [" + sumlist + "]], axis=0)"
+            res = "sum([" + var_k + " for K in [" + sumlist + "]], axis=0, dtype=float)"
         else:
             sumlist = self.reformulate(
                 expression[idx + 1][0],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-            res = "sum(" + sumlist + ", axis=0)"
+            res = "sum(" + sumlist + ", axis=0, dtype=float)"
         return res
 
     def reformulate_sumif(
@@ -1270,7 +1314,7 @@ class RuleMiner:
             res = (
                 "sum("
                 + sumlist.replace("}", "}.where(" + condition + ", other=0)")
-                + ", axis=0)"
+                + ", axis=0, dtype=float)"
             )
         else:
             # the sumif conditions a list of conditions
@@ -1288,7 +1332,7 @@ class RuleMiner:
                 + ","
                 + conditionlist
                 + ")]"
-                + ", axis=0)"
+                + ", axis=0, dtype=float)"
             )
         return res
 
@@ -1337,7 +1381,7 @@ class RuleMiner:
                 + countlist.replace("{", "~{").replace(
                     "}", "}.where(" + condition + ").isna()"
                 )
-                + ", axis=0))"
+                + ", axis=0, dtype=float))"
             )
         else:
             # the sumif conditions a list of conditions
@@ -1353,7 +1397,7 @@ class RuleMiner:
                 + ","
                 + conditionlist
                 + ")]"
-                + ", axis=0))"
+                + ", axis=0, dtype=float))"
             )
         return res
 
@@ -1694,6 +1738,29 @@ class RuleMiner:
                     args = key
             if args == "":
                 args = "default"
+            if expression == "K":
+                if positive_tolerance:
+                    return (
+                        "("
+                        + expression
+                        + "+0.5*abs("
+                        + expression
+                        + '.apply(__tol__, args=("'
+                        + args
+                        + '",)'
+                        + ")))"
+                    )
+                else:
+                    return (
+                        "("
+                        + expression
+                        + "-0.5*abs("
+                        + expression
+                        + '.apply(__tol__, args=("'
+                        + args
+                        + '",)'
+                        + ")))"
+                    )
             if positive_tolerance:
                 return expression.replace("}", " + " + args + "}")
                 # return (
@@ -2026,7 +2093,16 @@ class RuleMiner:
                         "is_quarter_end",
                         "is_quarter_start",
                     ]:
-                        return self.reformulate_datefunction(
+                        return self.reformulate_timedate_function(
+                            idx,
+                            item,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+
+                    elif item.lower() in ["days", "months", "years"]:
+                        return self.reformulate_timedelta_function(
                             idx,
                             item,
                             expression,

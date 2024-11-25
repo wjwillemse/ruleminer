@@ -7,7 +7,7 @@ _lbra, _rbra = map(pyparsing.Suppress, "[]")
 # _sep = pyparsing.Suppress(",")
 _sep = pyparsing.Literal(",")
 _number = pyparsing.Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
-_datefunction = pyparsing.one_of(
+_timedate_functions = pyparsing.one_of(
     "day_name \
     month_name \
     days_in_month \
@@ -47,6 +47,15 @@ _datefunction = pyparsing.one_of(
     QUARTER \
     YEAR"
 )
+_timedelta_functions = pyparsing.one_of(
+    "days \
+    DAYS \
+    months \
+    MONTHS \
+    years \
+    YEARS"
+)
+
 _function = (
     pyparsing.one_of(
         "min \
@@ -70,7 +79,8 @@ _function = (
     SUMIF \
     COUNTIF"
     )
-    | _datefunction
+    | _timedelta_functions
+    | _timedate_functions
 )
 _for = pyparsing.one_of("for", "FOR")
 _in = pyparsing.one_of("in", "IN")

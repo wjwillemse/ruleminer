@@ -483,7 +483,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer"), other=0), {"Own_funds"}.where(({"Type"}=="life_insurer"), other=0)]], axis=0)>0)',
+                    'if () then (sum([K for K in [{"Assets"}.where(({"Type"}=="life_insurer"), other=0), {"Own_funds"}.where(({"Type"}=="life_insurer"), other=0)]], axis=0, dtype=float)>0)',
                     "",
                     5,
                     5,
@@ -543,7 +543,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"}, {"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"}, {"Type"}]])], axis=0)>0)',
+                    'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"}, {"Own_funds"}]],[(K=="life_insurer") for K in [{"Type"}, {"Type"}]])], axis=0, dtype=float)>0)',
                     "",
                     5,
                     5,
@@ -598,7 +598,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"}, {"Own_funds"}]], axis=0)>0)',
+                    'if () then (sum([K for K in [{"Assets"}, {"Own_funds"}]], axis=0, dtype=float)>0)',
                     "",
                     10,
                     0,
@@ -1073,7 +1073,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0)>1.0)'
+            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0, dtype=float)>1.0)'
         )
         r.evaluate()
         actual = (
