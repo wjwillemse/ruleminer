@@ -164,3 +164,9 @@
 - Added dtype=float to np.sum operations to prevent divide by zero exceptions
 - In the results a row with not applicable is only included is there are no exceptions and no confirmations
 - Added days / months / years functions that return the number of days / months / years of an expression (the difference between two timedate64 columns)
+
+### 0.2.11 (2024-11-27)
+
+- Parser of list comprehension now accepts a wider range of expressions
+- Fix when applying tolerances when denominator in rule expression is negative
+- Shortened internal function names

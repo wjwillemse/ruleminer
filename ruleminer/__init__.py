@@ -19,6 +19,7 @@ from .ruleminer import (
 )
 from .parser import (
     condition_expression,
+    simple_condition_expression,
     math_expression,
     function_expression,
     _quoted_string,
@@ -34,6 +35,7 @@ __all__ = [
     RuleMiner,
     rule_expression,
     condition_expression,
+    simple_condition_expression,
     flatten_and_sort,
     RULE_ID,
     RULE_GROUP,

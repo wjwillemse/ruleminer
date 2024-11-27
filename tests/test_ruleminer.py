@@ -819,7 +819,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((({"1" + default}-{"2" - default}-{"3" - default})) >= 0) & ((({"1" - default}-{"2" + default}-{"3" + default})) <= 0))'
+        expected = 'if () then (_equal((({"1" + default}-{"2" - default}-{"3" - default})), (({"1" - default}-{"2" + default}-{"3" + default})), 0, 0))'
         self.assertTrue(actual == expected)
 
     def test_43(self):
@@ -838,7 +838,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (((({"1" + default}-({"2" - default}+{"3" - default}))) >= 0) & ((({"1" - default}-({"2" + default}+{"3" + default}))) <= 0))'
+        expected = 'if () then (_equal((({"1" + default}-({"2" - default}+{"3" - default}))), (({"1" - default}-({"2" + default}+{"3" + default}))), 0, 0))'
         self.assertTrue(actual == expected)
 
     def test_44(self):
@@ -860,7 +860,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas], params=parameters
         )
         actual = r.rules.values[0][2]
-        expected = 'if () then (({"A" + default} >= {"B" - default}*0.25) & ({"A" - default} <= {"B" + default}*0.25))'
+        expected = 'if () then (_equal({"A" + default}, {"A" - default}, {"B" + default}*0.25, {"B" - default}*0.25))'
         self.assertTrue(actual == expected)
 
     def test_45(self):
@@ -1073,7 +1073,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0, dtype=float)>1.0)'
+            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([(K+0.5*abs(K.apply(_tol, args=("default",)))) for K in [{"A"}, {"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"}, {"D"}]])], axis=0, dtype=float)>1.0)'
         )
         r.evaluate()
         actual = (
@@ -1167,7 +1167,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2],
-            'if () then ((((sum([(K+0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) >= 0) & (((sum([(K-0.5*abs(K.apply(__tol__, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) <= 0))',
+            'if () then ((((sum([(K+0.5*abs(K.apply(_tol, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) >= 0) & (((sum([(K-0.5*abs(K.apply(_tol, args=("default",)))) for K in [{"A"}, {"B"}]], axis=0))) <= 0))',
         )
         r.evaluate()
         actual = (

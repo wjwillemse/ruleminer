@@ -131,6 +131,7 @@ def function_expression():
     expr = pyparsing.Forward()
     params = pyparsing.Forward()
     math_expr = math_expression(expr)
+    condition = simple_condition_expression()
     param_element = (
         math_expr
         | _quoted_string_list
@@ -139,6 +140,7 @@ def function_expression():
         | _number
         | _empty
         | _list_comprehension_var
+        | condition
     )
     param_condition = param_element + _compa_op + param_element
 
@@ -151,10 +153,7 @@ def function_expression():
         + _for
         + _list_comprehension_var
         + _in
-        + _lbra
-        + _column
-        + (_sep + _column)[...]
-        + _rbra
+        + pyparsing.Group(_lbra + _column + (_sep + _column)[...] + _rbra)
         + _rbra
     )
     param = (
@@ -191,10 +190,23 @@ def math_expression(base: pyparsing.core.Forward = None):
     """
     expr = pyparsing.Forward()
     if base is None:
-        element = _quoted_string_list | _quoted_string | _column | _number | _empty
+        element = (
+            _quoted_string_list
+            | _quoted_string
+            | _column
+            | _number
+            | _list_comprehension_var
+            | _empty
+        )
     else:
         element = (
-            base | _quoted_string_list | _quoted_string | _column | _number | _empty
+            base
+            | _quoted_string_list
+            | _quoted_string
+            | _column
+            | _number
+            | _list_comprehension_var
+            | _empty
         )
     atom = element | pyparsing.Group(_lpar + expr + _rpar)
     factor = pyparsing.Forward()
@@ -202,6 +214,52 @@ def math_expression(base: pyparsing.core.Forward = None):
     term = factor + (_multop + factor)[...]
     expr <<= term + (_addop + term)[...]
     return expr
+
+
+def simple_condition_expression():
+    """
+    Define a ruleminer condition expression
+
+    This function defines a ruleminer condition expression. It uses pyparsing to define
+    the syntax for conditions and condition syntax
+
+    Args:
+        None
+
+    Returns:
+        pyparsing.core.Forward: a ruleminer condition expression
+
+    Example:
+        >>> expression = '({"A"} > 0)'
+        >>> result = ruleminer.condition_expression().parse_string(expression)
+        >>> print(result)
+        [['{"A"}', '>', '0']]
+    """
+    left = pyparsing.Forward()
+    right = pyparsing.Forward()
+    condition_item = math_expression(left) + _compa_op + math_expression(right)
+    comp_expr = pyparsing.Group(_lpar + condition_item + _rpar) | condition_item
+    condition = pyparsing.infixNotation(
+        comp_expr,
+        [
+            (
+                pyparsing.one_of(["NOT", "not", "~"]),
+                1,
+                pyparsing.opAssoc.RIGHT,
+            ),
+            (
+                pyparsing.one_of(["AND", "and", "&"]),
+                2,
+                pyparsing.opAssoc.LEFT,
+            ),
+            (
+                pyparsing.one_of(["OR", "or", "|"]),
+                2,
+                pyparsing.opAssoc.LEFT,
+            ),
+        ],
+    )
+    return condition
 
 
 def condition_expression(base: pyparsing.core.Forward = None):

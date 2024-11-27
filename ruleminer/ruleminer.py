@@ -119,7 +119,7 @@ class RuleMiner:
 
         if self.tolerance is not None:
 
-            def __tol__(value, column=None):
+            def _tol(value, column=None):
                 if pd.isna(value):
                     return np.nan
                 for key, tol in self.tolerance.items():
@@ -128,7 +128,28 @@ class RuleMiner:
                             if abs(value) >= start and abs(value) < end:
                                 return 0.5 * 10 ** (decimals)
 
-            self.eval_dict["__tol__"] = __tol__
+            self.eval_dict["_tol"] = _tol
+
+        def _equal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
+            return (
+                np.maximum(left_side_pos, left_side_neg)
+                >= np.minimum(right_side_pos, right_side_neg)
+            ) & (
+                np.minimum(left_side_pos, left_side_neg)
+                <= np.maximum(right_side_pos, right_side_neg)
+            )
+
+        def _unequal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
+            return (
+                np.minimum(left_side_pos, left_side_neg)
+                < np.maximum(right_side_pos, right_side_neg)
+            ) | (
+                np.maximum(left_side_pos, left_side_neg)
+                > np.minimum(right_side_pos, right_side_neg)
+            )
+
+        self.eval_dict["_equal"] = _equal
+        self.eval_dict["_unequal"] = _unequal
 
         if templates is not None:
             self.templates = templates
@@ -1504,7 +1525,8 @@ class RuleMiner:
             positive_tolerance=positive_tolerance,
         )
         lc_var = expression[2]
-        lc_iter = self.reformulate(
+        lc_iter = self.reformulate_list(
+            0,
             expression[4:],
             apply_tolerance=False,
             positive_tolerance=positive_tolerance,
@@ -1542,11 +1564,11 @@ class RuleMiner:
                 '
                 (
                     (
-                        ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))
+                        ({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))
                     )
                     <
                     (
-                        ({"B"}-0.5*abs({"B"}.apply(__tol__, args=("default",))))
+                        ({"B"}-0.5*abs({"B"}.apply(_tol, args=("default",))))
                     )
                 )
                 '
@@ -1579,26 +1601,26 @@ class RuleMiner:
             )
             if item in ["=="]:
                 res = (
-                    "("
+                    "_equal("
                     + left_side_pos
-                    + " >= "
-                    + right_side_neg
-                    + ") & ("
+                    + ", "
                     + left_side_neg
-                    + " <= "
+                    + ", "
                     + right_side_pos
+                    + ", "
+                    + right_side_neg
                     + ")"
                 )
             if item in ["!="]:
                 res = (
-                    "("
+                    "_unequal("
                     + left_side_pos
-                    + " < "
-                    + right_side_neg
-                    + ") | ("
+                    + ", "
                     + left_side_neg
-                    + " > "
+                    + ", "
                     + right_side_pos
+                    + ", "
+                    + right_side_neg
                     + ")"
                 )
             elif item in [">", ">="]:
@@ -1656,15 +1678,15 @@ class RuleMiner:
                 '
                 (
                     (
-                        ({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))
+                        ({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))
                     )
                     -
                     (
-                        ({"B"}-0.5*abs({"B"}.apply(__tol__, args=("default",))))
+                        ({"B"}-0.5*abs({"B"}.apply(_tol, args=("default",))))
                     )
                     -
                     (
-                        ({"C"}-0.5*abs({"C"}.apply(__tol__, args=("default",))))
+                        ({"C"}-0.5*abs({"C"}.apply(_tol, args=("default",))))
                     )
                 )
                 '
@@ -1727,7 +1749,7 @@ class RuleMiner:
                 apply_tolerance=True
             )
             print(result)
-                '({"A"}+0.5*abs({"A"}.apply(__tol__, args=("default",))))'
+                '({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))'
 
         """
         if (is_column(expression) or expression == "K") and apply_tolerance:
@@ -1745,7 +1767,7 @@ class RuleMiner:
                         + expression
                         + "+0.5*abs("
                         + expression
-                        + '.apply(__tol__, args=("'
+                        + '.apply(_tol, args=("'
                         + args
                         + '",)'
                         + ")))"
@@ -1756,7 +1778,7 @@ class RuleMiner:
                         + expression
                         + "-0.5*abs("
                         + expression
-                        + '.apply(__tol__, args=("'
+                        + '.apply(_tol, args=("'
                         + args
                         + '",)'
                         + ")))"
@@ -1768,7 +1790,7 @@ class RuleMiner:
                 #     + expression
                 #     + "+0.5*abs("
                 #     + expression
-                #     + '.apply(__tol__, args=("'
+                #     + '.apply(_tol, args=("'
                 #     + args
                 #     + '",)'
                 #     +")))"
@@ -1780,7 +1802,7 @@ class RuleMiner:
                 #     + expression
                 #     + "-0.5*abs("
                 #     + expression
-                #     + '.apply(__tol__, args=("'
+                #     + '.apply(_tol, args=("'
                 #     + args
                 #     + '",)'
                 #     + ")))"

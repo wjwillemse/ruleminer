@@ -205,11 +205,11 @@ A==B
 
 is translated to:
 ```
-A+0.5*abs(tol(A)) >= B-0.5*abs(tol(B))
+max(A+0.5*abs(tol(A)), A-0.5*abs(tol(A))) >= min(B+0.5*abs(tol(B)), B-0.5*abs(tol(B)))
 
 &
 
-A-0.5*abs(tol(A)) <= B+0.5*abs(tol(B))
+min(A+0.5*abs(tol(A)), A-0.5*abs(tol(A))) <= max(B+0.5*abs(tol(B)), B+0.5*abs(tol(B)))
 ```
 
 where tol(A) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
