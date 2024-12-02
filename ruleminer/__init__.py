@@ -17,7 +17,7 @@ from .ruleminer import (
     NOT_APPLICABLE,
     ENCODINGS,
 )
-from .parser import (
+from .grammar import (
     condition_expression,
     simple_condition_expression,
     math_expression,
@@ -25,6 +25,8 @@ from .parser import (
     _quoted_string,
     _column,
 )
+from .parser import RuleParser
+from .evaluator import CodeEvaluator
 from .utils import (
     tree_to_expressions,
     fit_ensemble_and_extract_expressions,
@@ -33,6 +35,8 @@ from .utils import (
 
 __all__ = [
     RuleMiner,
+    RuleParser,
+    CodeEvaluator,
     rule_expression,
     condition_expression,
     simple_condition_expression,

@@ -170,3 +170,13 @@
 - Parser of list comprehension now accepts a wider range of expressions
 - Fix when applying tolerances when denominator in rule expression is negative
 - Shortened internal function names
+
+### 0.2.12 (2024-12-2)
+
+- Refactoring
+	- Created separated CodeEvaluator class
+	- Created separated RuleParser class
+	- Streamlined parentheses process (resulting expressions have same parentheses as original)
+- Performance
+	- Deleted concats when collecting rules and results
+- Parameter 'results_datatype' can now be a dict that contains per column a list of results
