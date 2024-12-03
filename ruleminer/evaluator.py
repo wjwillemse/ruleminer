@@ -90,14 +90,50 @@ class CodeEvaluator:
             "nan": np.nan,
         }
 
-        def _tol(value, column=None):
+        # general tolerance function
+        def _tol(value, direction=bool, column=None):
+            """
+            Adjusts the given numerical value based on the specified tolerance and direction for a given column.
+
+            This function is designed to apply a tolerance-based adjustment to a numerical value depending on its range
+            and the specified direction. If the value falls within a defined range for a given column, the function
+            modifies the value by either adding or subtracting a calculated adjustment (based on the number of decimals
+            defined in the tolerance configuration).
+
+            Args:
+                value (float or str): The value to be adjusted. Can be a numerical value or a string. If it's NaN, the function returns NaN.
+                direction (str, optional): The direction of adjustment. If "+" (default), the value will be increased. If "-" the value will be decreased.
+                column (str, optional): The column to check for the corresponding tolerance. If not specified, no adjustment is made based on column.
+
+            Returns:
+                float or str:
+                    - If the value is NaN, returns NaN.
+                    - If the value is a string, returns the string unmodified.
+                    - If the value falls within a tolerance range, returns the adjusted value based on the direction.
+                    - Otherwise, returns the unmodified value.
+
+            Notes:
+                - Tolerance ranges and corresponding decimal adjustments are retrieved from `self.tolerance`
+                - The function adjusts the value by adding or subtracting a calculated amount, based on the specified number of decimals in the tolerance configuration.
+                - The tolerance dictionary is structured such that `self.tolerance[column]` is a dictionary mapping `(start, end)` ranges to decimal precision.
+
+            Example:
+                # Assuming self.tolerance is properly set
+                _tol(5.75, direction="+", column="some_column")
+                # Adjust the value 5.75 based on the tolerance for 'some_column' and direction '+'
+            """
             if pd.isna(value):
                 return np.nan
+            elif isinstance(value, str):
+                return value
             for key, tol in self.tolerance.items():
                 if key == column:
                     for ((start, end)), decimals in tol.items():
                         if abs(value) >= start and abs(value) < end:
-                            return 0.5 * 10 ** (decimals)
+                            if direction == "+":
+                                return value + 0.5 * np.abs(0.5 * 10 ** (decimals))
+                            else:
+                                return value - 0.5 * np.abs(0.5 * 10 ** (decimals))
 
         def _equal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
             return (

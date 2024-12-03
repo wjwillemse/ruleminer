@@ -3,7 +3,6 @@
 import re
 import pandas as pd
 from typing import Dict
-import logging
 
 from .const import DUNDER_DF
 from .const import VAR_X
@@ -240,58 +239,9 @@ def pandas_column(
     - The output is a modified version of the original expression.
 
     """
-    result = ""
-    offset = 0
     if expression == "()":
         return expression
-    for idx, c in enumerate(expression):
-        if c == "{":
-            start_column = offset + idx
-        elif c == "}":
-            end_column = offset + idx
-            params = expression[start_column - offset : end_column - offset + 1].rsplit(
-                " ", 2
-            )
-            if len(params) == 3 and params[0][-1] in ['"', "'"]:
-                column, direction, key = params
-                # column does not contain the last "}", but key does
-                if column[2:-1] not in data.columns:
-                    logging.warning(
-                        "Could not check the dtype of column "
-                        + column[2:-1]
-                        + " because it is not in the data DataFrame. Tolerances are not applied."
-                    )
-                if column[2:-1] in data.columns and (
-                    (not pd.api.types.is_string_dtype(data[column[2:-1]]))
-                    and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
-                    and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
-                ):
-                    # apply tolerance
-                    column_expr = (
-                        "("
-                        + column
-                        + "}"
-                        + direction
-                        + "0.5*abs("
-                        + column
-                        + "}"
-                        + '.apply(_tol, args=("'
-                        + key[:-1]
-                        + '",)'
-                        + ")))"
-                    )
-                    result = result[:start_column] + column_expr
-                    offset += len(column_expr) - (end_column - start_column) - 1
-                else:
-                    # do not apply tolerance
-                    result = result[:start_column] + column + "}"
-                    offset += len(column) - (end_column - start_column)
-            else:
-                # does not contain tolerance, so add all
-                result = result[:start_column] + " ".join(params)
-        else:
-            result += c
-    return result.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
+    return expression.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
 
 
 def dataframe_values(expression: str, data: pd.DataFrame()):

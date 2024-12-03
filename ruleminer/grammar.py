@@ -96,8 +96,8 @@ _string = (
     + "\x01"
     + "\x02"
     + "\x03"
-    + pyparsing.pyparsing_unicode.Greek.alphas
-    + pyparsing.pyparsing_unicode.Greek.alphanums
+    # + pyparsing.pyparsing_unicode.Greek.alphas
+    # + pyparsing.pyparsing_unicode.Greek.alphanums
 )
 _quoted_string = pyparsing.Combine(_quote + pyparsing.Word(_string) + _quote)
 _column = pyparsing.Combine("{" + _quote + pyparsing.Word(_string) + _quote + "}")

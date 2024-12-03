@@ -698,7 +698,7 @@ class RuleParser:
                 apply_tolerance=True
             )
             print(result)
-                '({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))'
+                '({"A"}.apply(_tol, args=("+", "default",))))'
 
         """
         if apply_tolerance:
@@ -711,31 +711,17 @@ class RuleParser:
                 args = "default"
             if expression == "K":
                 if positive_tolerance:
-                    return (
-                        "("
-                        + expression
-                        + "+0.5*abs("
-                        + expression
-                        + '.apply(_tol, args=("'
-                        + args
-                        + '",)'
-                        + ")))"
-                    )
+                    return expression + '.apply(_tol, args=("+", "' + args + '",))'
                 else:
-                    return (
-                        "("
-                        + expression
-                        + "-0.5*abs("
-                        + expression
-                        + '.apply(_tol, args=("'
-                        + args
-                        + '",)'
-                        + ")))"
-                    )
+                    return expression + '.apply(_tol, args=("-", "' + args + '",))'
             if positive_tolerance:
-                return expression.replace("}", " + " + args + "}")
+                return expression.replace(
+                    "}", '}.apply(_tol, args=("+", "' + args + '",))'
+                )
             else:
-                return expression.replace("}", " - " + args + "}")
+                return expression.replace(
+                    "}", '}.apply(_tol, args=("-", "' + args + '",))'
+                )
         elif expression.lower() == "in":
             return ".isin"
         else:

@@ -180,3 +180,8 @@
 - Performance
 	- Deleted concats when collecting rules and results
 - Parameter 'results_datatype' can now be a dict that contains per column a list of results
+
+### 0.2.13 (2024-12-3)
+
+- Changed tolerance function to be able to evaluate string values
+- Small fix when collecting results

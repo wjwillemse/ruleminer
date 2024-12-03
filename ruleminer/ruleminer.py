@@ -282,7 +282,7 @@ class RuleMiner:
                     results[CONFIDENCE].extend([rule_metrics[CONFIDENCE]])
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]])
                     results[RESULT].extend([None])
-                    results[INDICES].extend(None)
+                    results[INDICES].extend([None])
 
             logger.info(
                 "Finished: "
