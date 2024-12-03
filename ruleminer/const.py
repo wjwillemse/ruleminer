@@ -25,7 +25,7 @@ RESULT = "result"
 INDICES = "indices"
 RESULT_EXPRESSION = "result_expression"
 
-DUNDER_DF = "__df__"
+DUNDER_DF = "_df"
 
 VAR_X_AND_Y = "X and Y"
 VAR_X_AND_NOT_Y = "X and ~Y"

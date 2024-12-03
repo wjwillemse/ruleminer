@@ -228,3 +228,119 @@ def fit_dataframe_to_ensemble(
                 solutions.add(sol)
 
     return solutions
+
+
+def is_column(s):
+    """
+    Check if a given string is formatted as a column reference.
+
+    This function checks if a string is formatted as a column reference,
+    which typically consists of double curly braces {""} enclosing a
+    column name.
+
+    Args:
+        s (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is formatted as a column reference,
+        False otherwise.
+
+    Example:
+        is_column('{"A"}')
+            True
+
+        is_column('{"B"}')
+            True
+
+        is_column("Not a column reference")
+            False
+    """
+    return len(s) > 4 and (
+        (s[:2] == '{"' and s[-1:] == "}") or (s[:2] == "{'" and s[-1:] == "}")
+    )
+
+
+def is_string(s):
+    """
+    Check if a given string is enclosed in single or double quotes.
+
+    This function checks if a string is enclosed in single ('') or
+    double ("") quotes, indicating that it is a string literal.
+
+    Args:
+        s (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is enclosed in quotes, False otherwise.
+
+    Example:
+        is_string('"life"')
+            True
+
+        is_string('{"A"}')
+            False
+
+        is_string('""')
+            True
+    """
+    return len(s) > 1 and (
+        (s[:1] == '"' and s[-1:] == '"') or (s[:1] == "'" and s[-1:] == "'")
+    )
+
+
+def is_number(s):
+    """
+    Check if a given string is a number
+
+    This function checks if a string is a number.
+
+    Args:
+        s (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is a number
+
+    Example:
+        is_number('1.2')
+            True
+
+        is_number('{"A"}')
+            False
+
+    """
+    if isinstance(s, str):
+        pattern = r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?"
+        match = re.match(pattern, s)
+        return bool(match)
+    else:
+        return False
+
+
+def flatten(expression):
+    """
+    Recursively flatten a nested expression and return it as a string.
+
+    This function takes an expression, which can be a nested list of strings
+    or a single string, and recursively flattens it into a single string
+    enclosed in parentheses.
+
+    Args:
+        expression (str or list): The expression to be flattened.
+
+    Returns:
+        str: The flattened expression as a string enclosed in parentheses.
+
+    Example:
+        expression = ["A", ["B", ["C", "D"]]]
+
+        result = ruleminer.flatten(expression)
+
+        print(result)
+
+            "(A(B(CD)))"
+    """
+    if isinstance(expression, str):
+        return expression
+    else:
+        res = "".join([flatten(item) for item in expression])
+        return res
