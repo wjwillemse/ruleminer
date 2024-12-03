@@ -158,3 +158,30 @@
 - Fix for SUMIF when data DataFrame contains pd.NA's
 - Added date functions to extract day, month, quarter and year from a column
 - Added date functions day_name, month_name, days_in_month, daysinmonth, is_leap_year, is_year_end, dayofweek, weekofyear, weekday, week, is_month_end, is_month_start, is_year_start, is_quarter_end and is_quarter_start
+
+### 0.2.10 (2024-11-25)
+
+- Added dtype=float to np.sum operations to prevent divide by zero exceptions
+- In the results a row with not applicable is only included is there are no exceptions and no confirmations
+- Added days / months / years functions that return the number of days / months / years of an expression (the difference between two timedate64 columns)
+
+### 0.2.11 (2024-11-27)
+
+- Parser of list comprehension now accepts a wider range of expressions
+- Fix when applying tolerances when denominator in rule expression is negative
+- Shortened internal function names
+
+### 0.2.12 (2024-12-2)
+
+- Refactoring
+	- Created separated CodeEvaluator class
+	- Created separated RuleParser class
+	- Streamlined parentheses process (resulting expressions have same parentheses as original)
+- Performance
+	- Deleted concats when collecting rules and results
+- Parameter 'results_datatype' can now be a dict that contains per column a list of results
+
+### 0.2.13 (2024-12-3)
+
+- Changed tolerance function to be able to evaluate string values
+- Small fix when collecting results

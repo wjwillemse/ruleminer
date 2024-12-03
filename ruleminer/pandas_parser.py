@@ -3,7 +3,6 @@
 import re
 import pandas as pd
 from typing import Dict
-import logging
 
 from .const import DUNDER_DF
 from .const import VAR_X
@@ -43,8 +42,8 @@ def dataframe_lengths(
         >>> required = ['X', 'Y', 'X and Y']
         >>> result = ruleminer.dataframe_lengths(expression, required)
         >>> print(result)
-        {'X': '((__df__["A"] > 0)).sum()', 'Y': '((__df__["B"] < 10)).sum()',
-        'X and Y': '(((__df__["A"] > 0)) & ((__df__["B"] < 10))).sum()'}
+        {'X': '((_df["A"] > 0)).sum()', 'Y': '((_df["B"] < 10)).sum()',
+        'X and Y': '(((_df["A"] > 0)) & ((_df["B"] < 10))).sum()'}
     """
     regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
     rule = regex_condition.search(expression)
@@ -127,9 +126,9 @@ def dataframe_index(
         >>> result = ruleminer.dataframe_index(expression, required)
         >>> print(result)
         {
-          'X': '__df__.index[((__df__["A"] > 0))]',
-          'Y': '__df__.index[((__df__["B"] < 10))]',
-          'X and Y': '__df__.index[((__df__["A"] > 0)) & ((__df__["B"] < 10))]'
+          'X': '_df.index[((_df["A"] > 0))]',
+          'Y': '_df.index[((_df["B"] < 10))]',
+          'X and Y': '_df.index[((_df["A"] > 0)) & ((_df["B"] < 10))]'
         }
     """
     regex_condition = re.compile(r"if(.*)then(.*)", re.IGNORECASE)
@@ -224,12 +223,12 @@ def pandas_column(
         >>> expression = '{"A"}'
         >>> result = ruleminer.pandas_column(expression)
         >>> print(result)
-        "__df__[A]"
+        "_df[A]"
 
         >>> expression = '{"A" + default}'
         >>> result = ruleminer.pandas_column(expression)
         >>> print(result)
-        "__df__[A] + 0.5*abs(__df__[A].apply(__tol__, args=('key',))))"
+        "_df[A] + 0.5*abs(_df[A].apply(_tol, args=('key',))))"
 
     Errors may occur if the expression is not correctly formatted or if column names do not exist in the DataFrame.
 
@@ -240,58 +239,9 @@ def pandas_column(
     - The output is a modified version of the original expression.
 
     """
-    result = ""
-    offset = 0
     if expression == "()":
         return expression
-    for idx, c in enumerate(expression):
-        if c == "{":
-            start_column = offset + idx
-        elif c == "}":
-            end_column = offset + idx
-            params = expression[start_column - offset : end_column - offset + 1].rsplit(
-                " ", 2
-            )
-            if len(params) == 3 and params[0][-1] in ['"', "'"]:
-                column, direction, key = params
-                # column does not contain the last "}", but key does
-                if column[2:-1] not in data.columns:
-                    logging.warning(
-                        "Could not check the dtype of column "
-                        + column[2:-1]
-                        + " because it is not in the data DataFrame. Tolerances are not applied."
-                    )
-                if column[2:-1] in data.columns and (
-                    (not pd.api.types.is_string_dtype(data[column[2:-1]]))
-                    and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
-                    and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
-                ):
-                    # apply tolerance
-                    column_expr = (
-                        "("
-                        + column
-                        + "}"
-                        + direction
-                        + "0.5*abs("
-                        + column
-                        + "}"
-                        + '.apply(__tol__, args=("'
-                        + key[:-1]
-                        + '",)'
-                        + ")))"
-                    )
-                    result = result[:start_column] + column_expr
-                    offset += len(column_expr) - (end_column - start_column) - 1
-                else:
-                    # do not apply tolerance
-                    result = result[:start_column] + column + "}"
-                    offset += len(column) - (end_column - start_column)
-            else:
-                # does not contain tolerance, so add all
-                result = result[:start_column] + " ".join(params)
-        else:
-            result += c
-    return result.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
+    return expression.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
 
 
 def dataframe_values(expression: str, data: pd.DataFrame()):
@@ -314,7 +264,7 @@ def dataframe_values(expression: str, data: pd.DataFrame()):
         >>> expression = '{"A"} > 0'
         >>> result = ruleminer.dataframe_values(expression)
         >>> print(result)
-        "__df__[(__df__["A"] > 0)]"
+        "_df[(_df["A"] > 0)]"
     """
     if expression != "":
         expression = "[(" + pandas_column(expression, data) + ")]"
