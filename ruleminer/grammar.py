@@ -120,17 +120,17 @@ _list <<= pyparsing.Group(
 _base_element = (
     _quoted_string | _column | _number | _empty | _list | _list_comprehension_var
 )
-############################################
+################################################################################
 # definition of a simple function expression
-############################################
+################################################################################
 _params = _base_element + (_sep + _base_element)[...]
 simple_function_expression = pyparsing.Group(
     _function + pyparsing.Group(_lpar + _params + _rpar)
 )
 
-############################################
+################################################################################
 # definition of a simple math expression
-############################################
+################################################################################
 # first look for simple function expression then look for base element
 # (do not change order because then only the function name is parsed and not the rest)
 simple_math_expression = pyparsing.Forward()
@@ -143,9 +143,9 @@ _simple_math_factor <<= _simple_math_atom + (_expop + _simple_math_factor)[...]
 _simple_math_term = _simple_math_factor + (_multop + _simple_math_factor)[...]
 simple_math_expression <<= _simple_math_term + (_addop + _simple_math_term)[...]
 
-############################################
+################################################################################
 # definition of a simple condition expression
-############################################
+################################################################################
 simple_condition_expression = pyparsing.infixNotation(
     (simple_math_expression + _compa_op + simple_math_expression),
     [
@@ -167,9 +167,9 @@ simple_condition_expression = pyparsing.infixNotation(
     ],
 )
 
-############################################
+################################################################################
 # definition of a list_comprehension expression
-############################################
+################################################################################
 list_comprehension_expression = pyparsing.Group(
     _lbra
     + pyparsing.Group(simple_condition_expression | simple_math_expression)
@@ -180,9 +180,9 @@ list_comprehension_expression = pyparsing.Group(
     + _rbra
 )
 
-############################################
+################################################################################
 # definition of a function_expression
-############################################
+################################################################################
 _function_param = (
     simple_condition_expression | simple_math_expression | list_comprehension_expression
 )
@@ -192,9 +192,9 @@ function_expression <<= pyparsing.Group(
     _function + pyparsing.Group(_lpar + _function_params + _rpar)
 )
 
-############################################
+################################################################################
 # definition of a math_expression
-############################################
+################################################################################
 math_expression = pyparsing.Forward()
 _math_element = function_expression | simple_math_expression
 _math_atom = _math_element | pyparsing.Group(_lpar + math_expression + _rpar)
@@ -203,9 +203,9 @@ _math_factor <<= _math_atom + (_expop + _math_factor)[...]
 _math_term = _math_factor + (_multop + _math_factor)[...]
 math_expression <<= _math_term + (_addop + _math_term)[...]
 
-############################################
+################################################################################
 # definition of a condition_expression
-############################################
+################################################################################
 condition_expression = pyparsing.infixNotation(
     pyparsing.Group(_lpar + (math_expression + _compa_op + math_expression) + _rpar),
     [
@@ -227,9 +227,9 @@ condition_expression = pyparsing.infixNotation(
     ],
 )
 
-############################################
+################################################################################
 # definition of a rule expression
-############################################
+################################################################################
 _if_then = (
     "if" + condition_expression + "then" + condition_expression
     | "IF" + condition_expression + "THEN" + condition_expression
