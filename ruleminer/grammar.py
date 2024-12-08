@@ -121,6 +121,26 @@ _base_element = (
     _quoted_string | _column | _number | _empty | _list | _list_comprehension_var
 )
 ################################################################################
+# definition of a super simple math expression
+################################################################################
+# first look for simple function expression then look for base element
+# (do not change order because then only the function name is parsed and not the rest)
+base_element_math_expression = pyparsing.Forward()
+_base_element_math_atom = _base_element | pyparsing.Group(
+    _lpar + base_element_math_expression + _rpar
+)
+_base_element_math_factor = pyparsing.Forward()
+_base_element_math_factor <<= (
+    _base_element_math_atom + (_expop + _base_element_math_factor)[...]
+)
+_base_element_math_term = (
+    _base_element_math_factor + (_multop + _base_element_math_factor)[...]
+)
+base_element_math_expression <<= (
+    _base_element_math_term + (_addop + _base_element_math_term)[...]
+)
+
+################################################################################
 # definition of a simple function expression
 ################################################################################
 _params = _base_element + (_sep + _base_element)[...]
@@ -134,7 +154,9 @@ simple_function_expression = pyparsing.Group(
 # first look for simple function expression then look for base element
 # (do not change order because then only the function name is parsed and not the rest)
 simple_math_expression = pyparsing.Forward()
-_simple_math_element = simple_function_expression | _base_element
+_simple_math_element = (
+    simple_function_expression | base_element_math_expression | _base_element
+)
 _simple_math_atom = _simple_math_element | pyparsing.Group(
     _lpar + simple_math_expression + _rpar
 )

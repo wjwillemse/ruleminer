@@ -186,6 +186,6 @@
 - Changed tolerance function to be able to evaluate string values
 - Small fix when collecting results
 
-### 0.2.14 (2024-12-5)
+### 0.2.15 (2024-12-5)
 
 - Improved parsing performance
