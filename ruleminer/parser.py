@@ -37,7 +37,7 @@ class RuleParser:
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
             (set(["quantile"]), self.parse_quantile),
             (set(["for"]), self.parse_list_comprehension),
-            (set(["in"]), self.parse_in),
+            (set(["in", "not in"]), self.parse_in),
             (set(["substr"]), self.parse_substr),
             (set(["split"]), self.parse_split),
             (set(["sum"]), self.parse_sum),
@@ -660,7 +660,10 @@ class RuleParser:
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        res = ""
+        if item == "not in":
+            res = "~"
+        else:
+            res = ""
         for i in left_side:
             res += self.parse(
                 i,
@@ -848,6 +851,11 @@ class RuleParser:
                 or contains_string(expression[idx + 1 :])
             )
         ):
+            left_side = self.parse(
+                expression=expression[:idx],
+                apply_tolerance=False,
+                positive_tolerance=True,
+            )
             left_side_pos = self.parse(
                 expression=expression[:idx],
                 apply_tolerance=True,
@@ -857,6 +865,11 @@ class RuleParser:
                 expression=expression[:idx],
                 apply_tolerance=True,
                 positive_tolerance=False,
+            )
+            right_side = self.parse(
+                expression=expression[idx + 1 :],
+                apply_tolerance=False,
+                positive_tolerance=True,
             )
             right_side_pos = self.parse(
                 expression=expression[idx + 1 :],
@@ -871,6 +884,10 @@ class RuleParser:
             if item in ["=="]:
                 res = (
                     "_equal("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -883,6 +900,10 @@ class RuleParser:
             if item in ["!="]:
                 res = (
                     "_unequal("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg

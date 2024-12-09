@@ -135,23 +135,87 @@ class CodeEvaluator:
                             else:
                                 return value - 0.5 * np.abs(0.5 * 10 ** (decimals))
 
-        def _equal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
-            return (
-                np.maximum(left_side_pos, left_side_neg)
-                >= np.minimum(right_side_pos, right_side_neg)
-            ) & (
-                np.minimum(left_side_pos, left_side_neg)
-                <= np.maximum(right_side_pos, right_side_neg)
-            )
+        def _equal(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                return (
+                    np.maximum(left_side_pos, left_side_neg)
+                    >= np.minimum(right_side_pos, right_side_neg)
+                ) & (
+                    np.minimum(left_side_pos, left_side_neg)
+                    <= np.maximum(right_side_pos, right_side_neg)
+                )
 
-        def _unequal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
-            return (
-                np.minimum(left_side_pos, left_side_neg)
-                < np.maximum(right_side_pos, right_side_neg)
-            ) | (
-                np.maximum(left_side_pos, left_side_neg)
-                > np.minimum(right_side_pos, right_side_neg)
-            )
+        def _unequal(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side != right_side
+            else:
+                return (
+                    np.minimum(left_side_pos, left_side_neg)
+                    < np.maximum(right_side_pos, right_side_neg)
+                ) | (
+                    np.maximum(left_side_pos, left_side_neg)
+                    > np.minimum(right_side_pos, right_side_neg)
+                )
 
         self.globals["_tol"] = _tol
         self.globals["_equal"] = _equal

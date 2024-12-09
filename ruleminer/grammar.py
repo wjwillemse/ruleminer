@@ -107,7 +107,11 @@ _column = pyparsing.Combine("{" + _quote + pyparsing.Word(_string) + _quote + "}
 _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
-_compa_op = pyparsing.one_of(">= > <= < != == in IN match MATCH")
+_compa_op = (
+    pyparsing.one_of(">= > <= < != == in IN match MATCH")
+    | pyparsing.Literal("not in")
+    | pyparsing.Literal("NOT IN")
+)
 
 _list = pyparsing.Forward()
 _list <<= pyparsing.Group(

@@ -189,3 +189,11 @@
 ### 0.2.15 (2024-12-5)
 
 - Improved parsing performance
+
+### 0.2.16 (2024-12-8)
+
+- Added: 'not in' as comparison operator
+- Added: parameter 'apply_rules_on_indices' (default True) that allows indices to be included as columns when generating and evaluating rules (if set to False then the data DataFrame is not changed)
+- Output: dtypes of results DateFrame are enforced
+- Performance: changed the internal equal and unequal functions to improve performance for columns with string, bool and datetime64_ns
+- Logging: change to logging when all are not applicable

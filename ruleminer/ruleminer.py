@@ -206,7 +206,7 @@ class RuleMiner:
                                             the object.
 
         Returns:
-            pd.DataFrame: A DataFrame containing the evaluation results with columns for rule ID,
+            pd.DataFrame: A DataFrame containing the evaluation results with columns for rule id,
                           rule group, rule definition, status, metrics (support, exceptions,
                           confidence), result (True/False/None), and indices.
 
@@ -235,19 +235,37 @@ class RuleMiner:
             }
         )
 
-        # add temporary index columns (to allow rules based on index data)
-        for level in range(len(self.data.index.names)):
-            self.data[str(self.data.index.names[level])] = (
-                self.data.index.get_level_values(level=level)
-            )
+        mapping_dtypes = {
+            RULE_ID: self.rules[RULE_ID].dtype,
+            RULE_GROUP: self.rules[RULE_GROUP].dtype,
+            RULE_DEF: self.rules[RULE_DEF].dtype,
+            RULE_STATUS: self.rules[RULE_STATUS].dtype,
+            ABSOLUTE_SUPPORT: "Int64",
+            ABSOLUTE_EXCEPTIONS: "Int64",
+            CONFIDENCE: "Float64",
+            NOT_APPLICABLE: "Int64",
+            RESULT: "object",
+            INDICES: "object",
+        }
+
+        if self.params.get("apply_rules_on_indices", True):
+            # add temporary index columns (to allow rules based on index data)
+            for level in range(len(self.data.index.names)):
+                self.data[str(self.data.index.names[level])] = (
+                    self.data.index.get_level_values(level=level)
+                )
 
         for rule_idx, row in self.rules.iterrows():
+            rule_id = row[RULE_ID]
+            rule_def = row[RULE_DEF]
+            rule_group = row[RULE_GROUP]
+            rule_status = row[RULE_STATUS]
+
             required_vars = required_variables(
                 [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE]
             )
-            expression = row[RULE_DEF]
             rule_code = dataframe_index(
-                expression=expression, required=required_vars, data=self.data
+                expression=rule_def, required=required_vars, data=self.data
             )
             code_results = self.evaluate_code(
                 expressions=rule_code, dataframe=self.data
@@ -287,21 +305,12 @@ class RuleMiner:
             n_indices = [i for i in self.data.index if i not in indices]
             n = len(n_indices)
 
-            if nco == 0 and nex == 0:
-                logger.debug(
-                    "Rule "
-                    + str(rule_idx)
-                    + " ("
-                    + str(row[RULE_ID])
-                    + ")"
-                    + " resulted in 0 confirmations and 0 exceptions."
-                )
             if self.params.get("output_confirmations", True):
                 if nco > 0:
-                    results[RULE_ID].extend([row[RULE_ID]] * nco)
-                    results[RULE_GROUP].extend([row[RULE_GROUP]] * nco)
-                    results[RULE_DEF].extend([row[RULE_DEF]] * nco)
-                    results[RULE_STATUS].extend([row[RULE_STATUS]] * nco)
+                    results[RULE_ID].extend([rule_id] * nco)
+                    results[RULE_GROUP].extend([rule_group] * nco)
+                    results[RULE_DEF].extend([rule_def] * nco)
+                    results[RULE_STATUS].extend([rule_status] * nco)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nco
                     )
@@ -315,10 +324,10 @@ class RuleMiner:
 
             if self.params.get("output_exceptions", True):
                 if nex > 0:
-                    results[RULE_ID].extend([row[RULE_ID]] * nex)
-                    results[RULE_GROUP].extend([row[RULE_GROUP]] * nex)
-                    results[RULE_DEF].extend([row[RULE_DEF]] * nex)
-                    results[RULE_STATUS].extend([row[RULE_STATUS]] * nex)
+                    results[RULE_ID].extend([rule_id] * nex)
+                    results[RULE_GROUP].extend([rule_group] * nex)
+                    results[RULE_DEF].extend([rule_def] * nex)
+                    results[RULE_STATUS].extend([rule_status] * nex)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nex
                     )
@@ -332,10 +341,10 @@ class RuleMiner:
 
             if self.params.get("output_not_applicable", False):
                 if (nco == 0 and nex == 0) and n > 0:
-                    results[RULE_ID].extend([row[RULE_ID]])
-                    results[RULE_GROUP].extend([row[RULE_GROUP]])
-                    results[RULE_DEF].extend([row[RULE_DEF]])
-                    results[RULE_STATUS].extend([row[RULE_STATUS]])
+                    results[RULE_ID].extend([rule_id])
+                    results[RULE_GROUP].extend([rule_group])
+                    results[RULE_DEF].extend([rule_def])
+                    results[RULE_STATUS].extend([rule_status])
                     results[ABSOLUTE_SUPPORT].extend([rule_metrics[ABSOLUTE_SUPPORT]])
                     results[ABSOLUTE_EXCEPTIONS].extend(
                         [rule_metrics[ABSOLUTE_EXCEPTIONS]]
@@ -345,18 +354,29 @@ class RuleMiner:
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
 
-            logger.info("Finished: " + str(rule_idx) + " (" + str(row[RULE_ID]) + ")")
+            if nco == 0 and nex == 0:
+                logger.debug(
+                    "Finished: "
+                    + str(rule_idx)
+                    + " ("
+                    + str(rule_id)
+                    + ")"
+                    + " [0 confirmations and 0 exceptions]"
+                )
+            else:
+                logger.info("Finished: " + str(rule_idx) + " (" + str(rule_id) + ")")
 
         if self.results_datatype == pd.DataFrame:
-            self.results = pd.DataFrame.from_dict(results)
+            self.results = pd.DataFrame.from_dict(results).astype(mapping_dtypes)
         elif self.results_datatype == pl.DataFrame:
             self.results = pl.DataFrame(results)
         elif isinstance(self.results_datatype, dict):
             self.results = results
 
-        # remove temporarily added index columns
-        for level in range(len(self.data.index.names)):
-            del self.data[str(self.data.index.names[level])]
+        if self.params.get("apply_rules_on_indices", True):
+            # remove temporarily added index columns
+            for level in range(len(self.data.index.names)):
+                del self.data[str(self.data.index.names[level])]
 
         return self.results
 
@@ -373,7 +393,7 @@ class RuleMiner:
             templates (list, optional): A list of templates to convert into rules. Each template
                                          should be a dictionary containing at least the key `expression`
                                          with a string representing the rule's condition. Other optional
-                                         keys are `group` (group ID) and `encodings` (rule-specific encodings).
+                                         keys are `group` and `encodings` (rule-specific encodings).
 
         Returns:
             None: This method does not return any value. It updates the internal `rules` object with
@@ -485,12 +505,13 @@ class RuleMiner:
         encodings = template.get("encodings", {})
         template_expression = template.get("expression", None)
 
-        # temporarily add index names as columns, so we derive rules with index names
-        if self.data is not None:
-            for level in range(len(self.data.index.names)):
-                self.data[str(self.data.index.names[level])] = (
-                    self.data.index.get_level_values(level=level)
-                )
+        if self.params.get("apply_rules_on_indices", True):
+            # temporarily add index names as columns, so we derive rules with index names
+            if self.data is not None:
+                for level in range(len(self.data.index.names)):
+                    self.data[str(self.data.index.names[level])] = (
+                        self.data.index.get_level_values(level=level)
+                    )
 
         # create dict of lists for rules
         rules = OrderedDict(
@@ -638,10 +659,11 @@ class RuleMiner:
         elif self.rules_datatype == pl.DataFrame:
             self.rules = pl.DataFrame(rules)
 
-        # remove temporarily added index columns
-        if self.data is not None:
-            for level in range(len(self.data.index.names)):
-                del self.data[str(self.data.index.names[level])]
+        if self.params.get("apply_rules_on_indices", True):
+            # remove temporarily added index columns
+            if self.data is not None:
+                for level in range(len(self.data.index.names)):
+                    del self.data[str(self.data.index.names[level])]
 
     def substitute_group_names(
         self, expr: str = None, group_names_list: list = []

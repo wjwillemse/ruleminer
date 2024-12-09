@@ -238,15 +238,34 @@ def pandas_column(
 
     """
 
-    # skip if dtype is certain type is not yet implemented
-    # if column in data.columns and (
-    #    (not pd.api.types.is_string_dtype(data[column[2:-1]]))
-    #     and (not pd.api.types.is_bool_dtype(data[column[2:-1]]))
-    #     and (not pd.api.types.is_datetime64_ns_dtype(data[column[2:-1]]))
-    # ):
-
     if expression == "()":
         return expression
+
+    # new_expression = ""
+    # idx = 0
+    # while idx < len(expression):
+    #     new_expression += expression[idx]
+    #     if expression[idx] == "{":
+    #         start = idx + 2
+    #     elif expression[idx] == "}":
+    #         end = idx - 1
+    #         column = expression[start: end]
+    #         if column in data.columns and (
+    #            (not pd.api.types.is_string_dtype(data[column]))
+    #             and (not pd.api.types.is_bool_dtype(data[column]))
+    #             and (not pd.api.types.is_datetime64_ns_dtype(data[column]))
+    #         ):
+    #             if expression[end+2:end+13]==".apply(_tol":
+    #                 apply_end = False
+    #                 arg_end = False
+    #                 while not apply_end:
+    #                     if expression[idx] == ")":
+    #                         if arg_end:
+    #                             apply_end = True
+    #                         else:
+    #                             arg_end = True
+    #                     idx += 1
+    #     idx += 1
     return expression.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
 
 
