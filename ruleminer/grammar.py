@@ -159,7 +159,7 @@ simple_function_expression = pyparsing.Group(
 # (do not change order because then only the function name is parsed and not the rest)
 simple_math_expression = pyparsing.Forward()
 _simple_math_element = (
-    simple_function_expression | base_element_math_expression | _base_element
+    simple_function_expression | _base_element | base_element_math_expression
 )
 _simple_math_atom = _simple_math_element | pyparsing.Group(
     _lpar + simple_math_expression + _rpar

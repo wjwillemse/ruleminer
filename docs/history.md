@@ -197,3 +197,8 @@
 - Output: dtypes of results DateFrame are enforced
 - Performance: changed the internal equal and unequal functions to improve performance for columns with string, bool and datetime64_ns
 - Logging: change to logging when all are not applicable
+
+### 0.2.17 (2024-12-10)
+
+- Fix in grammar when parsing mathematical expressions in function parameters
+- Fix for applying tolerances

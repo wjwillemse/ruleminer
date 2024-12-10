@@ -1458,7 +1458,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[0]),
             [
                 0,
-                0, 
+                0,
                 'if () then (MAX(0,{"A"})>0)',
                 "",
                 2,
@@ -1472,7 +1472,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[1]),
             [
                 0,
-                0, 
+                0,
                 'if () then (MAX(0,{"A"})>0)',
                 "",
                 2,
@@ -1486,7 +1486,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[2]),
             [
                 0,
-                0, 
+                0,
                 'if () then (MAX(0,{"A"})>0)',
                 "",
                 2,
@@ -1543,7 +1543,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[0]),
             [
                 0,
-                0, 
+                0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
                 "",
                 2,
@@ -1558,7 +1558,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[1]),
             [
                 0,
-                0, 
+                0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
                 "",
                 2,
@@ -1573,7 +1573,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[2]),
             [
                 0,
-                0, 
+                0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
                 "",
                 2,
@@ -1588,7 +1588,7 @@ class TestRuleminer(unittest.TestCase):
             list(actual[3]),
             [
                 0,
-                0, 
+                0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
                 "",
                 2,

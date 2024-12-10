@@ -131,9 +131,9 @@ class CodeEvaluator:
                     for ((start, end)), decimals in tol.items():
                         if abs(value) >= start and abs(value) < end:
                             if direction == "+":
-                                return value + 0.5 * np.abs(0.5 * 10 ** (decimals))
+                                return value + 0.5 * 10 ** (decimals)
                             else:
-                                return value - 0.5 * np.abs(0.5 * 10 ** (decimals))
+                                return value - 0.5 * 10 ** (decimals)
 
         def _equal(
             left_side,

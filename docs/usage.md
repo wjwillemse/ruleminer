@@ -205,14 +205,14 @@ A==B
 
 is translated to:
 ```
-max(A+0.5*abs(tol(A)), A-0.5*abs(tol(A))) >= min(B+0.5*abs(tol(B)), B-0.5*abs(tol(B)))
+max(A+tol(A), A-tol(A)) >= min(B+tol(B), B-tol(B))
 
 &
 
-min(A+0.5*abs(tol(A)), A-0.5*abs(tol(A))) <= max(B+0.5*abs(tol(B)), B+0.5*abs(tol(B)))
+min(A+tol(A), A-tol(A)) <= max(B+tol(B), B-tol(B))
 ```
 
-where tol(A) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
+where tol(Α) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
 
 The example can be reproduced in ruleminer in the following way:
 ```python

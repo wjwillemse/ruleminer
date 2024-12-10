@@ -660,7 +660,7 @@ class RuleParser:
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        if item == "not in":
+        if item.lower() == "not in":
             res = "~"
         else:
             res = ""
