@@ -285,7 +285,7 @@ Comparison operators are evaluated as follows (a and b can be any (nested) mathe
     <= (a, -) < (b, +)
 ```
 
-Comparison operators are evaluated as follows (a and b can be any (nested) mathematical expression following the grammar):
+Mathematical operators are evaluated as follows (a and b can be any (nested) mathematical expression following the grammar):
 ```
     plus((a, b), -) -> (a, -) + (b, -)
 
