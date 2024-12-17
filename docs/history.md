@@ -185,3 +185,26 @@
 
 - Changed tolerance function to be able to evaluate string values
 - Small fix when collecting results
+
+### 0.2.15 (2024-12-5)
+
+- Improved parsing performance
+
+### 0.2.16 (2024-12-8)
+
+- Added: 'not in' as comparison operator
+- Added: parameter 'apply_rules_on_indices' (default True) that allows indices to be included as columns when generating and evaluating rules (if set to False then the data DataFrame is not changed)
+- Output: dtypes of results DateFrame are enforced
+- Performance: changed the internal equal and unequal functions to improve performance for columns with string, bool and datetime64_ns
+- Logging: change to logging when all are not applicable
+
+### 0.2.17 (2024-12-10)
+
+- Fix in grammar when parsing mathematical expressions in function parameters
+- Fix for applying tolerances
+
+### 0.2.18 (2024-12-17)
+
+- Added multiply and divide functions when left and right side both contain columns (see usage documentation)
+- Changed grammar to separate plus, minus on one hand and multiplication, division on other hand into separate groups (needed for first point)
+- Added debugging information on lower and upper bounds when evaluating (in)equalities

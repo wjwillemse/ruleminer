@@ -89,6 +89,7 @@ class CodeEvaluator:
             "np": np,
             "nan": np.nan,
         }
+        self.logger = logging.getLogger(__name__)
 
         # general tolerance function
         def _tol(value, direction=bool, column=None):
@@ -131,31 +132,203 @@ class CodeEvaluator:
                     for ((start, end)), decimals in tol.items():
                         if abs(value) >= start and abs(value) < end:
                             if direction == "+":
-                                return value + 0.5 * np.abs(0.5 * 10 ** (decimals))
+                                return value + 0.5 * 10 ** (decimals)
                             else:
-                                return value - 0.5 * np.abs(0.5 * 10 ** (decimals))
+                                return value - 0.5 * 10 ** (decimals)
 
-        def _equal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
-            return (
-                np.maximum(left_side_pos, left_side_neg)
-                >= np.minimum(right_side_pos, right_side_neg)
-            ) & (
-                np.minimum(left_side_pos, left_side_neg)
-                <= np.maximum(right_side_pos, right_side_neg)
-            )
+        def _equal(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                if logging.DEBUG == logging.root.level:
+                    lhs = [
+                        (str(a), str(b))
+                        for a, b in zip(
+                            np.minimum(left_side_pos, left_side_neg),
+                            np.maximum(left_side_pos, left_side_neg),
+                        )
+                    ]
+                    rhs = [
+                        (str(a), str(b))
+                        for a, b in zip(
+                            np.minimum(right_side_pos, right_side_neg),
+                            np.maximum(right_side_pos, right_side_neg),
+                        )
+                    ]
+                    self.logger.debug("Evaluating equality:")
+                    for idx in range(len(lhs)):
+                        self.logger.debug(
+                            "  LHS: " + str(lhs[idx]) + ", RHS: " + str(rhs[idx])
+                        )
+                return (
+                    np.maximum(left_side_pos, left_side_neg)
+                    >= np.minimum(right_side_pos, right_side_neg)
+                ) & (
+                    np.minimum(left_side_pos, left_side_neg)
+                    <= np.maximum(right_side_pos, right_side_neg)
+                )
 
-        def _unequal(left_side_pos, left_side_neg, right_side_pos, right_side_neg):
-            return (
-                np.minimum(left_side_pos, left_side_neg)
-                < np.maximum(right_side_pos, right_side_neg)
-            ) | (
-                np.maximum(left_side_pos, left_side_neg)
-                > np.minimum(right_side_pos, right_side_neg)
-            )
+        def _unequal(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side != right_side
+            else:
+                if logging.DEBUG == logging.root.level:
+                    lhs = [
+                        (str(a), str(b))
+                        for a, b in zip(
+                            np.minimum(left_side_pos, left_side_neg),
+                            np.maximum(left_side_pos, left_side_neg),
+                        )
+                    ]
+                    rhs = [
+                        (str(a), str(b))
+                        for a, b in zip(
+                            np.minimum(right_side_pos, right_side_neg),
+                            np.maximum(right_side_pos, right_side_neg),
+                        )
+                    ]
+                    self.logger.debug("Evaluating inequality:")
+                    for idx in range(len(lhs)):
+                        self.logger.debug(
+                            "  LHS: " + str(lhs[idx]) + ", RHS: " + str(rhs[idx])
+                        )
+                return (
+                    np.minimum(left_side_pos, left_side_neg)
+                    < np.maximum(right_side_pos, right_side_neg)
+                ) | (
+                    np.maximum(left_side_pos, left_side_neg)
+                    > np.minimum(right_side_pos, right_side_neg)
+                )
+
+        def _multiply(a_pos, a_neg, b_pos, b_neg, direction: str):
+            """
+            Perform multiplication based on the given direction and return the maximum or minimum result
+            based on the values of a+, a-, b+, b-.
+
+            Input is pd.Series, so output should be pd.Series
+
+            """
+            if direction == "+":
+                return pd.concat(
+                    [
+                        (a_neg * b_neg),
+                        (a_neg * b_pos),
+                        (a_pos * b_neg),
+                        (a_pos * b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).max(axis=1)
+            else:
+                return pd.concat(
+                    [
+                        (a_neg * b_neg),
+                        (a_neg * b_pos),
+                        (a_pos * b_neg),
+                        (a_pos * b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).min(axis=1)
+
+        def _divide(a_pos, a_neg, b_pos, b_neg, direction: str):
+            """
+            Perform division based on the given direction and return the maximum or minimum result
+            based on the values of a+, a-, b+, b-.
+
+            Input is pd.Series, so output should be pd.Series
+
+            """
+            if direction == "+":
+                return pd.concat(
+                    [
+                        (a_neg / b_neg),
+                        (a_neg / b_pos),
+                        (a_pos / b_neg),
+                        (a_pos / b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).max(axis=1)
+            else:
+                return pd.concat(
+                    [
+                        (a_neg / b_neg),
+                        (a_neg / b_pos),
+                        (a_pos / b_neg),
+                        (a_pos / b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).min(axis=1)
 
         self.globals["_tol"] = _tol
         self.globals["_equal"] = _equal
         self.globals["_unequal"] = _unequal
+        self.globals["_multiply"] = _multiply
+        self.globals["_divide"] = _divide
 
     def set_params(self, params):
         """
@@ -195,10 +368,6 @@ class CodeEvaluator:
     ) -> None:
         """
         Sets the DataFrame to evaluate the expressions on.
-
-        This method stores the provided pandas DataFrame in the `globals` under a
-        predefined key. The DataFrame can then be accessed by other methods in the class
-        for evaluation or further manipulation.
 
         Parameters:
         - dataframe (pd.DataFrame): The pandas DataFrame to be stored in the `globals`.
@@ -242,13 +411,12 @@ class CodeEvaluator:
         - Errors encountered during the evaluation of expressions are logged with a debug level.
 
         """
-        logger = logging.getLogger(__name__)
         variables = {}
         for key in expressions.keys():
             try:
                 variables[key] = eval(expressions[key], self.globals, encodings)
             except Exception as e:
-                logger.debug(
+                self.logger.debug(
                     "Error evaluating the code '" + expressions[key] + "': " + repr(e)
                 )
                 variables[key] = np.nan

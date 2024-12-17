@@ -20,12 +20,61 @@ class RuleParser:
     """
     The RuleParser object
 
+    It uses three main functions
+    - set_params
+    - set_data
+    - parse
+
+    The parse function call underlying functions for specific structures
+
     """
 
     def __init__(
         self,
     ):
         """ """
+        self.keywords_function_mapping = [
+            (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
+            (set(["quantile"]), self.parse_quantile),
+            (set(["for"]), self.parse_list_comprehension),
+            (set(["in", "not in"]), self.parse_in),
+            (set(["substr"]), self.parse_substr),
+            (set(["split"]), self.parse_split),
+            (set(["sum"]), self.parse_sum),
+            (set(["sumif"]), self.parse_sumif),
+            (set(["countif"]), self.parse_countif),
+            (set(["match"]), self.parse_match),
+            (set(["max", "min", "abs"]), self.parse_maxminabs),
+            (
+                set(
+                    [
+                        "day",
+                        "month",
+                        "quarter",
+                        "year",
+                        "day_name",
+                        "month_name",
+                        "days_in_month",
+                        "daysinmonth",
+                        "is_leap_year",
+                        "is_year_end",
+                        "dayofweek",
+                        "weekofyear",
+                        "weekday",
+                        "week",
+                        "is_month_end",
+                        "is_month_start",
+                        "is_year_start",
+                        "is_quarter_end",
+                        "is_quarter_start",
+                    ]
+                ),
+                self.parse_timedate_function,
+            ),
+            (set(["days", "months", "years"]), self.parse_timedelta_function),
+            (set(["+", "-", "*", "/"]), self.parse_math_operator),
+        ]
+
         self.params = dict()
 
     def set_params(self, params):
@@ -43,9 +92,112 @@ class RuleParser:
     def set_data(self, data):
         self.data = data
 
+    def parse(
+        self,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        General function to parse expression (tree structure) to pseudo code (str).
+
+        This method takes an input expression and converts specific parameters,
+        settings, and functions into their equivalent Pandas code. It allows
+        for custom transformations and conversions that are used in the evaluation
+        of rules.
+
+        Args:
+            expression (Union[str, list]): The list comprehension expression to be processed.
+            apply_tolerance (bool, optional): Flag to apply tolerance while parsing (default is False).
+            positive_tolerance (bool, optional): Flag to determine positive tolerance behavior (default is True).
+
+        Returns:
+            str: The parsed expression in pseudo code.
+
+        Example:
+            expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
+
+            result = ruleminer.RuleMiner().parse(expression)
+
+            print(result)
+
+                "({"A"}.str.slice(1,1))"
+
+        """
+        if isinstance(expression, str):
+            if is_column(expression) or expression == "K":
+                return self.parse_column(
+                    expression,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+            else:
+                return self.parse_string(
+                    expression,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+        else:
+            # to avoid constructions like (() - (...))
+            if len(expression) == 1 and expression[0] in ["+", "-", "*", "/", "**"]:
+                return expression[0]
+
+            if len(expression) >= 3 and expression[0] == "(" and expression[-1] == ")":
+                return (
+                    "("
+                    + self.parse(
+                        expression[1:-1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+                    + ")"
+                )
+
+            for idx, item in enumerate(expression):
+                if isinstance(item, str):
+                    if (
+                        "decimal" in self.params.keys()
+                        and (item in ["=="])
+                        and (
+                            not (
+                                contains_string(expression[:idx])
+                                or contains_string(expression[idx + 1 :])
+                            )
+                        )
+                    ):
+                        return self.parse_decimal(
+                            idx,
+                            item,
+                            expression,
+                            apply_tolerance=apply_tolerance,
+                            positive_tolerance=positive_tolerance,
+                        )
+                    for keywords, parse_function in self.keywords_function_mapping:
+                        if item.lower() in keywords:
+                            return parse_function(
+                                idx,
+                                item,
+                                expression,
+                                apply_tolerance=apply_tolerance,
+                                positive_tolerance=positive_tolerance,
+                            )
+
+            res = "".join(
+                [
+                    self.parse(
+                        i,
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    )
+                    for i in expression
+                ]
+            )
+            return res
+
     def parse_substr(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -54,6 +206,22 @@ class RuleParser:
         Process substr function
 
         Example:
+            expression = ['SUBSTR', ['(', '"C"', ',', '2', ',', '4', ')']]
+            idx = 0
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_substr method
+            result = rule_miner.parse_substr(
+                idx=idx,
+                item="SUBSTR",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+
             expression = ['SUBSTR', ['(', {"C"}', ',', '2', ',', '4', ')']]
 
             result = ruleminer.RuleMiner().parse_substr(
@@ -62,9 +230,7 @@ class RuleParser:
                 apply_tolerance=False
             )
             print(result)
-                '
-                (({"C"}.str.slice(2,4)))
-                '
+                '({"C"}.str.slice(2,4))'
         """
         _, string, _, start, _, stop, _ = expression[idx + 1]
         res = (
@@ -94,16 +260,30 @@ class RuleParser:
 
         Example:
             expression = ['day', ['(', '{"C"}', ')']]
+            idx = 0
 
-            result = ruleminer.RuleMiner().parse_timedatefunction(
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_substr method
+            result = rule_miner.parse_substr(
+                idx=idx,
+                item="SUBSTR",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+
+            expression = ['SUBSTR', ['(', {"C"}', ',', '2', ',', '4', ')']]
+
+            result = ruleminer.RuleMiner().parse_substr(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
             )
             print(result)
-                '
-                (({"C"}.dt.day))
-                '
+                '({"C"}.dt.day))'
         """
         date = expression[idx + 1][1:-1]
         res = (
@@ -164,6 +344,7 @@ class RuleParser:
     def parse_split(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -180,9 +361,7 @@ class RuleParser:
                 apply_tolerance=False
             )
             print(result)
-                '
-                (({"C"}.str.slice("C",2)).isin("D"))
-                '
+                '(({"C"}.str.slice("C",2)).isin("D"))'
         """
         _, string, _, separator, _, position, _ = expression[idx + 1]
         if not position.isdigit():
@@ -214,6 +393,27 @@ class RuleParser:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
+        """
+        Process sum function
+
+        Example
+            expression = ['SUM', ['(', '2', ',', '3', ',', '5', ')']]  # Example expression for sum operation
+            idx = 0  # Index for the expression list
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_sum method
+            result = rule_miner.parse_sum(
+                idx=idx,
+                item="SUM",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                sum([K for K in [2,3,5]], axis=0, dtype=float)
+        """
         # process sum and sumif functions
         # do not apply tolerance on the list of datapoints
         # because we use list comprehension below
@@ -249,12 +449,32 @@ class RuleParser:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
-        # process sum and sumif functions
+        """
+        Process sumif function
+
+        Example:
+            expression = [
+            'sumif',
+            [['[', '{"Assets"}', ',', '{"Own_funds"}', ']'], ',', '{"Type"}', '==', '"life_insurer"']]
+            ]
+            idx = 0  # Index for the expression list
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_sumif method
+            result = rule_miner.parse_sumif(
+                idx=idx,
+                item="sumif",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                sum([K for K in [{"Assets"},{"Own_funds"}].where({"Type"}=="life_insurer", other=0)], axis=0, dtype=float)
+        """
         # do not apply tolerance on the list of datapoints
         # because we use list comprehension below
-        """
-        ['sumif', [['[', '{"Assets"}', ',', '{"Own_funds"}', ']'], ',', '{"Type"}', '==', '"life_insurer"']]
-        """
         if "for" not in expression[1][1]:
             sumlist = self.parse(
                 expression[1][1],
@@ -317,13 +537,42 @@ class RuleParser:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
-        # process count and countif functions
+        """
+        Process countif function
+
+        Example:
+            expression = [
+                'COUNTIF',
+                [
+                    '(',
+                    '{"Assets"}',
+                    ',',
+                    '{"Type"}',
+                    '==',
+                    '"life_insurer"'
+                ]
+            ]
+            idx = 0  # Index for the expression list
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_countif method
+            result = rule_miner.parse_countif(
+                idx=idx,
+                item="COUNTIF",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                sum([K for K in {"Assets"}.where({"Type"}=="life_insurer").isna()], axis=0, dtype=float)
+        """
         # do not apply tolerance on the list of datapoints
         # because we use list comprehension below
         # expression[0] == COUNTIF
         # expression[1][0] == "("
         # expression[1][1] == countlist
-
         if "for" not in expression[1][1]:
             countlist = self.parse(
                 expression[1][1],
@@ -381,6 +630,7 @@ class RuleParser:
     def parse_in(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -388,23 +638,32 @@ class RuleParser:
         """
         Process in operator
 
-        Example:
-            expression = ['{"A"}', 'in', ['[', '"B"', ',', '"A"', ']']]
+        Example
+            # Test Case for the parse_in method
+            expression = ['{"A"}', 'in', ['[', '"B"', ',', '"A"', ']']]  # Example expression for 'in' operation
+            idx = 1  # The index of 'in' in the expression
 
-            result = ruleminer.RuleMiner().parse_in(
-                idx=1,
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_in method
+            result = rule_miner.parse_in(
+                idx=idx,
+                item="in",
                 expression=expression,
-                apply_tolerance=False
             )
+
+            # Print the result
             print(result)
-                '
                 ({"A"}.isin(["B","A"]))
-                '
         """
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        res = ""
+        if item.lower() == "not in":
+            res = "~"
+        else:
+            res = ""
         for i in left_side:
             res += self.parse(
                 i,
@@ -423,6 +682,7 @@ class RuleParser:
     def parse_quantile(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -430,6 +690,28 @@ class RuleParser:
         """
         Process quantile function
 
+        Example
+            # Test Case for `parse_quantile`
+            expression = ['{"A"}', 'quantile', ['[', '0.75', ']']]  # Example expression for quantile function
+            idx = 1  # The index of 'quantile' in the expression
+
+            # Parameters and data for the test
+            params = {"evaluate_quantile": True}  # Simulate that quantile evaluation is enabled
+            data = {"A": [1, 2, 3, 4, 5]}  # Mock data, not directly used in this test
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner(params=params, data=data)
+
+            # Call the parse_quantile method
+            result = rule_miner.parse_quantile(
+                idx=idx,
+                item="quantile",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                0.75
         """
         if self.params.get("evaluate_quantile", False):
             res = ""
@@ -464,14 +746,32 @@ class RuleParser:
     def parse_list_comprehension(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
         """
-        Process list comprehension
+        Process and generate a list comprehension string representation.
 
-        ['[', ['K'], 'for', 'K', 'in', '[', [['{"A"}'], ',', ['{"B"}']], ']', ']']
+        Example:
+            # Test Case for `parse_list_comprehension`
+            expression = ['[', ['K'], 'for', 'K', 'in', '[', [['{"A"}'], ',', ['{"B"}']], ']']]
+            idx = 1  # The index of 'for' in the expression
+
+            # Initialize RuleMiner object
+            rule_miner = RuleMiner()
+
+            # Call the parse_list_comprehension method
+            result = rule_miner.parse_list_comprehension(
+                idx=idx,
+                item="for",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                '[K for K in ['A', 'B']]'
 
         """
         lc_expr = self.parse(
@@ -503,32 +803,47 @@ class RuleParser:
         Do not apply if left side or right side of the comparison is a string
 
         Example:
-            expression = ['{"A"}', '<', '{"B"}']
 
-            parameters = {
-                "tolerance": {
-                    "default": {
-                        (0, 1e3): 0,
-                    },
-                },
-            }
+            # Test Case for `parse_comparison`
 
-            result = ruleminer.RuleMiner(params=parameters).parse_comparison(
+            # Example 1: Without tolerance (basic comparison)
+            expression = ['A', '==', 'B']
+            idx = 1  # Index of '==' in the expression
+            item = '=='  # Comparison operator
+            params = {}  # No tolerance parameter set
+
+            rule_miner = RuleMiner(params=params)
+
+            # Call parse_comparison with no tolerance
+            result_no_tolerance = rule_miner.parse_comparison(
+                idx=idx,
+                item=item,
                 expression=expression,
-                apply_tolerance=True
+                apply_tolerance=False,
+                positive_tolerance=True
             )
-            print(result)
-                '
-                (
-                    (
-                        ({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))
-                    )
-                    <
-                    (
-                        ({"B"}-0.5*abs({"B"}.apply(_tol, args=("default",))))
-                    )
-                )
-                '
+
+            print(f"Result without tolerance: {result_no_tolerance}")
+                A == B
+
+            # Example 2: With tolerance (comparison with tolerance applied)
+            expression_with_tolerance = ['A', '==', 'B']
+            params_with_tolerance = {'tolerance': True}  # Tolerance parameter set
+
+            rule_miner_with_tolerance = RuleMiner(params=params_with_tolerance)
+
+            # Call parse_comparison with tolerance
+            result_with_tolerance = rule_miner_with_tolerance.parse_comparison(
+                idx=idx,
+                item=item,
+                expression=expression_with_tolerance,
+                apply_tolerance=True,
+                positive_tolerance=True
+            )
+
+            print(f"Result with tolerance: {result_with_tolerance}")
+                Result with tolerance: _equal(A(+), A(-), B(+), B(-))
+
         """
         if "tolerance" in self.params.keys() and (
             not (
@@ -536,6 +851,11 @@ class RuleParser:
                 or contains_string(expression[idx + 1 :])
             )
         ):
+            left_side = self.parse(
+                expression=expression[:idx],
+                apply_tolerance=False,
+                positive_tolerance=True,
+            )
             left_side_pos = self.parse(
                 expression=expression[:idx],
                 apply_tolerance=True,
@@ -545,6 +865,11 @@ class RuleParser:
                 expression=expression[:idx],
                 apply_tolerance=True,
                 positive_tolerance=False,
+            )
+            right_side = self.parse(
+                expression=expression[idx + 1 :],
+                apply_tolerance=False,
+                positive_tolerance=True,
             )
             right_side_pos = self.parse(
                 expression=expression[idx + 1 :],
@@ -559,6 +884,10 @@ class RuleParser:
             if item in ["=="]:
                 res = (
                     "_equal("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -571,6 +900,10 @@ class RuleParser:
             if item in ["!="]:
                 res = (
                     "_unequal("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -602,7 +935,7 @@ class RuleParser:
             )
         return res
 
-    def parse_minus_divide(
+    def parse_math_operator(
         self,
         idx: int,
         item: str,
@@ -611,68 +944,110 @@ class RuleParser:
         positive_tolerance: bool = True,
     ) -> str:
         """
-        Process - and /
+        Process math operators
+
         If the operator is - or / then the tolerance direction must be reversed
 
-        Example:
-            expression = ['{"A"}', '-', '{"B"}', '-', '{"C"}']
+        The item is the first math operator in de expression
 
-            parameters = {
-                "tolerance": {
-                    "default": {
-                        (0, 1e3): 0,
-                    },
-                },
-            }
+        We process the expression from left to right
 
-            result = ruleminer.RuleMiner(params=parameters).parse_minus_divide(
-                idx=1,
-                item="-"
-                expression=expression,
-                apply_tolerance=True
-            )
-            print(result)
-                '
-                (
-                    (
-                        ({"A"}+0.5*abs({"A"}.apply(_tol, args=("default",))))
-                    )
-                    -
-                    (
-                        ({"B"}-0.5*abs({"B"}.apply(_tol, args=("default",))))
-                    )
-                    -
-                    (
-                        ({"C"}-0.5*abs({"C"}.apply(_tol, args=("default",))))
-                    )
-                )
-                '
+        The parser grouped + and - together and the * and / (so these are not mixed)
+
         """
-        left_side = self.parse(
+        # parse left side and put in res
+        res = self.parse(
             expression=expression[:idx],
             apply_tolerance=apply_tolerance,
             positive_tolerance=positive_tolerance,
         )
-        # the rest of the expression if evaluated as a list with reversed tolerance
-        right_side = ""
-        current_positive_tolerance = (
-            not positive_tolerance if apply_tolerance else positive_tolerance
+        res_pos = self.parse(
+            expression=expression[:idx],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=True,
         )
-        for right_side_item in expression[idx + 1 :]:
-            if right_side_item in ["+", "*"]:
+        res_neg = self.parse(
+            expression=expression[:idx],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=False,
+        )
+        while idx < len(expression):
+            item = expression[idx]
+            # change direction depending on item
+            if item in ["+", "*"]:
+                # for + and * do not change direction of tolerance
                 current_positive_tolerance = (
                     positive_tolerance if apply_tolerance else positive_tolerance
                 )
-            elif right_side_item in ["-", "/"]:
+            elif item in ["-", "/"]:
+                # for - and / change direction of tolerance
                 current_positive_tolerance = (
                     not positive_tolerance if apply_tolerance else positive_tolerance
                 )
-            right_side += self.parse(
-                expression=[right_side_item],
-                apply_tolerance=apply_tolerance,
-                positive_tolerance=current_positive_tolerance,
-            )
-        return left_side + item + right_side
+            if item in ["*", "/"]:
+                if (
+                    apply_tolerance
+                    and contains_column(expression[idx + 1])
+                    and contains_column(expression[:idx])
+                ):
+                    # both sides contain at least one column that are multiplied or divided
+                    # so we must use adjusted * and / operators that calculate the
+                    # lower and upper bound correctly
+                    right_pos = self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=True,
+                    )
+                    right_neg = self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=False,
+                    )
+                    if item == "*":
+                        new_res = "_multiply"
+                    elif item == "/":
+                        new_res = "_divide"
+                    new_res += (
+                        "("
+                        + res_pos
+                        + ", "
+                        + res_neg
+                        + ", "
+                        + right_pos
+                        + ", "
+                        + right_neg
+                    )
+                    res_pos = new_res + ',"+")'
+                    res_neg = new_res + ',"-")'
+                    if positive_tolerance:
+                        res = res_pos
+                    else:
+                        res = res_neg
+                else:
+                    res += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=current_positive_tolerance,
+                    )
+                    res_pos += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=True,
+                    )
+                    res_neg += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=False,
+                    )
+            else:
+                # for + and - simply process expression
+                res += item + self.parse(
+                    expression=expression[idx + 1],
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=current_positive_tolerance,
+                )
+            idx += 2
+        return res
 
     def parse_column(
         self,
@@ -761,6 +1136,7 @@ class RuleParser:
     def parse_match(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -827,6 +1203,20 @@ class RuleParser:
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
     ) -> str:
+        """
+        Process decimal parameter to expression with ==
+
+        Example:
+            expression = ['{"A"}', '==', '{"B"}']
+
+            result = ruleminer.RuleMiner().parse_decimal(
+                idx=1,
+                expression=expression
+            )
+            print(result)
+
+                '(abs({"A"}-{"B"}) <= 1.5)'
+        """
         return "".join(
             [
                 self.parse(
@@ -841,6 +1231,7 @@ class RuleParser:
     def parse_decimal(
         self,
         idx: int,
+        item: str,
         expression: Union[str, list],
         apply_tolerance: bool = False,
         positive_tolerance: bool = True,
@@ -857,7 +1248,7 @@ class RuleParser:
             )
             print(result)
 
-                '(abs(({"A"})-({"B"})) <= 1.5)'
+                '(abs({"A"}-{"B"}) <= 1.5)'
         """
         decimal = self.params.get("decimal", 0)
         precision = 1.5 * 10 ** (-decimal)
@@ -878,274 +1269,6 @@ class RuleParser:
             + str(precision)
         )
         return res
-
-    def parse(
-        self,
-        expression: Union[str, list],
-        apply_tolerance: bool = False,
-        positive_tolerance: bool = True,
-    ) -> str:
-        """
-        convert parsed expression (tree structure) to pseudo code (str).
-
-        This method takes an input expression and converts specific parameters,
-        settings, and functions into their equivalent Pandas code. It allows
-        for custom transformations and conversions that are used in the evaluation
-        of rules.
-
-        Args:
-            expression (str): The input expression to be parsed into Pandas code.
-            apply_tolerance (bool): bool that indicates whether to apply tolerance
-            positive_tolerance (bool): bool that indicates the direction of the tolerance
-
-        Returns:
-            str: The parsed expression in pseudo code.
-
-        Example:
-            expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
-
-            result = ruleminer.RuleMiner().parse(expression)
-
-            print(result)
-
-                "({"A"}.str.slice(1,1))"
-
-        """
-        if isinstance(expression, str):
-            if is_column(expression) or expression == "K":
-                return self.parse_column(
-                    expression,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
-            else:
-                return self.parse_string(
-                    expression,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
-        else:
-            # to avoid constructions like (() - (...))
-            if len(expression) == 1 and expression[0] in ["+", "-", "*", "/", "**"]:
-                return expression[0]
-
-            if len(expression) >= 3 and expression[0] == "(" and expression[-1] == ")":
-                return (
-                    "("
-                    + self.parse(
-                        expression[1:-1],
-                        apply_tolerance=apply_tolerance,
-                        positive_tolerance=positive_tolerance,
-                    )
-                    + ")"
-                )
-
-            for idx, item in enumerate(expression):
-                if isinstance(item, str):
-                    if (
-                        "decimal" in self.params.keys()
-                        and (item in ["=="])
-                        and (
-                            not (
-                                contains_string(expression[:idx])
-                                or contains_string(expression[idx + 1 :])
-                            )
-                        )
-                    ):
-                        return self.parse_decimal(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item in ["==", "!=", "<", "<=", ">", ">="]:
-                        return self.parse_comparison(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "quantile":
-                        return self.parse_quantile(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "for":
-                        return self.parse_list_comprehension(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "in":
-                        return self.parse_in(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "substr":
-                        return self.parse_substr(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "split":
-                        return self.parse_split(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "sum":
-                        return self.parse_sum(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "sumif":
-                        return self.parse_sumif(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "countif":
-                        return self.parse_countif(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() == "match":
-                        return self.parse_match(
-                            idx,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() in ["max", "min", "abs"]:
-                        return self.parse_maxminabs(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() in [
-                        "day",
-                        "month",
-                        "quarter",
-                        "year",
-                        "day_name",
-                        "month_name",
-                        "days_in_month",
-                        "daysinmonth",
-                        "is_leap_year",
-                        "is_year_end",
-                        "dayofweek",
-                        "weekofyear",
-                        "weekday",
-                        "week",
-                        "is_month_end",
-                        "is_month_start",
-                        "is_year_start",
-                        "is_quarter_end",
-                        "is_quarter_start",
-                    ]:
-                        return self.parse_timedate_function(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item.lower() in ["days", "months", "years"]:
-                        return self.parse_timedelta_function(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    elif item in ["-", "/"]:
-                        return self.parse_minus_divide(
-                            idx,
-                            item,
-                            expression,
-                            apply_tolerance=apply_tolerance,
-                            positive_tolerance=positive_tolerance,
-                        )
-
-                    # elif item in [","]:
-                    #     return self.parse_list(
-                    #         idx,
-                    #         expression,
-                    #         apply_tolerance=apply_tolerance,
-                    #         positive_tolerance=positive_tolerance,
-                    #     )
-
-            # nothing special, so parse tree and generate string
-            # if isinstance(expression, list) and len(expression) == 1:
-            #     if (
-            #         isinstance(expression[0], str)
-            #         and not is_column(expression[0])
-            #         and not is_string(expression[0])
-            #         and not is_number(expression[0])
-            #         and not expression[0] == "K"
-            #     ):
-            #         # if not column, string or number or list comprehension variable then add parentheses
-            #         return "(" + expression[0] + ")"
-            #     if isinstance(expression[0], list):
-            #         if len(expression[0]) > 1 and not (
-            #             len(expression[0]) == 2
-            #             and isinstance(expression[0][0], str)
-            #             and isinstance(expression[0][1], list)
-            #         ):
-            #             # if list and not of the form [str, list] then add parentheses
-            #             # [str, list] is a function with parameters which does not require parentheses
-            #             return (
-            #                 "("
-            #                 + self.parse(
-            #                     expression[0],
-            #                     apply_tolerance=apply_tolerance,
-            #                     positive_tolerance=positive_tolerance,
-            #                 )
-            #                 + ")"
-            #             )
-            res = "".join(
-                [
-                    self.parse(
-                        i,
-                        apply_tolerance=apply_tolerance,
-                        positive_tolerance=positive_tolerance,
-                    )
-                    for i in expression
-                ]
-            )
-            return res
 
 
 def contains_string(expression: Union[str, list]):
@@ -1176,5 +1299,37 @@ def contains_string(expression: Union[str, list]):
                 # if sumif or countif then do not search for string in conditions
                 return contains_string(expression[idx + 1][0])
             if contains_string(item):
+                return True
+        return False
+
+
+def contains_column(expression: Union[str, list]):
+    """
+    Check if a given expression contains a column expression
+
+    Args:
+        s (str, list): The expression or string to be checked.
+
+    Returns:
+        bool: True if the string is enclosed in curly brackets and quotes, False otherwise.
+
+    Example:
+        contains_column('"A"')
+            False
+
+        contains_column('{"A"}')
+            False
+
+        contains_column(['{"A"}', '"0"'])
+            True
+    """
+    if isinstance(expression, str):
+        return is_column(expression)
+    else:
+        for idx, item in enumerate(expression):
+            if isinstance(item, str) and item.lower() in ["sumif", "countif"]:
+                # if sumif or countif then do not search for string in conditions
+                return contains_column(expression[idx + 1][0])
+            if contains_column(item):
                 return True
         return False
