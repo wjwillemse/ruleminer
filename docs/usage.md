@@ -324,7 +324,7 @@ Mathematical operators are evaluated as follows (a and b can be any (nested) mat
     )
 ```
 
-Note that the plus operator do not change the direction of the tolerance, but the minus operator does change the direction of the tolerance for the right side of the expression, i.e. the lower bound of A - B if calculated by (A-tol) - (B+tol). This also holds for negative values.
+Note that the plus operator does not change the direction of the tolerance, but the minus operator does change the direction of the tolerance for the right side of the expression, i.e. the lower bound of A - B is calculated by (A-tol) - (B+tol). This also holds for negative values.
 
 For the multiply and divide operators we need to calculate all possible directions and take the lower or upper bound. This is because A and/or B can be negative. The lower bound of A * B can be either (A+tol) * (B+tol), (A+tol) * (B-tol), (A-tol) * (B+tol), or (A-tol) * (B-tol), depending on the specific values of A and B.
 
