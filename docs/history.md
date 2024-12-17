@@ -202,3 +202,9 @@
 
 - Fix in grammar when parsing mathematical expressions in function parameters
 - Fix for applying tolerances
+
+### 0.2.18 (2024-12-17)
+
+- Added multiply and divide functions when left and right side both contain columns (see usage documentation)
+- Changed grammar to separate plus, minus on one hand and multiplication, division on other hand into separate groups (needed for first point)
+- Added debugging information on lower and upper bounds when evaluating (in)equalities

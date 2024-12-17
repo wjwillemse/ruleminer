@@ -72,7 +72,7 @@ class RuleParser:
                 self.parse_timedate_function,
             ),
             (set(["days", "months", "years"]), self.parse_timedelta_function),
-            (set(["-", "/"]), self.parse_minus_divide),
+            (set(["+", "-", "*", "/"]), self.parse_math_operator),
         ]
 
         self.params = dict()
@@ -935,7 +935,7 @@ class RuleParser:
             )
         return res
 
-    def parse_minus_divide(
+    def parse_math_operator(
         self,
         idx: int,
         item: str,
@@ -944,36 +944,110 @@ class RuleParser:
         positive_tolerance: bool = True,
     ) -> str:
         """
-        Process - and /
+        Process math operators
 
         If the operator is - or / then the tolerance direction must be reversed
 
+        The item is the first math operator in de expression
+
+        We process the expression from left to right
+
+        The parser grouped + and - together and the * and / (so these are not mixed)
+
         """
-        left_side = self.parse(
+        # parse left side and put in res
+        res = self.parse(
             expression=expression[:idx],
             apply_tolerance=apply_tolerance,
             positive_tolerance=positive_tolerance,
         )
-        # the rest of the expression if evaluated as a list with reversed tolerance
-        right_side = ""
-        current_positive_tolerance = (
-            not positive_tolerance if apply_tolerance else positive_tolerance
+        res_pos = self.parse(
+            expression=expression[:idx],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=True,
         )
-        for right_side_item in expression[idx + 1 :]:
-            if right_side_item in ["+", "*"]:
+        res_neg = self.parse(
+            expression=expression[:idx],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=False,
+        )
+        while idx < len(expression):
+            item = expression[idx]
+            # change direction depending on item
+            if item in ["+", "*"]:
+                # for + and * do not change direction of tolerance
                 current_positive_tolerance = (
                     positive_tolerance if apply_tolerance else positive_tolerance
                 )
-            elif right_side_item in ["-", "/"]:
+            elif item in ["-", "/"]:
+                # for - and / change direction of tolerance
                 current_positive_tolerance = (
                     not positive_tolerance if apply_tolerance else positive_tolerance
                 )
-            right_side += self.parse(
-                expression=[right_side_item],
-                apply_tolerance=apply_tolerance,
-                positive_tolerance=current_positive_tolerance,
-            )
-        return left_side + item + right_side
+            if item in ["*", "/"]:
+                if (
+                    apply_tolerance
+                    and contains_column(expression[idx + 1])
+                    and contains_column(expression[:idx])
+                ):
+                    # both sides contain at least one column that are multiplied or divided
+                    # so we must use adjusted * and / operators that calculate the
+                    # lower and upper bound correctly
+                    right_pos = self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=True,
+                    )
+                    right_neg = self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=False,
+                    )
+                    if item == "*":
+                        new_res = "_multiply"
+                    elif item == "/":
+                        new_res = "_divide"
+                    new_res += (
+                        "("
+                        + res_pos
+                        + ", "
+                        + res_neg
+                        + ", "
+                        + right_pos
+                        + ", "
+                        + right_neg
+                    )
+                    res_pos = new_res + ',"+")'
+                    res_neg = new_res + ',"-")'
+                    if positive_tolerance:
+                        res = res_pos
+                    else:
+                        res = res_neg
+                else:
+                    res += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=current_positive_tolerance,
+                    )
+                    res_pos += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=True,
+                    )
+                    res_neg += item + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=False,
+                    )
+            else:
+                # for + and - simply process expression
+                res += item + self.parse(
+                    expression=expression[idx + 1],
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=current_positive_tolerance,
+                )
+            idx += 2
+        return res
 
     def parse_column(
         self,
@@ -1225,5 +1299,37 @@ def contains_string(expression: Union[str, list]):
                 # if sumif or countif then do not search for string in conditions
                 return contains_string(expression[idx + 1][0])
             if contains_string(item):
+                return True
+        return False
+
+
+def contains_column(expression: Union[str, list]):
+    """
+    Check if a given expression contains a column expression
+
+    Args:
+        s (str, list): The expression or string to be checked.
+
+    Returns:
+        bool: True if the string is enclosed in curly brackets and quotes, False otherwise.
+
+    Example:
+        contains_column('"A"')
+            False
+
+        contains_column('{"A"}')
+            False
+
+        contains_column(['{"A"}', '"0"'])
+            True
+    """
+    if isinstance(expression, str):
+        return is_column(expression)
+    else:
+        for idx, item in enumerate(expression):
+            if isinstance(item, str) and item.lower() in ["sumif", "countif"]:
+                # if sumif or countif then do not search for string in conditions
+                return contains_column(expression[idx + 1][0])
+            if contains_column(item):
                 return True
         return False

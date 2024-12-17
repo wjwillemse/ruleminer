@@ -198,22 +198,6 @@ Following the basic operations, the computed tolerance interval for A + B is [14
 
 So to check whether 'A = B' there must be overlap between intervals [A1, A2] and [B1, B2], and that is the case if A2 >= B1 and A1 <= B2. Likewise, for the comparison 'A > B' we check whether A1 > B2 and for the comparison 'A < B' we check whether A2 < B1, and similar for operators <= and >=.
 
-In ruleminer, a comparison like:
-```
-A==B
-```
-
-is translated to:
-```
-max(A+tol(A), A-tol(A)) >= min(B+tol(B), B-tol(B))
-
-&
-
-min(A+tol(A), A-tol(A)) <= max(B+tol(B), B-tol(B))
-```
-
-where tol(Α) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
-
 The example can be reproduced in ruleminer in the following way:
 ```python
 df = pd.DataFrame(
@@ -267,6 +251,83 @@ params = {
     }
 }
 ```
+
+### Implementation of precision based on datapoint values
+
+In ruleminer, a comparison like:
+```
+A==B
+```
+
+is translated to:
+```
+    max(A+tol(A), A-tol(A)) >= min(B+tol(B), B-tol(B))
+
+    &
+
+    min(A+tol(A), A-tol(A)) <= max(B+tol(B), B-tol(B))
+```
+
+where tol(Α) returns ```0.5*10**(precision)```, with precision based on value A and the tolerance defined in the 'tolerance' parameter.
+
+Comparison operators are evaluated as follows (a and b can be any (nested) mathematical expression following the grammar):
+```
+    == -> (max((a, +), (a, -)) >= min((b, +), (b, -))) & (min((a, +), (a, -)) <= max((b, +), (b, -)))
+
+    != -> (max((a, +), (a, -)) < min((b, +), (b, -))) | (min((a, +), (a, -)) > max((b, +), (b, -)))
+
+    > -> (a, +) > (b, -)
+
+    >= -> (a, +) >= (b, -)
+
+    < -> (a, -) < (b, +)
+
+    <= (a, -) < (b, +)
+```
+
+Comparison operators are evaluated as follows (a and b can be any (nested) mathematical expression following the grammar):
+```
+    plus((a, b), -) -> (a, -) + (b, -)
+
+    plus((a, b), +) -> (a, +) + (b, +)
+
+    minus((a, b), -) -> (a, -) - (b, +)
+
+    minus((a, b), +) -> (a, +) - (b, -)
+
+    multiply((a, b), -) -> min(
+        ((a, -) * (b, -)),
+        ((a, -) * (b, +)),
+        ((a, +) * (b, -)),
+        ((a, +) * (b, +)),
+    )
+
+    multiply((a, b), +) -> max(
+        ((a, -) * (b, -)),
+        ((a, -) * (b, +)),
+        ((a, +) * (b, -)),
+        ((a, +) * (b, +)),
+    )
+
+    divide((a, b), -) -> min(
+        ((a, -) / (b, -)), 
+        ((a, -) / (b, +)),
+        ((a, +) / (b, -)),
+        ((a, +) / (b, +)), 
+    )
+
+    divide((a, b), +) -> max(
+        ((a, -) / (b, -)),
+        ((a, -) / (b, +)), 
+        ((a, +) / (b, -)), 
+        ((a, +) / (b, +)),
+    )
+```
+
+Note that the plus operator do not change the direction of the tolerance, but the minus operator does change the direction of the tolerance for the right side of the expression, i.e. the lower bound of A - B if calculated by (A-tol) - (B+tol). This also holds for negative values.
+
+For the multiply and divide operators we need to calculate all possible directions and take the lower or upper bound. This is because A and/or B can be negative. The lower bound of A * B can be either (A+tol) * (B+tol), (A+tol) * (B-tol), (A-tol) * (B+tol), or (A-tol) * (B-tol), depending on the specific values of A and B.
+
 ### Rule results
 
 Add the following parameters to the parameter dictionary to specify the output:

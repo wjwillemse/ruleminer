@@ -134,11 +134,19 @@ _base_element_math_atom = _base_element | pyparsing.Group(
     _lpar + base_element_math_expression + _rpar
 )
 _base_element_math_factor = pyparsing.Forward()
+# if expression contains ** then put parentheses around this part
 _base_element_math_factor <<= (
-    _base_element_math_atom + (_expop + _base_element_math_factor)[...]
+    pyparsing.Group(
+        _base_element_math_atom + (_expop + _base_element_math_factor)[1, ...]
+    )
+    | _base_element_math_atom
 )
+# if expression contains * or / then put parentheses around this part
 _base_element_math_term = (
-    _base_element_math_factor + (_multop + _base_element_math_factor)[...]
+    pyparsing.Group(
+        _base_element_math_factor + (_multop + _base_element_math_factor)[1, ...]
+    )
+    | _base_element_math_factor
 )
 base_element_math_expression <<= (
     _base_element_math_term + (_addop + _base_element_math_term)[...]
@@ -165,8 +173,16 @@ _simple_math_atom = _simple_math_element | pyparsing.Group(
     _lpar + simple_math_expression + _rpar
 )
 _simple_math_factor = pyparsing.Forward()
-_simple_math_factor <<= _simple_math_atom + (_expop + _simple_math_factor)[...]
-_simple_math_term = _simple_math_factor + (_multop + _simple_math_factor)[...]
+# if expression contains ** then put parentheses around this part
+_simple_math_factor <<= (
+    pyparsing.Group(_simple_math_atom + (_expop + _simple_math_factor)[1, ...])
+    | _simple_math_atom
+)
+# if expression contains * or / then put parentheses around this part
+_simple_math_term = (
+    pyparsing.Group(_simple_math_factor + (_multop + _simple_math_factor)[1, ...])
+    | _simple_math_factor
+)
 simple_math_expression <<= _simple_math_term + (_addop + _simple_math_term)[...]
 
 ################################################################################
@@ -225,8 +241,14 @@ math_expression = pyparsing.Forward()
 _math_element = function_expression | simple_math_expression
 _math_atom = _math_element | pyparsing.Group(_lpar + math_expression + _rpar)
 _math_factor = pyparsing.Forward()
-_math_factor <<= _math_atom + (_expop + _math_factor)[...]
-_math_term = _math_factor + (_multop + _math_factor)[...]
+# if expression contains ** then put parentheses around this part
+_math_factor <<= (
+    pyparsing.Group(_math_atom + (_expop + _math_factor)[1, ...]) | _math_atom
+)
+# if expression contains * or / then put parentheses around this part
+_math_term = (
+    pyparsing.Group(_math_factor + (_multop + _math_factor)[1, ...]) | _math_factor
+)
 math_expression <<= _math_term + (_addop + _math_term)[...]
 
 ################################################################################
