@@ -61,8 +61,11 @@ class RuleMiner:
 
     It used three basic functions:
     - update (rule expressions, rules or data)
-    - generate (rules from rule expressions and data)
+    - generate (rules from templates (with regexes) and data)
+    - convert (do not generate but only convert rules (without regexes))
     - evaluate (results from rule)
+
+    It uses a RuleParser and a CodeEvaluator
 
     """
 
@@ -86,7 +89,39 @@ class RuleMiner:
         data: Union[pd.DataFrame, pl.DataFrame] = None,
         params: dict = None,
     ) -> None:
-        """ """
+        """
+        Updates the internal state of the object with new parameters, data, templates, and rules.
+
+        This method allows the user to modify various aspects of the object, such as updating the
+        data used for analysis, setting new parameters, and specifying templates and rules for
+        further processing. It performs validation of certain parameters and ensures the correct
+        setup for evaluating rules based on the provided data.
+
+        Args:
+            templates (list, optional): A list of templates to use for the analysis. If provided,
+                                         the method will generate new results using these templates.
+            rules (Union[pd.DataFrame, pl.DataFrame], optional): A DataFrame containing the rules
+                                                                  to evaluate. If provided, the method
+                                                                  will evaluate the rules based on the
+                                                                  current data.
+            data (Union[pd.DataFrame, pl.DataFrame], optional): A DataFrame containing the data to
+                                                                 be used in the analysis. If provided,
+                                                                 the method will update the internal
+                                                                 data and reinitialize the parser and
+                                                                 evaluator.
+            params (dict, optional): A dictionary of parameters to configure the analysis. This can
+                                      include metrics, filters, tolerance settings, and the
+                                      desired data types for rules and results. If provided,
+                                      the method will apply these parameters to update the state.
+
+        Raises:
+            Exception: If the "tolerance" parameter is provided and it does not contain a 'default'
+                      key, or if any key in the tolerance dictionary contains spaces.
+
+        Returns:
+            None: This method does not return any value but updates the internal state of the object
+                  based on the input parameters.
+        """
         if params is not None:
             self.params = params
             self.parser.set_params(params)
@@ -126,14 +161,27 @@ class RuleMiner:
         return None
 
     def generate(self) -> None:
-        """ """
+        """
+        Generates rules based on the defined templates and available data.
+
+        This method checks if templates are defined and, depending on whether data is available,
+        either converts the templates into rules or generates rules using the provided templates
+        and data. If no templates are defined, an assertion error is raised.
+
+        Raises:
+            AssertionError: If no templates are defined when attempting to generate rules.
+
+        Returns:
+            None: This method does not return any value but updates the internal state by generating
+                  the rules based on the templates and data.
+        """
         assert (
             self.templates is not None
         ), "Unable to generate rules, no templates defined."
 
         self.rules = None
         if self.data is None:
-            self.convert_templates(templates=self.templates)
+            self.convert(templates=self.templates)
         else:
             self.generate_rules(templates=self.templates)
 
@@ -143,7 +191,28 @@ class RuleMiner:
         self,
         data: pd.DataFrame = None,
     ) -> pd.DataFrame:
-        """ """
+        """
+        Evaluates the defined rules on the given data and returns the results.
+
+        This method performs rule evaluation based on the provided data and previously defined
+        rules. If no data is provided, it will use the current data. For each rule, the method
+        computes metrics (such as absolute support, exceptions, and confidence) and determines
+        whether the rule is satisfied (confirmation), violated (exception), or not applicable.
+        The results are organized in a DataFrame or a specified data format.
+
+        Args:
+            data (pd.DataFrame, optional): A DataFrame containing the data to evaluate. If not
+                                            provided, the method uses the current data stored in
+                                            the object.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the evaluation results with columns for rule id,
+                          rule group, rule definition, status, metrics (support, exceptions,
+                          confidence), result (True/False/None), and indices.
+
+        Raises:
+            AssertionError: If no rules are defined or no data is available for evaluation.
+        """
         logger = logging.getLogger(__name__)
         if data is not None:
             self.update(data=data)
@@ -166,19 +235,37 @@ class RuleMiner:
             }
         )
 
-        # add temporary index columns (to allow rules based on index data)
-        for level in range(len(self.data.index.names)):
-            self.data[str(self.data.index.names[level])] = (
-                self.data.index.get_level_values(level=level)
-            )
+        mapping_dtypes = {
+            RULE_ID: self.rules[RULE_ID].dtype,
+            RULE_GROUP: self.rules[RULE_GROUP].dtype,
+            RULE_DEF: self.rules[RULE_DEF].dtype,
+            RULE_STATUS: self.rules[RULE_STATUS].dtype,
+            ABSOLUTE_SUPPORT: "Int64",
+            ABSOLUTE_EXCEPTIONS: "Int64",
+            CONFIDENCE: "Float64",
+            NOT_APPLICABLE: "Int64",
+            RESULT: "object",
+            INDICES: "object",
+        }
 
-        for rule_idx in self.rules.index:
+        if self.params.get("apply_rules_on_indices", True):
+            # add temporary index columns (to allow rules based on index data)
+            for level in range(len(self.data.index.names)):
+                self.data[str(self.data.index.names[level])] = (
+                    self.data.index.get_level_values(level=level)
+                )
+
+        for rule_idx, row in self.rules.iterrows():
+            rule_id = row[RULE_ID]
+            rule_def = row[RULE_DEF]
+            rule_group = row[RULE_GROUP]
+            rule_status = row[RULE_STATUS]
+
             required_vars = required_variables(
                 [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE]
             )
-            expression = self.rules.loc[rule_idx, RULE_DEF]
             rule_code = dataframe_index(
-                expression=expression, required=required_vars, data=self.data
+                expression=rule_def, required=required_vars, data=self.data
             )
             code_results = self.evaluate_code(
                 expressions=rule_code, dataframe=self.data
@@ -218,25 +305,12 @@ class RuleMiner:
             n_indices = [i for i in self.data.index if i not in indices]
             n = len(n_indices)
 
-            if nco == 0 and nex == 0:
-                logger.debug(
-                    "Rule "
-                    + str(rule_idx)
-                    + " ("
-                    + str(self.rules.loc[rule_idx, RULE_ID])
-                    + ")"
-                    + " resulted in 0 confirmations and 0 exceptions."
-                )
             if self.params.get("output_confirmations", True):
                 if nco > 0:
-                    results[RULE_ID].extend([self.rules.loc[rule_idx, RULE_ID]] * nco)
-                    results[RULE_GROUP].extend(
-                        [self.rules.loc[rule_idx, RULE_GROUP]] * nco
-                    )
-                    results[RULE_DEF].extend([self.rules.loc[rule_idx, RULE_DEF]] * nco)
-                    results[RULE_STATUS].extend(
-                        [self.rules.loc[rule_idx, RULE_STATUS]] * nco
-                    )
+                    results[RULE_ID].extend([rule_id] * nco)
+                    results[RULE_GROUP].extend([rule_group] * nco)
+                    results[RULE_DEF].extend([rule_def] * nco)
+                    results[RULE_STATUS].extend([rule_status] * nco)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nco
                     )
@@ -250,14 +324,10 @@ class RuleMiner:
 
             if self.params.get("output_exceptions", True):
                 if nex > 0:
-                    results[RULE_ID].extend([self.rules.loc[rule_idx, RULE_ID]] * nex)
-                    results[RULE_GROUP].extend(
-                        [self.rules.loc[rule_idx, RULE_GROUP]] * nex
-                    )
-                    results[RULE_DEF].extend([self.rules.loc[rule_idx, RULE_DEF]] * nex)
-                    results[RULE_STATUS].extend(
-                        [self.rules.loc[rule_idx, RULE_STATUS]] * nex
-                    )
+                    results[RULE_ID].extend([rule_id] * nex)
+                    results[RULE_GROUP].extend([rule_group] * nex)
+                    results[RULE_DEF].extend([rule_def] * nex)
+                    results[RULE_STATUS].extend([rule_status] * nex)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nex
                     )
@@ -271,10 +341,10 @@ class RuleMiner:
 
             if self.params.get("output_not_applicable", False):
                 if (nco == 0 and nex == 0) and n > 0:
-                    results[RULE_ID].extend([self.rules.loc[rule_idx, RULE_ID]])
-                    results[RULE_GROUP].extend([self.rules.loc[rule_idx, RULE_GROUP]])
-                    results[RULE_DEF].extend([self.rules.loc[rule_idx, RULE_DEF]])
-                    results[RULE_STATUS].extend([self.rules.loc[rule_idx, RULE_STATUS]])
+                    results[RULE_ID].extend([rule_id])
+                    results[RULE_GROUP].extend([rule_group])
+                    results[RULE_DEF].extend([rule_def])
+                    results[RULE_STATUS].extend([rule_status])
                     results[ABSOLUTE_SUPPORT].extend([rule_metrics[ABSOLUTE_SUPPORT]])
                     results[ABSOLUTE_EXCEPTIONS].extend(
                         [rule_metrics[ABSOLUTE_EXCEPTIONS]]
@@ -284,31 +354,54 @@ class RuleMiner:
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
 
-            logger.info(
-                "Finished: "
-                + str(rule_idx)
-                + " ("
-                + str(self.rules.loc[rule_idx, RULE_ID])
-                + ")"
-            )
+            if nco == 0 and nex == 0:
+                logger.debug(
+                    "Finished: "
+                    + str(rule_idx)
+                    + " ("
+                    + str(rule_id)
+                    + ")"
+                    + " [0 confirmations and 0 exceptions]"
+                )
+            else:
+                logger.info("Finished: " + str(rule_idx) + " (" + str(rule_id) + ")")
 
         if self.results_datatype == pd.DataFrame:
-            self.results = pd.DataFrame.from_dict(results)
+            self.results = pd.DataFrame.from_dict(results).astype(mapping_dtypes)
         elif self.results_datatype == pl.DataFrame:
             self.results = pl.DataFrame(results)
         elif isinstance(self.results_datatype, dict):
             self.results = results
 
-        # remove temporarily added index columns
-        for level in range(len(self.data.index.names)):
-            del self.data[str(self.data.index.names[level])]
+        if self.params.get("apply_rules_on_indices", True):
+            # remove temporarily added index columns
+            for level in range(len(self.data.index.names)):
+                del self.data[str(self.data.index.names[level])]
 
         return self.results
 
-    def convert_templates(self, templates: list = []) -> None:
+    def convert(self, templates: list = []) -> None:
         """
-        Main function to convert templates to rules without data and regexes
+        Converts a list of templates into a set of rules
 
+        This method processes a list of templates, extracting and converting each one into a rule
+        expression in the form of an "if then" rule. The resulting rules are stored in the internal
+        `rules` object, which can be either a Pandas DataFrame or a Polars DataFrame, depending on
+        the configuration. The method also handles error cases related to parsing template expressions.
+
+        Args:
+            templates (list, optional): A list of templates to convert into rules. Each template
+                                         should be a dictionary containing at least the key `expression`
+                                         with a string representing the rule's condition. Other optional
+                                         keys are `group` and `encodings` (rule-specific encodings).
+
+        Returns:
+            None: This method does not return any value. It updates the internal `rules` object with
+                  the generated rules based on the provided templates.
+
+        Raises:
+            Exception: If there is a parsing error in the template expression, an error is logged,
+                      and the method returns `None` without updating the rules.
         """
         logger = logging.getLogger(__name__)
 
@@ -374,51 +467,37 @@ class RuleMiner:
             self.rules = pl.DataFrame(rules)
 
     def generate_rules(self, templates: list) -> None:
-        """ """
+        """
+        Generate all rules given a list of templates
+
+        """
         for template in templates:
             self.generate_rule(template)
 
     def generate_rule(self, template: dict) -> None:
         """
-        Generate rules from data using a rule template.
+        Generates a rule from a template and adds it to the internal rules set.
 
-        This method generates rules based on a provided rule template.
-        It uses the template expression to create a set of rules by
-        substituting variable values and applying conditions. The
-        resulting rules are evaluated and filtered based on specified
-        metrics.
+        This method processes a single template to create a rule expression in the "if then"
+        format. It handles parsing the template expression, applying substitutions to the "if"
+        and "then" parts, and evaluating the rule against the current data. The resulting rule
+        is added to the internal set of rules, and the rule's metrics are calculated. The method
+        also handles the temporary addition of index names as columns for rule derivation.
 
         Args:
-            template (dict): A dictionary containing the rule template
-            with the following keys:
-                - "group" (int): The group identifier for the rules.
-                - "encodings" (dict): A dictionary of encodings for the rules.
-                - "expression" (str): The rule template expression.
+            template (dict): A dictionary representing the template to be converted into a rule.
+                              It should include the following keys:
+                              - "expression" (str): The rule expression in string form (e.g., "if ... then ...").
+                              - "group" (int, optional): The group ID for the rule.
+                              - "encodings" (dict, optional): Additional encodings related to the rule.
 
         Returns:
-            None
+            None: This method does not return a value. It updates the internal `rules` object with
+                  the generated rule.
 
-        Example:
-            rule_template = {"expression": 'if ({"A.*"} > 10) then ({"B.*"} == "X")', "group": 1, "encodings": {}}
-
-            generator.generate_rules(rule_template)
-
-        Note:
-            - The method first parses the provided rule expression into
-              'if' and 'then' parts.
-            - It generates rule candidates by substituting variables and
-              applying conditions.
-            - The candidates are evaluated, and the resulting rules are
-              filtered using metrics.
-            - The rules are added to the discovered rule list.
-
-        - Temporary index name columns are added to the data to derive rules
-          based on index names.
-        - If the template expression is not in 'if-then' format, it is converted
-          into such a format.
-        - Substitutions are made for variable values, and rules are generated
-          and evaluated.
-        - Temporary index columns are removed from the data after rule generation.
+        Raises:
+            Exception: If there is a parsing error in the template expression, an error is logged,
+                      and the method will not generate or add the rule to the internal rules set.
         """
         logger = logging.getLogger(__name__)
 
@@ -426,12 +505,13 @@ class RuleMiner:
         encodings = template.get("encodings", {})
         template_expression = template.get("expression", None)
 
-        # temporarily add index names as columns, so we derive rules with index names
-        if self.data is not None:
-            for level in range(len(self.data.index.names)):
-                self.data[str(self.data.index.names[level])] = (
-                    self.data.index.get_level_values(level=level)
-                )
+        if self.params.get("apply_rules_on_indices", True):
+            # temporarily add index names as columns, so we derive rules with index names
+            if self.data is not None:
+                for level in range(len(self.data.index.names)):
+                    self.data[str(self.data.index.names[level])] = (
+                        self.data.index.get_level_values(level=level)
+                    )
 
         # create dict of lists for rules
         rules = OrderedDict(
@@ -579,10 +659,11 @@ class RuleMiner:
         elif self.rules_datatype == pl.DataFrame:
             self.rules = pl.DataFrame(rules)
 
-        # remove temporarily added index columns
-        if self.data is not None:
-            for level in range(len(self.data.index.names)):
-                del self.data[str(self.data.index.names[level])]
+        if self.params.get("apply_rules_on_indices", True):
+            # remove temporarily added index columns
+            if self.data is not None:
+                for level in range(len(self.data.index.names)):
+                    del self.data[str(self.data.index.names[level])]
 
     def substitute_group_names(
         self, expr: str = None, group_names_list: list = []

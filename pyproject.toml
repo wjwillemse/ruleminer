@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ruleminer"
-version = "0.2.13"
+version = "0.2.18"
 description = "Python package to mine association rules in datasets"
 authors = ["Willem Jan Willemse <w.j.willemse@freedom.nl>"]
 license = "MIT/X"

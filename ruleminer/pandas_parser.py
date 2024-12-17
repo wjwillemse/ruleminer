@@ -199,9 +199,7 @@ def pandas_column(
     Replace column names with Pandas DataFrame expressions.
 
     This function searches for specific patterns in the string expression, particularly column names
-    enclosed in curly braces `{}`. If there is an additional instruction for tolerance (e.g., direction
-    and key), it applies a custom operation. Specific data types (such as strings, booleans, and datetimes)
-    are checked, and if the column's data type is neither of these types, a tolerance is applied in the calculation.
+    enclosed in curly braces `{}`.
 
     Parameters:
     ----------
@@ -239,8 +237,35 @@ def pandas_column(
     - The output is a modified version of the original expression.
 
     """
+
     if expression == "()":
         return expression
+
+    # new_expression = ""
+    # idx = 0
+    # while idx < len(expression):
+    #     new_expression += expression[idx]
+    #     if expression[idx] == "{":
+    #         start = idx + 2
+    #     elif expression[idx] == "}":
+    #         end = idx - 1
+    #         column = expression[start: end]
+    #         if column in data.columns and (
+    #            (not pd.api.types.is_string_dtype(data[column]))
+    #             and (not pd.api.types.is_bool_dtype(data[column]))
+    #             and (not pd.api.types.is_datetime64_ns_dtype(data[column]))
+    #         ):
+    #             if expression[end+2:end+13]==".apply(_tol":
+    #                 apply_end = False
+    #                 arg_end = False
+    #                 while not apply_end:
+    #                     if expression[idx] == ")":
+    #                         if arg_end:
+    #                             apply_end = True
+    #                         else:
+    #                             arg_end = True
+    #                     idx += 1
+    #     idx += 1
     return expression.replace('{"', DUNDER_DF + '["').replace('"}', '"]')
 
 

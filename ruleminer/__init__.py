@@ -25,7 +25,11 @@ from .grammar import (
     _quoted_string,
     _column,
 )
-from .parser import RuleParser
+from .parser import (
+    RuleParser,
+    contains_column,
+    contains_string,
+)
 from .evaluator import CodeEvaluator
 from .utils import (
     tree_to_expressions,
@@ -37,6 +41,8 @@ __all__ = [
     RuleMiner,
     RuleParser,
     CodeEvaluator,
+    contains_column,
+    contains_string,
     rule_expression,
     condition_expression,
     simple_condition_expression,
