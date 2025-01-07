@@ -208,3 +208,9 @@
 - Added multiply and divide functions when left and right side both contain columns (see usage documentation)
 - Changed grammar to separate plus, minus on one hand and multiplication, division on other hand into separate groups (needed for first point)
 - Added debugging information on lower and upper bounds when evaluating (in)equalities
+
+### 0.2.19 (2024-12-19)
+
+- Added mean and std functions to grammar and parser
+- Changed parameter name 'evaluate_quantile' to 'evaluate_statistics' to cover mean and std
+- Changed subst parameter definitions: substr(x, a, b) is now translated to x.str.slice(a-1, a+b-1)

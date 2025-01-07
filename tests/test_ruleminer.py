@@ -393,7 +393,7 @@ class TestRuleminer(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
 
-    def test_29(self):
+    def test_29a(self):
         df = pd.DataFrame(
             columns=[
                 "Name",
@@ -420,7 +420,7 @@ class TestRuleminer(unittest.TestCase):
 
         templates = [{"expression": '({"Own_funds"} <= quantile({"Own_funds"},0.95))'}]
         actual = ruleminer.RuleMiner(
-            templates=templates, data=df, params={"evaluate_quantile": True}
+            templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
             data=[[0, 0, 'if () then ({"Own_funds"}<=755.0)', "", 9, 1, 0.9, 0, {}]],
@@ -438,7 +438,99 @@ class TestRuleminer(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
 
-    def test_30(self):
+    def test_29b(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{"expression": '({"Own_funds"} <= mean({"Own_funds"}))'}]
+        actual = ruleminer.RuleMiner(
+            templates=templates, data=df, params={"evaluate_statistics": True}
+        ).rules
+        expected = pd.DataFrame(
+            data=[[0, 0, 'if () then ({"Own_funds"}<=300.0)', "", 8, 2, 0.8, 0, {}]],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.NOT_APPLICABLE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_29c(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{"expression": '({"Own_funds"} <= std({"Own_funds"}))'}]
+        actual = ruleminer.RuleMiner(
+            templates=templates, data=df, params={"evaluate_statistics": True}
+        ).rules
+        expected = pd.DataFrame(
+            data=[
+                [0, 0, 'if () then ({"Own_funds"}<=228.03508502)', "", 8, 2, 0.8, 0, {}]
+            ],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.NOT_APPLICABLE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_30a(self):
         df = pd.DataFrame(
             columns=[
                 "Name",
@@ -475,6 +567,116 @@ class TestRuleminer(unittest.TestCase):
                     9,
                     1,
                     0.9,
+                    0,
+                    {},
+                ]
+            ],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.NOT_APPLICABLE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_30b(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{"expression": '({"Own_funds"} <= mean({"Own_funds"}))'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+            data=[
+                [
+                    0,
+                    0,
+                    'if () then ({"Own_funds"}<=mean({"Own_funds"}))',
+                    "",
+                    8,
+                    2,
+                    0.8,
+                    0,
+                    {},
+                ]
+            ],
+            columns=[
+                ruleminer.RULE_ID,
+                ruleminer.RULE_GROUP,
+                ruleminer.RULE_DEF,
+                ruleminer.RULE_STATUS,
+                ruleminer.ABSOLUTE_SUPPORT,
+                ruleminer.ABSOLUTE_EXCEPTIONS,
+                ruleminer.CONFIDENCE,
+                ruleminer.NOT_APPLICABLE,
+                ruleminer.ENCODINGS,
+            ],
+        )
+        pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_30c(self):
+        df = pd.DataFrame(
+            columns=[
+                "Name",
+                "Type",
+                "Assets",
+                "TP-life",
+                "TP-nonlife",
+                "Own_funds",
+                "Excess",
+            ],
+            data=[
+                ["Insurer1", "life_insurer", 1000, 800, 0, 200, 200],
+                ["Insurer2", "non-life_insurer", 4000, 0, 3200, 800, 800],
+                ["Insurer3", "non-life_insurer", 800, 0, 700, 100, 100],
+                ["Insurer4", "life_insurer", 2500, 1800, 0, 700, 700],
+                ["Insurer5", "non-life_insurer", 2100, 0, 2200, 200, 200],
+                ["Insurer6", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer7", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer8", "life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer9", "non-life_insurer", 9000, 8800, 0, 200, 200],
+                ["Insurer10", "non-life_insurer", 9000, 0, 8800, 200, 199.99],
+            ],
+        )
+
+        templates = [{"expression": '({"Own_funds"} <= std({"Own_funds"}))'}]
+        actual = ruleminer.RuleMiner(templates=templates, data=df).rules
+        expected = pd.DataFrame(
+            data=[
+                [
+                    0,
+                    0,
+                    'if () then ({"Own_funds"}<=std({"Own_funds"}))',
+                    "",
+                    8,
+                    2,
+                    0.8,
                     0,
                     {},
                 ]
@@ -1014,7 +1216,7 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formulas = [
-            '(({"A"} == 0) & (SUBSTR({"C"}, 2, 4) IN ["CD"]))',
+            '(({"A"} == 0) & (SUBSTR({"C"}, 3, 2) IN ["CD"]))',
         ]
         df = pd.DataFrame(
             [
@@ -1104,7 +1306,7 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formulas = [
-            '(COUNTIF([{"A"}, {"B"}], [SUBSTR(K, 2, 4) IN ["CD"] for K IN [{"C"}, {"D"}]]) > 1)',
+            '(COUNTIF([{"A"}, {"B"}], [SUBSTR(K, 3, 2) IN ["CD"] for K IN [{"C"}, {"D"}]]) > 1)',
         ]
         df = pd.DataFrame(
             [
@@ -1149,7 +1351,7 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formulas = [
-            '(SUMIF([{"A"}, {"B"}], [SUBSTR(K, 2, 4) IN ["CD"] for K IN [{"C"}, {"D"}]]) > 1.0)',
+            '(SUMIF([{"A"}, {"B"}], [SUBSTR(K, 3, 2) IN ["CD"] for K IN [{"C"}, {"D"}]]) > 1.0)',
         ]
         df = pd.DataFrame(
             [
@@ -1366,7 +1568,7 @@ class TestRuleminer(unittest.TestCase):
             },
         }
         formulas = [
-            '((SUMIF([{"A"}, {"B"}], [SUBSTR(K, 2, 4) IN ["CD"] for K IN [{"C"}, {"D"}]])) == 0)',
+            '((SUMIF([{"A"}, {"B"}], [SUBSTR(K, 3, 2) IN ["CD"] for K IN [{"C"}, {"D"}]])) == 0)',
         ]
         df = pd.DataFrame(
             [

@@ -345,7 +345,7 @@ Suppose you want to use an expression with a quantile:
 
 Then you can choose to evaluate the quantile based on the dataset on which the rules were generated or not with:
 ```python
-params = {'evaluate_quantile': True}
+params = {'evaluate_statistics': True}
 ```
 
 This would produce the rule:
@@ -355,7 +355,7 @@ if () then ({"Own funds"}<=755.0)
 
 If you use:
 ```python
-params = {'evaluate_quantile': False}
+params = {'evaluate_statistics': False}
 ```
 
 then this would produce:
