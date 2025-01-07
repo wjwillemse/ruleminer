@@ -74,6 +74,8 @@ _function = (
     count \
     sumif \
     countif \
+    mean \
+    std \
     MIN \
     MAX \
     ABS \
@@ -83,7 +85,9 @@ _function = (
     SPLIT \
     COUNT \
     SUMIF \
-    COUNTIF"
+    COUNTIF \
+    MEAN \
+    STD"
     )
     | _timedelta_functions
     | _timedate_functions

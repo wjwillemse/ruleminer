@@ -35,7 +35,7 @@ class RuleParser:
         """ """
         self.keywords_function_mapping = [
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
-            (set(["quantile"]), self.parse_quantile),
+            (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["for"]), self.parse_list_comprehension),
             (set(["in", "not in"]), self.parse_in),
             (set(["substr"]), self.parse_substr),
@@ -121,7 +121,7 @@ class RuleParser:
 
             print(result)
 
-                "({"A"}.str.slice(1,1))"
+                "({"A"}.str.slice(0,1))"
 
         """
         if isinstance(expression, str):
@@ -240,9 +240,9 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
             + ".str.slice("
-            + start
+            + str(int(start) - 1)
             + ","
-            + stop
+            + str(int(start) + int(stop) - 1)
             + ")"
         )
         return res
@@ -679,7 +679,7 @@ class RuleParser:
             )
         return res + ")"
 
-    def parse_quantile(
+    def parse_statistical_functions(
         self,
         idx: int,
         item: str,
@@ -696,7 +696,7 @@ class RuleParser:
             idx = 1  # The index of 'quantile' in the expression
 
             # Parameters and data for the test
-            params = {"evaluate_quantile": True}  # Simulate that quantile evaluation is enabled
+            params = {"evaluate_statistics": True}  # Simulate that quantile evaluation is enabled
             data = {"A": [1, 2, 3, 4, 5]}  # Mock data, not directly used in this test
 
             # Initialize RuleMiner object
@@ -713,7 +713,7 @@ class RuleParser:
             print(result)
                 0.75
         """
-        if self.params.get("evaluate_quantile", False):
+        if self.params.get("evaluate_statistics", False):
             res = ""
             for i in expression[:idx]:
                 res += self.parse(
@@ -741,7 +741,7 @@ class RuleParser:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            return "quantile" + res
+            return item + res
 
     def parse_list_comprehension(
         self,
