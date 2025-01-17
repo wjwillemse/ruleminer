@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ruleminer"
-version = "0.2.19"
+version = "0.2.20"
 description = "Python package to mine association rules in datasets"
 authors = ["Willem Jan Willemse <w.j.willemse@freedom.nl>"]
 license = "MIT/X"
@@ -30,6 +30,7 @@ pyparsing = ">=3.0.0"
 scikit-learn = "*"
 numpy = "*"
 pandas = "*"
+regex = "*"
 
 [build-system]
 requires = ["poetry-core"]
