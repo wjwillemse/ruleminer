@@ -1869,7 +1869,7 @@ class TestRuleminer(unittest.TestCase):
                 },
             },
         }
-        formulas = ['({"A"} == (max(0, 2*{"B"}*{"B"} + 0.3*{"B"}*{"C"})**0.5))']
+        formulas = ['({"A"} == (2*{"B"}*{"B"} + 0.3*{"B"}*{"C"})**0.5)']
         df = pd.DataFrame(
             [
                 ["Test_1", 0.0, 0.0, 0.25, "ABCD"],
@@ -1883,6 +1883,9 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        actual = r.rules.values[0][2]
+        expected = """if () then (_equal({"A"}, max(0, (2*{"B"}*{"B"}+0.3*{"B"}*{"C"}))**0.5, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), max(0, (_multiply(2*{"B"}.apply(_tol, args=("+", "default",)), 2*{"B"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+")+_multiply(0.3*{"B"}.apply(_tol, args=("+", "default",)), 0.3*{"B"}.apply(_tol, args=("-", "default",)), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"+")))**0.5, max(0, (_multiply(2*{"B"}.apply(_tol, args=("+", "default",)), 2*{"B"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-")+_multiply(0.3*{"B"}.apply(_tol, args=("+", "default",)), 0.3*{"B"}.apply(_tol, args=("-", "default",)), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"-")))**0.5))""" 
+        self.assertEqual(expected, actual)
         r.evaluate()
         actual = (
             r.results.sort_values(by=["indices"], ignore_index=True)
@@ -1899,6 +1902,65 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_57(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, 1e3): 0,  # 1,
+                    (1e3, 1e6): 0,  # 2,
+                    (1e6, 1e8): 0,  # 3,
+                    (1e8, np.inf): 0,  # 4,
+                },
+            },
+        }
+        formulas = ['(exact({"A"}) == 0)', '({"A"} == 0)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Test_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_equal(({"A"}), 0, ({"A"}), ({"A"}), 0, 0))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        expected = 'if () then (_equal({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        actual = r.rules.values[1][2]
+        self.assertEqual(actual, expected)
+
+    def test_58(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['(exact({"A"}) == 0)', '({"A"} == 0)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Test_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_equal(({"A"}), 0, ({"A"}), ({"A"}), 0, 0))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        expected = 'if () then (_equal({"A"}, 0, {"A"}, {"A"}, 0, 0))'
+        actual = r.rules.values[1][2]
+        self.assertEqual(actual, expected)
 
     def test_parser_1(self):
         assert ~ruleminer.contains_column('"A"')

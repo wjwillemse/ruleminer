@@ -214,3 +214,13 @@
 - Added mean and std functions to grammar and parser
 - Changed parameter name 'evaluate_quantile' to 'evaluate_statistics' to cover mean and std
 - Changed subst parameter definitions: substr(x, a, b) is now translated to x.str.slice(a-1, a+b-1)
+
+### 0.2.20 (2025-1-14)
+
+- Added exact-function to grammar and parser to ignore tolerance of specific part of expression
+- When exponentials like x ** y are used, for x max(0, x) is substituted to prevent imaginary numbers (as x can be negative)
+- The tolerance dict can now contain None values:
+	- if params={'tolerance': {"A": None', 'default': { ... }}} then tolerance is not applied to column A and other columns are set to 'default'
+	- if params={'tolerance': {"default": None, "A": { ... }}} then tolerance is not applied as default except for column A
+	- the keys of the tolerance dict can contain regular expressions. They are matched with columns when converting the expressions
+- Added regex to dependency in pyproject.toml
