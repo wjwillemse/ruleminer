@@ -44,6 +44,7 @@ class RuleParser:
             (set(["sumif"]), self.parse_sumif),
             (set(["countif"]), self.parse_countif),
             (set(["match"]), self.parse_match),
+            (set(["exact"]), self.parse_exact),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
             (
                 set(
@@ -72,7 +73,7 @@ class RuleParser:
                 self.parse_timedate_function,
             ),
             (set(["days", "months", "years"]), self.parse_timedelta_function),
-            (set(["+", "-", "*", "/"]), self.parse_math_operator),
+            (set(["+", "-", "*", "/", "**"]), self.parse_math_operator),
         ]
 
         self.params = dict()
@@ -117,7 +118,7 @@ class RuleParser:
         Example:
             expression = ['substr', ['{"A"}', ',', '1', ',', '1']]
 
-            result = ruleminer.RuleMiner().parse(expression)
+            result = ruleminer.RuleParser().parse(expression)
 
             print(result)
 
@@ -209,11 +210,8 @@ class RuleParser:
             expression = ['SUBSTR', ['(', '"C"', ',', '2', ',', '4', ')']]
             idx = 0
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_substr method
-            result = rule_miner.parse_substr(
+            result = ruleminer.RuleParser().parse_substr(
                 idx=idx,
                 item="SUBSTR",
                 expression=expression,
@@ -224,7 +222,7 @@ class RuleParser:
 
             expression = ['SUBSTR', ['(', {"C"}', ',', '2', ',', '4', ')']]
 
-            result = ruleminer.RuleMiner().parse_substr(
+            result = ruleminer.RuleParser().parse_substr(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
@@ -262,11 +260,8 @@ class RuleParser:
             expression = ['day', ['(', '{"C"}', ')']]
             idx = 0
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_substr method
-            result = rule_miner.parse_substr(
+            result = ruleminer.RuleParser.parse_substr(
                 idx=idx,
                 item="SUBSTR",
                 expression=expression,
@@ -277,7 +272,7 @@ class RuleParser:
 
             expression = ['SUBSTR', ['(', {"C"}', ',', '2', ',', '4', ')']]
 
-            result = ruleminer.RuleMiner().parse_substr(
+            result = ruleminer.RuleParser().parse_substr(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
@@ -311,7 +306,7 @@ class RuleParser:
         Example:
             expression = ['days', ['(', '{"C"}', '-', '{"D"}', ')']]
 
-            result = ruleminer.RuleMiner().parse_timedelta_function(
+            result = ruleminer.RuleParser().parse_timedelta_function(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
@@ -355,7 +350,7 @@ class RuleParser:
         Example:
             expression = ['SPLIT', ['(', '{"C"}', ',', '"C"', ',', '2'], 'IN', [['"D"']], ')']
 
-            result = ruleminer.RuleMiner().parse_substr(
+            result = ruleminer.RuleParser().parse_substr(
                 idx=0,
                 expression=expression,
                 apply_tolerance=False
@@ -400,11 +395,8 @@ class RuleParser:
             expression = ['SUM', ['(', '2', ',', '3', ',', '5', ')']]  # Example expression for sum operation
             idx = 0  # Index for the expression list
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_sum method
-            result = rule_miner.parse_sum(
+            result = ruleminer.RuleParser().parse_sum(
                 idx=idx,
                 item="SUM",
                 expression=expression,
@@ -459,11 +451,8 @@ class RuleParser:
             ]
             idx = 0  # Index for the expression list
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_sumif method
-            result = rule_miner.parse_sumif(
+            result = ruleminer.RuleParser().parse_sumif(
                 idx=idx,
                 item="sumif",
                 expression=expression,
@@ -554,11 +543,8 @@ class RuleParser:
             ]
             idx = 0  # Index for the expression list
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_countif method
-            result = rule_miner.parse_countif(
+            result = ruleminer.RuleParser().parse_countif(
                 idx=idx,
                 item="COUNTIF",
                 expression=expression,
@@ -643,11 +629,8 @@ class RuleParser:
             expression = ['{"A"}', 'in', ['[', '"B"', ',', '"A"', ']']]  # Example expression for 'in' operation
             idx = 1  # The index of 'in' in the expression
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_in method
-            result = rule_miner.parse_in(
+            result = ruleminer.RuleParser().parse_in(
                 idx=idx,
                 item="in",
                 expression=expression,
@@ -759,11 +742,8 @@ class RuleParser:
             expression = ['[', ['K'], 'for', 'K', 'in', '[', [['{"A"}'], ',', ['{"B"}']], ']']]
             idx = 1  # The index of 'for' in the expression
 
-            # Initialize RuleMiner object
-            rule_miner = RuleMiner()
-
             # Call the parse_list_comprehension method
-            result = rule_miner.parse_list_comprehension(
+            result = ruleminer.RuleParser().parse_list_comprehension(
                 idx=idx,
                 item="for",
                 expression=expression,
@@ -974,7 +954,7 @@ class RuleParser:
         while idx < len(expression):
             item = expression[idx]
             # change direction depending on item
-            if item in ["+", "*"]:
+            if item in ["+", "*", "**"]:
                 # for + and * do not change direction of tolerance
                 current_positive_tolerance = (
                     positive_tolerance if apply_tolerance else positive_tolerance
@@ -1039,6 +1019,18 @@ class RuleParser:
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=False,
                     )
+            elif item == "**":
+                res = (
+                    "max(0, "
+                    + res
+                    + ")"
+                    + item
+                    + self.parse(
+                        expression=expression[idx + 1],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=current_positive_tolerance,
+                    )
+                )
             else:
                 # for + and - simply process expression
                 res += item + self.parse(
@@ -1058,6 +1050,10 @@ class RuleParser:
         """
         Process expression with column
 
+        If apply_tolerance is True then a self.tolerance must be given
+        The key of the tolerance to be used is initially set to 'default'
+        If the tolerance definition of the key is None then tolerance is not applied
+
         Example:
             parameters = {
                 "tolerance": {
@@ -1076,14 +1072,21 @@ class RuleParser:
                 '({"A"}.apply(_tol, args=("+", "default",))))'
 
         """
+        args = "default"
         if apply_tolerance:
+            if self.tolerance is not None:
+                for key, tol in self.tolerance.items():
+                    # check is default tolerance is set to None then do not apply
+                    if key == "default" and tol is None:
+                        args = None
+                    # match key with column name
+                    if re.fullmatch(key, expression[2:-2]):
+                        if tol is None:
+                            args = None
+                        else:
+                            args = key
+        if apply_tolerance and args:
             # process tolerance on column
-            args = ""
-            for key, tol in self.tolerance.items():
-                if re.fullmatch(key, expression[2:-2]):
-                    args = key
-            if args == "":
-                args = "default"
             if expression == "K":
                 if positive_tolerance:
                     return expression + '.apply(_tol, args=("+", "' + args + '",))'
@@ -1114,7 +1117,7 @@ class RuleParser:
         Example:
             expression = ['"A"']
 
-            result = ruleminer.RuleMiner().parse_string(
+            result = ruleminer.RuleParser().parse_string(
                 expression=expression
             )
             print(result)
@@ -1142,12 +1145,12 @@ class RuleParser:
         positive_tolerance: bool = True,
     ) -> str:
         """
-        Process in operator
+        Process match operator
 
         Example:
             expression = ['{"A"}', 'match', '"A"']
 
-            result = ruleminer.RuleMiner().parse_in(
+            result = ruleminer.RuleParser().parse_match(
                 idx=1,
                 expression=expression,
                 apply_tolerance=False
@@ -1175,6 +1178,36 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
         return res + ", na=False)"
+
+    def parse_exact(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process exact operator
+
+        Example:
+            expression = ['exact', '(', {"A"}', ')']
+
+            result = ruleminer.RuleParser().parse_exact(
+                idx=0,
+                expression=expression,
+                apply_tolerance=True
+            )
+            print(result)
+                '
+                ({"A"})
+                '
+        """
+        return self.parse(
+            expression[idx + 1 :],
+            apply_tolerance=False,
+            positive_tolerance=positive_tolerance,
+        )
 
     def parse_maxminabs(
         self,
@@ -1209,7 +1242,7 @@ class RuleParser:
         Example:
             expression = ['{"A"}', '==', '{"B"}']
 
-            result = ruleminer.RuleMiner().parse_decimal(
+            result = ruleminer.RuleParser().parse_decimal(
                 idx=1,
                 expression=expression
             )
@@ -1242,7 +1275,7 @@ class RuleParser:
         Example:
             expression = ['{"A"}', '==', '{"B"}']
 
-            result = ruleminer.RuleMiner().parse_decimal(
+            result = ruleminer.RuleParser().parse_decimal(
                 idx=1,
                 expression=expression
             )
