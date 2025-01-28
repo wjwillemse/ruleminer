@@ -224,3 +224,7 @@
 	- if params={'tolerance': {"default": None, "A": { ... }}} then tolerance is not applied as default except for column A
 	- the keys of the tolerance dict can contain regular expressions. They are matched with columns when converting the expressions
 - Added regex to dependency in pyproject.toml
+
+### 0.2.21 (2025-1-28)
+
+- Fix in evaluation of unequal operators in combination with tolerances

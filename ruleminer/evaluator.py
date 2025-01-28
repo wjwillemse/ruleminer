@@ -255,11 +255,11 @@ class CodeEvaluator:
                             "  LHS: " + str(lhs[idx]) + ", RHS: " + str(rhs[idx])
                         )
                 return (
-                    np.minimum(left_side_pos, left_side_neg)
-                    < np.maximum(right_side_pos, right_side_neg)
-                ) | (
                     np.maximum(left_side_pos, left_side_neg)
-                    > np.minimum(right_side_pos, right_side_neg)
+                    < np.minimum(right_side_pos, right_side_neg)
+                ) | (
+                    np.minimum(left_side_pos, left_side_neg)
+                    > np.maximum(right_side_pos, right_side_neg)
                 )
 
         def _multiply(a_pos, a_neg, b_pos, b_neg, direction: str):
