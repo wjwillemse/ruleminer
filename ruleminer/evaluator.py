@@ -173,33 +173,32 @@ class CodeEvaluator:
             ):
                 return left_side == right_side
             else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                # explicitly check level to avoid operations if not in debug
                 if logging.DEBUG == logging.root.level:
-                    lhs = [
-                        (str(a), str(b))
-                        for a, b in zip(
-                            np.minimum(left_side_pos, left_side_neg),
-                            np.maximum(left_side_pos, left_side_neg),
-                        )
-                    ]
-                    rhs = [
-                        (str(a), str(b))
-                        for a, b in zip(
-                            np.minimum(right_side_pos, right_side_neg),
-                            np.maximum(right_side_pos, right_side_neg),
-                        )
-                    ]
                     self.logger.debug("Evaluating equality:")
-                    for idx in range(len(lhs)):
+                    if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
+                        lhs = [(str(a), str(b)) for a, b in zip(min_left, max_left)]
+                        for idx in range(len(lhs)):
+                            self.logger.debug("  LHS: " + str(lhs[idx]))
+                    else:
                         self.logger.debug(
-                            "  LHS: " + str(lhs[idx]) + ", RHS: " + str(rhs[idx])
+                            "  LHS: " + str(min_left) + ", " + str(max_left)
                         )
-                return (
-                    np.maximum(left_side_pos, left_side_neg)
-                    >= np.minimum(right_side_pos, right_side_neg)
-                ) & (
-                    np.minimum(left_side_pos, left_side_neg)
-                    <= np.maximum(right_side_pos, right_side_neg)
-                )
+                    if hasattr(min_right, "__iter__") and hasattr(
+                        max_right, "__iter__"
+                    ):
+                        rhs = [(str(a), str(b)) for a, b in zip(min_right, max_right)]
+                        for idx in range(len(rhs)):
+                            self.logger.debug("  RHS: " + str(rhs[idx]))
+                    else:
+                        self.logger.debug(
+                            "  RHS: " + str(min_right) + ", " + str(max_right)
+                        )
+                return (max_left >= min_right) & (min_left <= max_right)
 
         def _unequal(
             left_side,
@@ -234,33 +233,32 @@ class CodeEvaluator:
             ):
                 return left_side != right_side
             else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                # explicitly check level to avoid operations if not in debug
                 if logging.DEBUG == logging.root.level:
-                    lhs = [
-                        (str(a), str(b))
-                        for a, b in zip(
-                            np.minimum(left_side_pos, left_side_neg),
-                            np.maximum(left_side_pos, left_side_neg),
-                        )
-                    ]
-                    rhs = [
-                        (str(a), str(b))
-                        for a, b in zip(
-                            np.minimum(right_side_pos, right_side_neg),
-                            np.maximum(right_side_pos, right_side_neg),
-                        )
-                    ]
-                    self.logger.debug("Evaluating inequality:")
-                    for idx in range(len(lhs)):
+                    self.logger.debug("Evaluating equality:")
+                    if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
+                        lhs = [(str(a), str(b)) for a, b in zip(min_left, max_left)]
+                        for idx in range(len(lhs)):
+                            self.logger.debug("  LHS: " + str(lhs[idx]))
+                    else:
                         self.logger.debug(
-                            "  LHS: " + str(lhs[idx]) + ", RHS: " + str(rhs[idx])
+                            "  LHS: " + str(min_left) + ", " + str(max_left)
                         )
-                return (
-                    np.maximum(left_side_pos, left_side_neg)
-                    < np.minimum(right_side_pos, right_side_neg)
-                ) | (
-                    np.minimum(left_side_pos, left_side_neg)
-                    > np.maximum(right_side_pos, right_side_neg)
-                )
+                    if hasattr(min_right, "__iter__") and hasattr(
+                        max_right, "__iter__"
+                    ):
+                        rhs = [(str(a), str(b)) for a, b in zip(min_right, max_right)]
+                        for idx in range(len(rhs)):
+                            self.logger.debug("  RHS: " + str(rhs[idx]))
+                    else:
+                        self.logger.debug(
+                            "  RHS: " + str(min_right) + ", " + str(max_right)
+                        )
+                return ~((max_left >= min_right) & (min_left <= max_right))
 
         def _multiply(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
