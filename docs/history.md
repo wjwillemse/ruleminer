@@ -229,3 +229,7 @@
 
 - Fix in evaluation of unequal operators in combination with tolerances
 - Fix in evaluation of equal and unequal operators when writing debug info
+
+### 0.2.23 (2025-1-29)
+
+- Improved logging info of evaluation of rules

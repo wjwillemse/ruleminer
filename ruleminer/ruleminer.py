@@ -354,17 +354,20 @@ class RuleMiner:
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
 
-            if nco == 0 and nex == 0:
-                logger.debug(
-                    "Finished: "
-                    + str(rule_idx)
-                    + " ("
-                    + str(rule_id)
-                    + ")"
-                    + " [0 confirmations and 0 exceptions]"
-                )
-            else:
-                logger.info("Finished: " + str(rule_idx) + " (" + str(rule_id) + ")")
+            logger.info(
+                "Finished: "
+                + str(rule_idx)
+                + " ("
+                + str(rule_id)
+                + ", "
+                + str(rule_group)
+                + ")"
+                + " ["
+                + str(nco)
+                + " confirmations and "
+                + str(nex)
+                + " exceptions]"
+            )
 
         if self.results_datatype == pd.DataFrame:
             self.results = pd.DataFrame.from_dict(results).astype(mapping_dtypes)
