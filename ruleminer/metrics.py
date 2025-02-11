@@ -13,6 +13,7 @@ from .const import RULE_POWER_FACTOR
 from .const import VAR_X
 from .const import VAR_NOT_X
 from .const import VAR_Y
+from .const import VAR_NOT_Y
 from .const import VAR_N
 from .const import VAR_X_AND_Y
 from .const import VAR_X_AND_NOT_Y
@@ -22,33 +23,87 @@ import numpy as np
 
 METRICS = {
     ABSOLUTE_SUPPORT: [VAR_X_AND_Y],
-    ABSOLUTE_EXCEPTIONS: [VAR_X_AND_NOT_Y],
+    ABSOLUTE_EXCEPTIONS: [VAR_NOT_Y, VAR_X_AND_NOT_Y],
     CONFIDENCE: [VAR_X, VAR_X_AND_Y],
     NOT_APPLICABLE: [VAR_N, VAR_X_AND_Y, VAR_X_AND_NOT_Y],
     SUPPORT: [VAR_N, VAR_X_AND_Y],
     ADDED_VALUE: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
-    CASUAL_CONFIDENCE: [VAR_X, VAR_NOT_X, VAR_X_AND_Y, VAR_NOT_X_AND_NOT_Y],
+    CASUAL_CONFIDENCE: [VAR_X, VAR_NOT_X, VAR_NOT_Y, VAR_X_AND_Y, VAR_NOT_X_AND_NOT_Y],
     CONVICTION: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
     LIFT: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
     RULE_POWER_FACTOR: [VAR_N, VAR_X, VAR_X_AND_Y],
 }
 
 
-def required_variables(metrics: list = []):
+def required_variables(metrics: list = []) -> list:
     """
     This function derives a set of variables that
     are needed to calculate the metrics
     """
-    variables = set()
+    variables = list()
     for metric in metrics:
         required = METRICS.get(metric, [])
         for v in required:
-            variables.add(v)
+            if v not in variables:
+                variables.append(v)
     return variables
 
 
 def metrics(metrics: list = []):
     return [metric for metric in metrics if metric in METRICS.keys()]
+
+
+def calculate_required_variables(required_vars: list, code_results: dict) -> dict():
+    """
+    Calculation of required variables based on indices of DataFrame
+
+    """
+    if VAR_NOT_Y in required_vars:
+        if not isinstance(code_results[VAR_N], float) and not isinstance(
+            code_results[VAR_Y], float
+        ):
+            code_results[VAR_NOT_Y] = code_results[VAR_N].difference(
+                code_results[VAR_Y]
+            )
+        else:
+            code_results[VAR_NOT_Y] = np.nan
+    if VAR_NOT_X in required_vars:
+        if not isinstance(code_results[VAR_N], float) and not isinstance(
+            code_results[VAR_X], float
+        ):
+            code_results[VAR_NOT_X] = code_results[VAR_N].difference(
+                code_results[VAR_X]
+            )
+        else:
+            code_results[VAR_NOT_X] = np.nan
+    if VAR_X_AND_Y in required_vars:
+        if not isinstance(code_results[VAR_X], float) and not isinstance(
+            code_results[VAR_Y], float
+        ):
+            code_results[VAR_X_AND_Y] = code_results[VAR_X].intersection(
+                code_results[VAR_Y]
+            )
+        else:
+            code_results[VAR_X_AND_Y] = np.nan
+    if VAR_X_AND_NOT_Y in required_vars:
+        if not isinstance(code_results[VAR_X], float) and not isinstance(
+            code_results[VAR_NOT_Y], float
+        ):
+            code_results[VAR_X_AND_NOT_Y] = code_results[VAR_X].intersection(
+                code_results[VAR_NOT_Y]
+            )
+        else:
+            code_results[VAR_X_AND_NOT_Y] = np.nan
+    if VAR_NOT_X_AND_NOT_Y in required_vars:
+        if not isinstance(code_results[VAR_NOT_X], float) and not isinstance(
+            code_results[VAR_NOT_Y], float
+        ):
+            code_results[VAR_NOT_X_AND_NOT_Y] = code_results[VAR_NOT_X].intersection(
+                code_results[VAR_NOT_Y]
+            )
+        else:
+            code_results[VAR_NOT_X_AND_NOT_Y] = np.nan
+    return code_results
 
 
 def calculate_metrics(len_results: dict = {}, metrics: list = []):

@@ -77,6 +77,7 @@ _function = (
     mean \
     std \
     exact \
+    corr \
     MIN \
     MAX \
     ABS \
@@ -89,7 +90,8 @@ _function = (
     COUNTIF \
     MEAN \
     STD \
-    EXACT"
+    EXACT \
+    CORR"
     )
     | _timedelta_functions
     | _timedate_functions

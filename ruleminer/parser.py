@@ -45,6 +45,7 @@ class RuleParser:
             (set(["countif"]), self.parse_countif),
             (set(["match"]), self.parse_match),
             (set(["exact"]), self.parse_exact),
+            (set(["corr"]), self.parse_corr),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
             (
                 set(
@@ -242,6 +243,42 @@ class RuleParser:
             + ","
             + str(int(start) + int(stop) - 1)
             + ")"
+        )
+        return res
+
+    def parse_corr(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process corr function
+
+        Example:
+            expression = ['CORR', ['(', '"matrix"', ',', '{"a"}', ',', '{"b"}', ',', '{"c"}, ',', '{"d"}',')']]
+            idx = 0
+
+            result = ruleminer.RuleParser().parse_corr(
+                idx=idx,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '_corr("matrix", {"a"}, {"b"}, {"c"}, {"d"})'
+        """
+        corr_params = expression[idx + 1]
+        matrix_key = corr_params[1][1:-1]
+        if matrix_key not in list(self.params["matrices"].keys()):
+            logging.error(
+                "Matrix key is not in predefined matrices dictionary of parameters."
+            )
+        res = "_corr" + self.parse(
+            corr_params,
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
         )
         return res
 

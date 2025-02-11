@@ -36,7 +36,12 @@ from .utils import (
     is_column,
     is_string,
 )
-from .metrics import metrics, required_variables, calculate_metrics
+from .metrics import (
+    metrics,
+    required_variables,
+    calculate_metrics,
+    calculate_required_variables,
+)
 from .const import (
     CONFIDENCE,
     ABSOLUTE_SUPPORT,
@@ -260,15 +265,13 @@ class RuleMiner:
             rule_def = row[RULE_DEF]
             rule_group = row[RULE_GROUP]
             rule_status = row[RULE_STATUS]
-
-            required_vars = required_variables(
-                [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE]
-            )
-            rule_code = dataframe_index(
-                expression=rule_def, required=required_vars, data=self.data
-            )
+            rule_code = dataframe_index(expression=rule_def, data=self.data)
             code_results = self.evaluate_code(
                 expressions=rule_code, dataframe=self.data
+            )
+            code_results = calculate_required_variables(
+                required_vars=self.required_vars,
+                code_results=code_results,
             )
             len_results = {
                 key: len(code_results[key])
@@ -279,12 +282,7 @@ class RuleMiner:
             }
             rule_metrics = calculate_metrics(
                 len_results=len_results,
-                metrics=[
-                    ABSOLUTE_SUPPORT,
-                    ABSOLUTE_EXCEPTIONS,
-                    CONFIDENCE,
-                    NOT_APPLICABLE,
-                ],
+                metrics=self.metrics,
             )
 
             co_indices = code_results[VAR_X_AND_Y]

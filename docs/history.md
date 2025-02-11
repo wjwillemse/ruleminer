@@ -233,3 +233,8 @@
 ### 0.2.23 (2025-1-29)
 
 - Improved logging info of evaluation of rules
+
+### 0.2.24 (2025-2-11)
+
+- Improved performance of evaluation (antecedent and consequent are calculated only once)
+- Added corr function to calculate correlations

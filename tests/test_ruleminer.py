@@ -1962,6 +1962,53 @@ class TestRuleminer(unittest.TestCase):
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
 
+    def test_59(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+            "matrices": {
+                "matrix_1": [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [13, 14, 15, 16],
+                ]
+            },
+        }
+        formulas = ['(corr("matrix_1", {"a"}, {"b"}, {"c"}, {"d"})==136)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 1, 1, 1, 1],
+                ["Test_2", 2, 2, 2, 2],
+                ["Test_3", 3, 3, 3, 3],
+            ],
+            columns=["Name", "a", "b", "c", "d"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_corr("matrix_1",{"a"},{"b"},{"c"},{"d"})==136)'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", True],
+            ["Test_2", False],
+            ["Test_3", False],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
     def test_parser_1(self):
         assert ~ruleminer.contains_column('"A"')
         assert ruleminer.contains_column('{"A"}')

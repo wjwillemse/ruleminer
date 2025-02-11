@@ -100,7 +100,6 @@ def dataframe_lengths(
 
 def dataframe_index(
     expression: str,
-    required: list,
     data: pd.DataFrame,
 ) -> Dict[str, str]:
     """
@@ -137,53 +136,10 @@ def dataframe_index(
     if_part = rule.group(1).strip()
     then_part = rule.group(2).strip()
 
-    expressions = {}
-    for variable in required:
-        if variable == VAR_N:
-            expressions[variable] = DUNDER_DF + ".index"
-        if variable == VAR_X:
-            expressions[variable] = (
-                DUNDER_DF + ".index[(" + pandas_column(if_part, data) + ")]"
-            )
-        elif variable == VAR_NOT_X:
-            expressions[variable] = (
-                DUNDER_DF + ".index[~(" + pandas_column(if_part, data) + ")]"
-            )
-        elif variable == VAR_Y:
-            expressions[variable] = (
-                DUNDER_DF + ".index[(" + pandas_column(then_part, data) + ")]"
-            )
-        elif variable == VAR_NOT_Y:
-            expressions[variable] = (
-                DUNDER_DF + ".index[~(" + pandas_column(then_part, data) + ")]"
-            )
-        elif variable == VAR_X_AND_Y:
-            expressions[variable] = (
-                DUNDER_DF
-                + ".index[("
-                + pandas_column(if_part, data)
-                + ") & ("
-                + pandas_column(then_part, data)
-                + ")]"
-            )
-        elif variable == VAR_X_AND_NOT_Y:
-            expressions[variable] = (
-                DUNDER_DF
-                + ".index[("
-                + pandas_column(if_part, data)
-                + ") & ~("
-                + pandas_column(then_part, data)
-                + ")]"
-            )
-        elif variable == VAR_NOT_X_AND_NOT_Y:
-            expressions[variable] = (
-                DUNDER_DF
-                + ".index[~("
-                + pandas_column(if_part, data)
-                + ") & ~("
-                + pandas_column(then_part, data)
-                + ")]"
-            )
+    expressions = dict()
+    expressions[VAR_N] = DUNDER_DF + ".index"
+    expressions[VAR_X] = DUNDER_DF + ".index[(" + pandas_column(if_part, data) + ")]"
+    expressions[VAR_Y] = DUNDER_DF + ".index[(" + pandas_column(then_part, data) + ")]"
     for e in expressions.keys():
         expressions[e] = expressions[e].replace("[(())]", "")
         expressions[e] = expressions[e].replace("(()) & ", "")

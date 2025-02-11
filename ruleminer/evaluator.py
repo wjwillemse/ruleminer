@@ -326,11 +326,32 @@ class CodeEvaluator:
                     axis=1,
                 ).min(axis=1)
 
+        def _corr(
+            key: str,
+            *columns,
+        ):
+            """
+            # (sum r,s Corr (r,s) * column (r) * column (s)
+            """
+            if key not in list(self.matrices.keys()):
+                logging.error(
+                    'Matrix key "'
+                    + key
+                    + '" is not in predefined matrices dictionary of parameters.'
+                )
+            m = self.matrices[key]
+            result = pd.Series([0] * len(columns[0]))
+            for r in range(len(m)):
+                for s in range(len(m)):
+                    result += m[r][s] * columns[r] * columns[s]
+            return result
+
         self.globals["_tol"] = _tol
         self.globals["_equal"] = _equal
         self.globals["_unequal"] = _unequal
         self.globals["_multiply"] = _multiply
         self.globals["_divide"] = _divide
+        self.globals["_corr"] = _corr
 
     def set_params(self, params):
         """
@@ -363,6 +384,11 @@ class CodeEvaluator:
                     raise Exception(
                         "No spaces allowed in keys of tolerance definition."
                     )
+        matrices = self.params.get("matrices", None)
+        if matrices is not None:
+            self.matrices = dict()
+            for key, value in matrices.items():
+                self.matrices[key] = np.array(value)
 
     def set_data(
         self,
