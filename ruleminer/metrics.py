@@ -25,7 +25,7 @@ METRICS = {
     ABSOLUTE_SUPPORT: [VAR_X_AND_Y],
     ABSOLUTE_EXCEPTIONS: [VAR_NOT_Y, VAR_X_AND_NOT_Y],
     CONFIDENCE: [VAR_X, VAR_X_AND_Y],
-    NOT_APPLICABLE: [VAR_N, VAR_X_AND_Y, VAR_X_AND_NOT_Y],
+    NOT_APPLICABLE: [VAR_NOT_X],
     SUPPORT: [VAR_N, VAR_X_AND_Y],
     ADDED_VALUE: [VAR_N, VAR_X, VAR_Y, VAR_X_AND_Y],
     CASUAL_CONFIDENCE: [VAR_X, VAR_NOT_X, VAR_NOT_Y, VAR_X_AND_Y, VAR_NOT_X_AND_NOT_Y],
@@ -125,11 +125,9 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
             else:
                 calculated_metrics[metric] = np.nan
         elif metric == NOT_APPLICABLE:
-            # conf(X->Y) = n(X and Y) / n(X)
+            # not applicable -> n - n(X)
             calculated_metrics[metric] = (
-                len_results.get(VAR_N, np.nan)
-                - len_results.get(VAR_X_AND_Y, np.nan)
-                - len_results.get(VAR_X_AND_NOT_Y, np.nan)
+                len_results.get(VAR_NOT_X, np.nan)
             )
         elif metric == SUPPORT:
             # n(X) / n

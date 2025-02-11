@@ -6,7 +6,6 @@ from .utils import (
     is_column,
     is_string,
 )
-from .const import VAR_Z
 from .pandas_parser import (
     pandas_column,
 )
@@ -741,16 +740,14 @@ class RuleParser:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            quantile_code = {
-                VAR_Z: pandas_column(
-                    expression=flatten(expression[idx : idx + 2]),
-                    data=self.data,
-                )
-            }
+            quantile_code = pandas_column(
+                expression=flatten(expression[idx : idx + 2]),
+                data=self.data,
+            )
             evaluator = CodeEvaluator()
             evaluator.set_params(self.params)
             evaluator.set_data(self.data)
-            quantile_result = evaluator.evaluate(expressions=quantile_code)[VAR_Z]
+            quantile_result, _ = evaluator.evaluate_str(expression=quantile_code, encodings={})
             res += str(np.round(quantile_result, 8))
             return res
         else:
@@ -1021,9 +1018,9 @@ class RuleParser:
                         positive_tolerance=False,
                     )
                     if item == "*":
-                        new_res = "_multiply"
+                        new_res = "_mul"
                     elif item == "/":
-                        new_res = "_divide"
+                        new_res = "_div"
                     new_res += (
                         "("
                         + res_pos

@@ -75,25 +75,15 @@ class CodeEvaluator:
           separately for proper functionality.
 
         """
-        self.globals = {
-            "MAX": np.maximum,
-            "MIN": np.minimum,
-            "ABS": np.abs,
-            "QUANTILE": np.quantile,
-            "SUM": np.sum,
-            "MEAN": np.mean,
-            "STD": np.std,
-            "max": np.maximum,
-            "min": np.minimum,
-            "abs": np.abs,
-            "quantile": np.quantile,
-            "sum": np.sum,
-            "mean": np.mean,
-            "std": np.std,
-            "np": np,
-            "nan": np.nan,
-        }
         self.logger = logging.getLogger(__name__)
+        def _mean(*args):
+            return np.mean(args[0])
+        
+        def _std(*args):
+            return np.std(args[0])
+
+        def _quantile(*args):
+            return np.quantile(args[0], args[1])
 
         # general tolerance function
         def _tol(value, direction=bool, column=None):
@@ -260,7 +250,7 @@ class CodeEvaluator:
                         )
                 return ~((max_left >= min_right) & (min_left <= max_right))
 
-        def _multiply(a_pos, a_neg, b_pos, b_neg, direction: str):
+        def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
             Perform multiplication based on the given direction and return the maximum or minimum result
             based on the values of a+, a-, b+, b-.
@@ -293,7 +283,7 @@ class CodeEvaluator:
                     axis=1,
                 ).min(axis=1)
 
-        def _divide(a_pos, a_neg, b_pos, b_neg, direction: str):
+        def _div(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
             Perform division based on the given direction and return the maximum or minimum result
             based on the values of a+, a-, b+, b-.
@@ -346,11 +336,31 @@ class CodeEvaluator:
                     result += m[r][s] * columns[r] * columns[s]
             return result
 
+        self.globals = {
+            "MAX": np.maximum,
+            "MIN": np.minimum,
+            "ABS": np.abs,
+            "QUANTILE": _quantile,
+            "SUM": np.sum,
+            "MEAN": _mean,
+            "STD": _std,
+            "max": np.maximum,
+            "min": np.minimum,
+            "abs": np.abs,
+            "quantile": _quantile,
+            "sum": np.sum,
+            "mean": _mean,
+            "std": _std,
+            "np": np,
+            "nan": np.nan,
+        }
+
+
         self.globals["_tol"] = _tol
         self.globals["_equal"] = _equal
         self.globals["_unequal"] = _unequal
-        self.globals["_multiply"] = _multiply
-        self.globals["_divide"] = _divide
+        self.globals["_mul"] = _mul
+        self.globals["_div"] = _div
         self.globals["_corr"] = _corr
 
     def set_params(self, params):
@@ -411,7 +421,7 @@ class CodeEvaluator:
         """
         self.globals[DUNDER_DF] = dataframe
 
-    def evaluate(
+    def evaluate_dict(
         self,
         expressions: dict = {},
         encodings: dict = {},
@@ -439,13 +449,57 @@ class CodeEvaluator:
         - Errors encountered during the evaluation of expressions are logged with a debug level.
 
         """
-        variables = {}
+        variables = dict()
+        logging = dict()
         for key in expressions.keys():
             try:
                 variables[key] = eval(expressions[key], self.globals, encodings)
+                logging[key] = ""
             except Exception as e:
                 self.logger.debug(
                     "Error evaluating the code '" + expressions[key] + "': " + repr(e)
                 )
                 variables[key] = np.nan
-        return variables
+                logging[key] = "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+        return variables, logging
+
+    def evaluate_str(
+        self,
+        expression: str,
+        encodings: dict = {},
+    ) -> dict:
+        """
+        Evaluates a single mathematical expressions and .
+
+        This method processes each expression provided in the `expressions` dictionary,
+        evaluating it using the functions and variables available in the `globals` and
+        additional encoding values from the `encodings` dictionary. If an expression cannot
+        be evaluated, it logs an error and assigns `NaN` as the result for that expression.
+
+        Parameters:
+        - expressions (dict): A dictionary where keys are variable names and values are
+          the corresponding mathematical expressions as strings to be evaluated.
+        - encodings (dict): A dictionary of additional variables or encoding values to be
+          used during the evaluation of expressions.
+
+        Returns:
+        - dict: A dictionary where keys are the variable names from the `expressions`
+          dictionary, and values are the results of evaluating those expressions. If an error
+          occurs during evaluation, the corresponding value is set to `NaN`.
+
+        Logs:
+        - Errors encountered during the evaluation of expressions are logged with a debug level.
+
+        """
+        variable = ""
+        logging = ""
+        try:
+            variable = eval(expression, self.globals, encodings)
+            logging = ""
+        except Exception as e:
+            self.logger.debug(
+                "Error evaluating the code '" + expression + "': " + repr(e)
+            )
+            variable = np.nan
+            logging = "Error evaluating the code '" + expression + "': " + repr(e)
+        return variable, logging

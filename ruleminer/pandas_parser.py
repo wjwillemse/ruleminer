@@ -61,7 +61,10 @@ def dataframe_lengths(
             else:
                 expressions[variable] = "(" + pandas_column(if_part, data) + ").sum()"
         elif variable == VAR_NOT_X:
-            expressions[variable] = "(~(" + pandas_column(if_part, data) + ")).sum()"
+            if if_part == "()":
+                expressions[variable] = "0"
+            else:
+                expressions[variable] = "(~(" + pandas_column(if_part, data) + ")).sum()"
         elif variable == VAR_Y:
             expressions[variable] = "(" + pandas_column(then_part, data) + ").sum()"
         elif variable == VAR_NOT_Y:
