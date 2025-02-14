@@ -53,57 +53,89 @@ def metrics(metrics: list = []):
     return [metric for metric in metrics if metric in METRICS.keys()]
 
 
-def calculate_required_variables(required_vars: list, code_results: dict) -> dict():
+def add_required_variables(required_vars: list, results: dict, logging: dict) -> dict():
     """
     Calculation of required variables based on indices of DataFrame
 
     """
     if VAR_NOT_Y in required_vars:
-        if not isinstance(code_results[VAR_N], float) and not isinstance(
-            code_results[VAR_Y], float
+        if not isinstance(results[VAR_N], float) and not isinstance(
+            results[VAR_Y], float
         ):
-            code_results[VAR_NOT_Y] = code_results[VAR_N].difference(
-                code_results[VAR_Y]
-            )
+            results[VAR_NOT_Y] = results[VAR_N].difference(results[VAR_Y])
         else:
-            code_results[VAR_NOT_Y] = np.nan
+            results[VAR_NOT_Y] = np.nan
     if VAR_NOT_X in required_vars:
-        if not isinstance(code_results[VAR_N], float) and not isinstance(
-            code_results[VAR_X], float
+        if not isinstance(results[VAR_N], float) and not isinstance(
+            results[VAR_X], float
         ):
-            code_results[VAR_NOT_X] = code_results[VAR_N].difference(
-                code_results[VAR_X]
-            )
+            results[VAR_NOT_X] = results[VAR_N].difference(results[VAR_X])
         else:
-            code_results[VAR_NOT_X] = np.nan
+            results[VAR_NOT_X] = np.nan
     if VAR_X_AND_Y in required_vars:
-        if not isinstance(code_results[VAR_X], float) and not isinstance(
-            code_results[VAR_Y], float
+        if not isinstance(results[VAR_X], float) and not isinstance(
+            results[VAR_Y], float
         ):
-            code_results[VAR_X_AND_Y] = code_results[VAR_X].intersection(
-                code_results[VAR_Y]
-            )
+            results[VAR_X_AND_Y] = results[VAR_X].intersection(results[VAR_Y])
         else:
-            code_results[VAR_X_AND_Y] = np.nan
+            results[VAR_X_AND_Y] = np.nan
     if VAR_X_AND_NOT_Y in required_vars:
-        if not isinstance(code_results[VAR_X], float) and not isinstance(
-            code_results[VAR_NOT_Y], float
+        if not isinstance(results[VAR_X], float) and not isinstance(
+            results[VAR_NOT_Y], float
         ):
-            code_results[VAR_X_AND_NOT_Y] = code_results[VAR_X].intersection(
-                code_results[VAR_NOT_Y]
-            )
+            results[VAR_X_AND_NOT_Y] = results[VAR_X].intersection(results[VAR_NOT_Y])
         else:
-            code_results[VAR_X_AND_NOT_Y] = np.nan
+            results[VAR_X_AND_NOT_Y] = np.nan
     if VAR_NOT_X_AND_NOT_Y in required_vars:
-        if not isinstance(code_results[VAR_NOT_X], float) and not isinstance(
-            code_results[VAR_NOT_Y], float
+        if not isinstance(results[VAR_NOT_X], float) and not isinstance(
+            results[VAR_NOT_Y], float
         ):
-            code_results[VAR_NOT_X_AND_NOT_Y] = code_results[VAR_NOT_X].intersection(
-                code_results[VAR_NOT_Y]
+            results[VAR_NOT_X_AND_NOT_Y] = results[VAR_NOT_X].intersection(
+                results[VAR_NOT_Y]
             )
         else:
-            code_results[VAR_NOT_X_AND_NOT_Y] = np.nan
-    return code_results
+            results[VAR_NOT_X_AND_NOT_Y] = np.nan
+
+    if logging is not None:
+        if VAR_NOT_Y in required_vars:
+            if not isinstance(results[VAR_N], float) and not isinstance(
+                results[VAR_Y], float
+            ):
+                logging[VAR_NOT_Y] = logging[VAR_N].loc[results[VAR_NOT_Y]]
+            else:
+                logging[VAR_NOT_Y] = np.nan
+        if VAR_NOT_X in required_vars:
+            if not isinstance(results[VAR_N], float) and not isinstance(
+                results[VAR_X], float
+            ):
+                logging[VAR_NOT_X] = logging[VAR_N].loc[results[VAR_NOT_X]]
+            else:
+                logging[VAR_NOT_X] = np.nan
+        if VAR_X_AND_Y in required_vars:
+            if not isinstance(results[VAR_X], float) and not isinstance(
+                results[VAR_Y], float
+            ):
+                logging[VAR_X_AND_Y] = logging[VAR_X].loc[results[VAR_X_AND_Y]]
+            else:
+                logging[VAR_X_AND_Y] = np.nan
+        if VAR_X_AND_NOT_Y in required_vars:
+            if not isinstance(results[VAR_X], float) and not isinstance(
+                results[VAR_NOT_Y], float
+            ):
+                logging[VAR_X_AND_NOT_Y] = logging[VAR_X].loc[results[VAR_X_AND_NOT_Y]]
+            else:
+                logging[VAR_X_AND_NOT_Y] = np.nan
+        if VAR_NOT_X_AND_NOT_Y in required_vars:
+            if not isinstance(results[VAR_NOT_X], float) and not isinstance(
+                results[VAR_NOT_Y], float
+            ):
+                logging[VAR_NOT_X_AND_NOT_Y] = logging[VAR_NOT_X].loc[
+                    results[VAR_NOT_X_AND_NOT_Y]
+                ]
+            else:
+                logging[VAR_NOT_X_AND_NOT_Y] = np.nan
+
+    return results, logging
 
 
 def calculate_metrics(len_results: dict = {}, metrics: list = []):
@@ -126,9 +158,7 @@ def calculate_metrics(len_results: dict = {}, metrics: list = []):
                 calculated_metrics[metric] = np.nan
         elif metric == NOT_APPLICABLE:
             # not applicable -> n - n(X)
-            calculated_metrics[metric] = (
-                len_results.get(VAR_NOT_X, np.nan)
-            )
+            calculated_metrics[metric] = len_results.get(VAR_NOT_X, np.nan)
         elif metric == SUPPORT:
             # n(X) / n
             if len_results.get(VAR_N, np.nan) != 0:

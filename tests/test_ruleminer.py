@@ -1761,6 +1761,8 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 True,
                 1,
+                "",
+                "",
             ],
         )
         self.assertListEqual(
@@ -1776,6 +1778,8 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 True,
                 3,
+                "",
+                "",
             ],
         )
         self.assertListEqual(
@@ -1791,6 +1795,8 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 False,
                 0,
+                "",
+                "",
             ],
         )
         self.assertListEqual(
@@ -1806,6 +1812,8 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 False,
                 2,
+                "",
+                "",
             ],
         )
 

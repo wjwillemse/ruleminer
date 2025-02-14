@@ -744,10 +744,12 @@ class RuleParser:
                 expression=flatten(expression[idx : idx + 2]),
                 data=self.data,
             )
-            evaluator = CodeEvaluator()
+            evaluator = CodeEvaluator(self.params)
             evaluator.set_params(self.params)
             evaluator.set_data(self.data)
-            quantile_result, _ = evaluator.evaluate_str(expression=quantile_code, encodings={})
+            quantile_result, _ = evaluator.evaluate_str(
+                expression=quantile_code, encodings={}
+            )
             res += str(np.round(quantile_result, 8))
             return res
         else:

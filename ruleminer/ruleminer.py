@@ -28,7 +28,6 @@ from .evaluator import CodeEvaluator
 from .pandas_parser import (
     dataframe_index,
     dataframe_values,
-    dataframe_lengths,
 )
 from .utils import (
     flatten,
@@ -40,7 +39,7 @@ from .metrics import (
     metrics,
     required_variables,
     calculate_metrics,
-    calculate_required_variables,
+    add_required_variables,
 )
 from .const import (
     CONFIDENCE,
@@ -55,9 +54,10 @@ from .const import (
     INDICES,
     ENCODINGS,
     VAR_X_AND_Y,
-    VAR_NOT_X, 
+    VAR_NOT_X,
     VAR_X_AND_NOT_Y,
-    # LOGGING,
+    LOGS_EQUALITIES,
+    LOGS_STATISTICS,
 )
 
 
@@ -85,7 +85,7 @@ class RuleMiner:
         """ """
         self.params = dict()
         self.parser = RuleParser()
-        self.evaluator = CodeEvaluator()
+        self.evaluator = CodeEvaluator(params)
         self.update(templates=templates, rules=rules, data=data, params=params)
 
     def update(
@@ -238,7 +238,8 @@ class RuleMiner:
                 NOT_APPLICABLE: [],
                 RESULT: [],
                 INDICES: [],
-                # LOGGING: [],
+                LOGS_EQUALITIES: [],
+                LOGS_STATISTICS: [],
             }
         )
 
@@ -253,7 +254,8 @@ class RuleMiner:
             NOT_APPLICABLE: "Int64",
             RESULT: "object",
             INDICES: "object",
-            # LOGGING: "object",
+            LOGS_EQUALITIES: "object",
+            LOGS_STATISTICS: "object",
         }
 
         if self.params.get("apply_rules_on_indices", True):
@@ -270,11 +272,12 @@ class RuleMiner:
             rule_status = row[RULE_STATUS]
             rule_code = dataframe_index(expression=rule_def, data=self.data)
             code_results, code_logging = self.evaluator.evaluate_dict(
-                expressions=rule_code, encodings={}
+                expressions=rule_code, encodings={}, logging=True
             )
-            code_results = calculate_required_variables(
+            code_results, code_logging = add_required_variables(
                 required_vars=self.required_vars,
-                code_results=code_results,
+                results=code_results,
+                logging=code_logging,
             )
             len_results = {
                 key: len(code_results[key])
@@ -289,9 +292,9 @@ class RuleMiner:
             )
 
             co_indices = code_results[VAR_X_AND_Y]
-            # co_logging = code_logging[VAR_X_AND_Y]
+            co_logging = code_logging[VAR_X_AND_Y]
             ex_indices = code_results[VAR_X_AND_NOT_Y]
-            # ex_logging = code_logging[VAR_X_AND_NOT_Y]
+            ex_logging = code_logging[VAR_X_AND_NOT_Y]
             na_indices = code_results[VAR_NOT_X]
             # na_logging = code_logging[VAR_NOT_X]
 
@@ -324,7 +327,8 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nco)
                     results[RESULT].extend([True] * nco)
                     results[INDICES].extend(co_indices)
-                    # results[LOGGING].extend(co_logging)
+                    results[LOGS_EQUALITIES].extend(co_logging["equalities"])
+                    results[LOGS_STATISTICS].extend(co_logging["statistics"])
 
             if self.params.get("output_exceptions", True):
                 if nex > 0:
@@ -342,7 +346,8 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nex)
                     results[RESULT].extend([False] * nex)
                     results[INDICES].extend(ex_indices)
-                    # results[LOGGING].extend(ex_logging)
+                    results[LOGS_EQUALITIES].extend(ex_logging["equalities"])
+                    results[LOGS_STATISTICS].extend(ex_logging["statistics"])
 
             if self.params.get("output_not_applicable", False):
                 if (nco == 0 and nex == 0) and nna > 0:
@@ -358,7 +363,8 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]])
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
-                    # results[LOGGING].extend([None])
+                    results[LOGS_EQUALITIES].extend([None])
+                    results[LOGS_STATISTICS].extend([None])
 
             logger.info(
                 "Finished: "
@@ -623,18 +629,29 @@ class RuleMiner:
                     reformulated_expression = self.parser.parse(candidate)
                     if sorted_expression not in sorted_expressions.keys():
                         sorted_expressions[sorted_expression] = True
-                        rule_code = dataframe_lengths(
+                        rule_code = dataframe_index(
                             expression=reformulated_expression,
-                            required=self.required_vars,
                             data=self.data,
                         )
-                        len_results, _ = self.evaluator.evaluate_dict(
-                            expressions=rule_code,
-                            encodings={},
+                        code_results, _ = self.evaluator.evaluate_dict(
+                            expressions=rule_code, encodings={}, logging=False
                         )
+                        code_results, code_logging = add_required_variables(
+                            required_vars=self.required_vars,
+                            results=code_results,
+                            logging=None,
+                        )
+                        len_results = {
+                            key: len(code_results[key])
+                            if not isinstance(code_results[key], float)
+                            else 0
+                            for key in code_results.keys()
+                            if code_results[key] is not None
+                        }
                         rule_metrics = calculate_metrics(
                             len_results=len_results, metrics=self.metrics
                         )
+
                         logger.debug(
                             "Rule code: \n"
                             + str(
@@ -951,6 +968,7 @@ class RuleMiner:
         return self.data is None or all(
             [metrics[metric] >= self.filter[metric] for metric in self.filter]
         )
+
 
 def flatten_and_sort(expression: str = ""):
     """
