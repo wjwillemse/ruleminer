@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from .const import (
     DUNDER_DF,
+    COMPARISONS,
+    STATISTICS,
 )
 
 
@@ -83,25 +85,42 @@ class CodeEvaluator:
         - The tolerance functions rely on the `self.tolerance` attribute, which must be set
           separately for proper functionality.
         """
-        self._mean_logs = []
 
-        def _mean(*args):
+        def _mean_with_logging(*args):
+            """
+            np.mean calculation with logging
+            """
             r = np.mean(args[0])
-            self._mean_logs.append(str(np.round(r, 8)))
+            log = 'mean["' + str(args[0].name) + '"]=' + str(np.round(r, 8))
+            if log not in self._mean_logs:
+                self._mean_logs.append(log)
             return r
 
-        self._std_logs = []
-
-        def _std(*args):
+        def _std_with_logging(*args):
+            """
+            np.std calculation with logging
+            """
             r = np.std(args[0])
-            self._std_logs.append(str(np.round(r, 8)))
+            log = 'std["' + str(args[0].name) + '"]=' + str(np.round(r, 8))
+            if log not in self._std_logs:
+                self._std_logs.append(log)
             return r
 
-        self._quantile_logs = []
-
-        def _quantile(*args):
+        def _quantile_with_logging(*args):
+            """
+            np.quantile calculation with logging
+            """
             r = np.quantile(args[0], args[1])
-            self._quantile_logs.append(str(np.round(r, 8)))
+            log = (
+                'quantile["'
+                + str(args[0].name)
+                + '",'
+                + str(args[1])
+                + "]="
+                + str(np.round(r, 8))
+            )
+            if log not in self._quantile_logs:
+                self._quantile_logs.append(log)
             return r
 
         # general tolerance function
@@ -149,8 +168,6 @@ class CodeEvaluator:
                             else:
                                 return value - 0.5 * 10 ** (decimals)
 
-        self._equal_logs = []
-
         def _equal_with_logging(
             left_side,
             right_side,
@@ -190,7 +207,6 @@ class CodeEvaluator:
                 max_right = np.maximum(right_side_pos, right_side_neg)
                 if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
                     # left side is a list
-
                     lhs = [(a, b) for a, b in zip(min_left, max_left)]
                     if len(self._equal_logs) == 0:
                         for idx in range(len(lhs)):
@@ -200,64 +216,50 @@ class CodeEvaluator:
                             self._equal_logs[idx] += ", " + str(lhs[idx])
 
                     for i in range(len(self._equal_logs)):
-                        self._equal_logs[i] += " == "
+                        self._equal_logs[i] += " = "
 
                     if hasattr(min_right, "__iter__") and hasattr(
                         max_right, "__iter__"
                     ):
                         # right side is a list
-
                         rhs = [(a, b) for a, b in zip(min_right, max_right)]
                         for idx in range(len(rhs)):
                             self._equal_logs[idx] += str(rhs[idx])
                     else:
                         # right side is an item
-
                         for idx in range(len(lhs)):
                             self._equal_logs[idx] += (
                                 "(" + str(min_right) + ", " + str(max_right) + ")"
                             )
-
                 else:
                     # left side is an item
-
-                    # TO DO
-                    a = 1
-
-                    # if len(self._equal_logs) == 0:
-                    #     self._equal_logs.append("LHS" + str(min_left) + ", " + str(max_left))
-                    # else:
-                    #     self._equal_logs[idx] += ", LHS" + str(min_left) + ", " + str(max_left)
-
-                    # if hasattr(min_right, "__iter__") and hasattr(
-                    #     max_right, "__iter__"
-                    # ):
-
-                    #     # right side is a list
-
-                    #     lhs_part = self._equal_logs[0]
-
-                    #     rhs = [(a, b) for a, b in zip(min_right, max_right)]
-                    #     for idx in range(len(rhs)):
-                    #         self._equal_logs[idx] = lhs_part + str(rhs[idx])
-                    # else:
-                    #     # right side is a list
-
-                    #     for idx in range(len(rhs)):
-                    #         self._equal_logs[idx] += "("+str(min_right) + ", " + str(max_right)+")"
-
-                # if hasattr(min_right, "__iter__") and hasattr(
-                #     max_right, "__iter__"
-                # ):
-                #     rhs = [(str(a), str(b)) for a, b in zip(min_right, max_right)]
-                #     for idx in range(len(rhs)):
-                #         self._equal_logs[idx] += ", RHS: " + str(rhs[idx])
-                # else:
-                #     if len(self._equal_logs) == 0:
-                #         self._equal_logs.append("RHS: " + str(min_right) + ", " + str(max_right))
-                #     else:
-                #         self._equal_logs[idx] += ", RHS: " + str(min_right) + ", " + str(max_right)
-
+                    lhs_part = "(" + str(min_left) + ", " + str(max_left) + ")"
+                    if hasattr(min_right, "__iter__") and hasattr(
+                        max_right, "__iter__"
+                    ):
+                        # right side is a list
+                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
+                        if len(self._equal_logs) == 0:
+                            for idx in range(len(rhs)):
+                                self._equal_logs.append(
+                                    lhs_part + " = " + str(rhs[idx])
+                                )
+                        else:
+                            for idx in range(len(rhs)):
+                                self._equal_logs[idx] += (
+                                    ", " + lhs_part + " = " + str(rhs[idx])
+                                )
+                    else:
+                        # right side is a item
+                        self._equal_logs = (
+                            lhs_part
+                            + " = "
+                            + "("
+                            + str(min_right)
+                            + ", "
+                            + str(max_right)
+                            + ")"
+                        )
                 return (max_left >= min_right) & (min_left <= max_right)
 
         def _equal(
@@ -299,7 +301,101 @@ class CodeEvaluator:
                 max_right = np.maximum(right_side_pos, right_side_neg)
                 return (max_left >= min_right) & (min_left <= max_right)
 
-        self._unequal_logs = []
+        def _unequal_with_logging(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side != right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+
+                if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
+                    # left side is a list
+                    lhs = [(a, b) for a, b in zip(min_left, max_left)]
+                    if len(self._unequal_logs) == 0:
+                        for idx in range(len(lhs)):
+                            self._unequal_logs.append(str(lhs[idx]))
+                    else:
+                        for idx in range(len(lhs)):
+                            self._unequal_logs[idx] += ", " + str(lhs[idx])
+
+                    for i in range(len(self._unequal_logs)):
+                        self._unequal_logs[i] += " != "
+
+                    if hasattr(min_right, "__iter__") and hasattr(
+                        max_right, "__iter__"
+                    ):
+                        # right side is a list
+                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
+                        for idx in range(len(rhs)):
+                            self._unequal_logs[idx] += str(rhs[idx])
+                    else:
+                        # right side is an item
+                        for idx in range(len(lhs)):
+                            self._unequal_logs[idx] += (
+                                "(" + str(min_right) + ", " + str(max_right) + ")"
+                            )
+                else:
+                    # left side is an item
+                    lhs_part = "(" + str(min_left) + ", " + str(max_left) + ")"
+                    if hasattr(min_right, "__iter__") and hasattr(
+                        max_right, "__iter__"
+                    ):
+                        # right side is a list
+                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
+                        if len(self._unequal_logs) == 0:
+                            for idx in range(len(rhs)):
+                                self._unequal_logs.append(
+                                    lhs_part + " != " + str(rhs[idx])
+                                )
+                        else:
+                            for idx in range(len(rhs)):
+                                self._unequal_logs[idx] += (
+                                    ", " + lhs_part + " != " + str(rhs[idx])
+                                )
+                    else:
+                        # right side is a item
+                        self._unequal_logs = (
+                            lhs_part
+                            + " != "
+                            + "("
+                            + str(min_right)
+                            + ", "
+                            + str(max_right)
+                            + ")"
+                        )
+
+                return ~((max_left >= min_right) & (min_left <= max_right))
 
         def _unequal(
             left_side,
@@ -338,28 +434,6 @@ class CodeEvaluator:
                 max_left = np.maximum(left_side_pos, left_side_neg)
                 min_right = np.minimum(right_side_pos, right_side_neg)
                 max_right = np.maximum(right_side_pos, right_side_neg)
-                # explicitly check level to avoid operations if not in debug
-                if logging.DEBUG == logging.root.level:
-                    self.logger.debug("Evaluating equality:")
-                    if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
-                        lhs = [(str(a), str(b)) for a, b in zip(min_left, max_left)]
-                        for idx in range(len(lhs)):
-                            self._unequal_logs.append("LHS: " + str(lhs[idx]))
-                    else:
-                        self._equal_logs.append(
-                            "LHS: " + str(min_left) + ", " + str(max_left)
-                        )
-
-                    # if hasattr(min_right, "__iter__") and hasattr(
-                    #     max_right, "__iter__"
-                    # ):
-                    #     rhs = [(str(a), str(b)) for a, b in zip(min_right, max_right)]
-                    #     for idx in range(len(rhs)):
-                    #         self.logger.debug("  RHS: " + str(rhs[idx]))
-                    # else:
-                    #     self.logger.debug(
-                    #         "  RHS: " + str(min_right) + ", " + str(max_right)
-                    #     )
                 return ~((max_left >= min_right) & (min_left <= max_right))
 
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
@@ -454,24 +528,20 @@ class CodeEvaluator:
             "MIN": np.minimum,
             "ABS": np.abs,
             "SUM": np.sum,
-            "MEAN": _mean,
-            "STD": _std,
             "max": np.maximum,
             "min": np.minimum,
             "abs": np.abs,
             "sum": np.sum,
-            "mean": _mean,
-            "std": _std,
             "np": np,
             "nan": np.nan,
         }
         # differentiate between function with and without logging
-        if self.params is not None and "statistics" in self.params.get(
+        if self.params is not None and STATISTICS in self.params.get(
             "intermediate_results", []
         ):
-            self.globals["MEAN"] = self.globals["mean"] = _mean
-            self.globals["STD"] = self.globals["std"] = _std
-            self.globals["QUANTILE"] = self.globals["quantile"] = _quantile
+            self.globals["MEAN"] = self.globals["mean"] = _mean_with_logging
+            self.globals["STD"] = self.globals["std"] = _std_with_logging
+            self.globals["QUANTILE"] = self.globals["quantile"] = _quantile_with_logging
         else:
             self.globals["MEAN"] = self.globals["mean"] = np.mean
             self.globals["STD"] = self.globals["std"] = np.std
@@ -479,13 +549,14 @@ class CodeEvaluator:
 
         # internal functions defined above
         self.globals["_tol"] = _tol
-        if self.params is not None and "equalities" in self.params.get(
+        if self.params is not None and COMPARISONS in self.params.get(
             "intermediate_results", []
         ):
             self.globals["_equal"] = _equal_with_logging
+            self.globals["_unequal"] = _unequal_with_logging
         else:
             self.globals["_equal"] = _equal
-        self.globals["_unequal"] = _unequal
+            self.globals["_unequal"] = _unequal
         self.globals["_mul"] = _mul
         self.globals["_div"] = _div
         self.globals["_corr"] = _corr
@@ -555,7 +626,6 @@ class CodeEvaluator:
         self,
         expressions: dict = {},
         encodings: dict = {},
-        logging: bool = False,
     ) -> dict:
         """
         Evaluates a set of mathematical expressions and stores the results in a dictionary.
@@ -581,39 +651,52 @@ class CodeEvaluator:
 
         """
         variables = dict()
-        logs = dict()
+        if (
+            self.params is not None
+            and len(self.params.get("intermediate_results", [])) > 0
+        ):
+            # enable log is one or more intermediate results is defined
+            logs = pd.Series(
+                index=self.globals[DUNDER_DF].index,
+                data=[""] * len(self.globals[DUNDER_DF].index),
+                dtype="object",
+            )
+        else:
+            logs = None
+        # clear logs
+        self._mean_logs = []
+        self._std_logs = []
+        self._quantile_logs = []
+        self._equal_logs = []
+        self._unequal_logs = []
         for key in expressions.keys():
             try:
                 variables[key] = eval(expressions[key], self.globals, encodings)
-                if logging:
-                    logs[key] = pd.DataFrame(
-                        index=self.globals[DUNDER_DF].index,
-                        columns=["statistics", "equalities", "unequalities"],
-                    )
+                if logs is not None:
+                    # collect log
                     log = []
                     if len(self._mean_logs) > 0:
-                        log.append("mean=[" + ", ".join(self._mean_logs) + "]")
+                        log.append(", ".join(self._mean_logs))
                     if len(self._std_logs) > 0:
-                        log.append("std=[" + ", ".join(self._std_logs) + "]")
+                        log.append(", ".join(self._std_logs))
                     if len(self._quantile_logs) > 0:
-                        log.append("quantile=[" + ", ".join(self._quantile_logs) + "]")
-                    if len(log) > 0:
-                        logs[key]["statistics"] = [", ".join(log)] * len(variables[key])
-                    else:
-                        logs[key]["statistics"] = ""
+                        log.append(", ".join(self._quantile_logs))
+                    # put logs in pd.Series as a strings
                     if len(self._equal_logs) > 0:
-                        logs[key]["equalities"] = self._equal_logs
-                    else:
-                        logs[key]["equalities"] = ""
-                    # if self._equal_logs != []:
-                    #     logs[key]['unequalities'] = self._unequal_logs
+                        logs += self._equal_logs
+                    if len(self._unequal_logs) > 0:
+                        if len(self._equal_logs) > 0:
+                            logs += ", "
+                        logs += self._unequal_logs
+                    if len(log) > 0:
+                        if len(self._equal_logs) > 0 or len(self._unequal_logs) > 0:
+                            logs += ", "
+                        logs += ", ".join(log)
             except Exception as e:
                 self.logger.debug(
                     "Error evaluating the code '" + expressions[key] + "': " + repr(e)
                 )
                 variables[key] = np.nan
-                if logging:
-                    logs[key] = np.nan
         return variables, logs
 
     def evaluate_str(
@@ -645,14 +728,14 @@ class CodeEvaluator:
 
         """
         variable = ""
-        logging = ""
+        log = ""
         try:
             variable = eval(expression, self.globals, encodings)
-            logging = variable
+            log = variable
         except Exception as e:
             self.logger.debug(
                 "Error evaluating the code '" + expression + "': " + repr(e)
             )
             variable = np.nan
-            logging = np.nan
-        return variable, logging
+            log = np.nan
+        return variable, log

@@ -244,3 +244,8 @@
 ### 0.2.26 (2025-2-14)
 
 - Added intermediate results for equalities and statistics
+
+### 0.2.27 (2025-2-18)
+
+- Added intermediate results for unequalities
+- Refactoring for logging intermediate results

@@ -53,7 +53,7 @@ def metrics(metrics: list = []):
     return [metric for metric in metrics if metric in METRICS.keys()]
 
 
-def add_required_variables(required_vars: list, results: dict, logging: dict) -> dict():
+def add_required_variables(required_vars: list, results: dict) -> dict():
     """
     Calculation of required variables based on indices of DataFrame
 
@@ -96,46 +96,7 @@ def add_required_variables(required_vars: list, results: dict, logging: dict) ->
         else:
             results[VAR_NOT_X_AND_NOT_Y] = np.nan
 
-    if logging is not None:
-        if VAR_NOT_Y in required_vars:
-            if not isinstance(results[VAR_N], float) and not isinstance(
-                results[VAR_Y], float
-            ):
-                logging[VAR_NOT_Y] = logging[VAR_N].loc[results[VAR_NOT_Y]]
-            else:
-                logging[VAR_NOT_Y] = np.nan
-        if VAR_NOT_X in required_vars:
-            if not isinstance(results[VAR_N], float) and not isinstance(
-                results[VAR_X], float
-            ):
-                logging[VAR_NOT_X] = logging[VAR_N].loc[results[VAR_NOT_X]]
-            else:
-                logging[VAR_NOT_X] = np.nan
-        if VAR_X_AND_Y in required_vars:
-            if not isinstance(results[VAR_X], float) and not isinstance(
-                results[VAR_Y], float
-            ):
-                logging[VAR_X_AND_Y] = logging[VAR_X].loc[results[VAR_X_AND_Y]]
-            else:
-                logging[VAR_X_AND_Y] = np.nan
-        if VAR_X_AND_NOT_Y in required_vars:
-            if not isinstance(results[VAR_X], float) and not isinstance(
-                results[VAR_NOT_Y], float
-            ):
-                logging[VAR_X_AND_NOT_Y] = logging[VAR_X].loc[results[VAR_X_AND_NOT_Y]]
-            else:
-                logging[VAR_X_AND_NOT_Y] = np.nan
-        if VAR_NOT_X_AND_NOT_Y in required_vars:
-            if not isinstance(results[VAR_NOT_X], float) and not isinstance(
-                results[VAR_NOT_Y], float
-            ):
-                logging[VAR_NOT_X_AND_NOT_Y] = logging[VAR_NOT_X].loc[
-                    results[VAR_NOT_X_AND_NOT_Y]
-                ]
-            else:
-                logging[VAR_NOT_X_AND_NOT_Y] = np.nan
-
-    return results, logging
+    return results
 
 
 def calculate_metrics(len_results: dict = {}, metrics: list = []):

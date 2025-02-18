@@ -56,8 +56,7 @@ from .const import (
     VAR_X_AND_Y,
     VAR_NOT_X,
     VAR_X_AND_NOT_Y,
-    LOGS_EQUALITIES,
-    LOGS_STATISTICS,
+    LOG,
 )
 
 
@@ -238,8 +237,7 @@ class RuleMiner:
                 NOT_APPLICABLE: [],
                 RESULT: [],
                 INDICES: [],
-                LOGS_EQUALITIES: [],
-                LOGS_STATISTICS: [],
+                LOG: [],
             }
         )
 
@@ -254,8 +252,7 @@ class RuleMiner:
             NOT_APPLICABLE: "Int64",
             RESULT: "object",
             INDICES: "object",
-            LOGS_EQUALITIES: "object",
-            LOGS_STATISTICS: "object",
+            LOG: "object",
         }
 
         if self.params.get("apply_rules_on_indices", True):
@@ -271,13 +268,12 @@ class RuleMiner:
             rule_group = row[RULE_GROUP]
             rule_status = row[RULE_STATUS]
             rule_code = dataframe_index(expression=rule_def, data=self.data)
-            code_results, code_logging = self.evaluator.evaluate_dict(
-                expressions=rule_code, encodings={}, logging=True
+            code_results, code_log = self.evaluator.evaluate_dict(
+                expressions=rule_code, encodings={}
             )
-            code_results, code_logging = add_required_variables(
+            code_results = add_required_variables(
                 required_vars=self.required_vars,
                 results=code_results,
-                logging=code_logging,
             )
             len_results = {
                 key: len(code_results[key])
@@ -292,11 +288,12 @@ class RuleMiner:
             )
 
             co_indices = code_results[VAR_X_AND_Y]
-            co_logging = code_logging[VAR_X_AND_Y]
             ex_indices = code_results[VAR_X_AND_NOT_Y]
-            ex_logging = code_logging[VAR_X_AND_NOT_Y]
             na_indices = code_results[VAR_NOT_X]
-            # na_logging = code_logging[VAR_NOT_X]
+            if code_log is not None:
+                co_log = code_log[code_results[VAR_X_AND_Y]]
+                ex_log = code_log[code_results[VAR_X_AND_NOT_Y]]
+                # na_log = code_log[VAR_NOT_X]
 
             if co_indices is not None and not isinstance(co_indices, float):
                 nco = len(co_indices)
@@ -327,8 +324,9 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nco)
                     results[RESULT].extend([True] * nco)
                     results[INDICES].extend(co_indices)
-                    results[LOGS_EQUALITIES].extend(co_logging["equalities"])
-                    results[LOGS_STATISTICS].extend(co_logging["statistics"])
+                    results[LOG].extend(
+                        co_log if code_log is not None else [None] * nco
+                    )
 
             if self.params.get("output_exceptions", True):
                 if nex > 0:
@@ -346,8 +344,9 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nex)
                     results[RESULT].extend([False] * nex)
                     results[INDICES].extend(ex_indices)
-                    results[LOGS_EQUALITIES].extend(ex_logging["equalities"])
-                    results[LOGS_STATISTICS].extend(ex_logging["statistics"])
+                    results[LOG].extend(
+                        ex_log if code_log is not None else [None] * nex
+                    )
 
             if self.params.get("output_not_applicable", False):
                 if (nco == 0 and nex == 0) and nna > 0:
@@ -363,8 +362,7 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]])
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
-                    results[LOGS_EQUALITIES].extend([None])
-                    results[LOGS_STATISTICS].extend([None])
+                    results[LOG].extend([None])
 
             logger.info(
                 "Finished: "
@@ -634,12 +632,11 @@ class RuleMiner:
                             data=self.data,
                         )
                         code_results, _ = self.evaluator.evaluate_dict(
-                            expressions=rule_code, encodings={}, logging=False
+                            expressions=rule_code, encodings={}
                         )
-                        code_results, code_logging = add_required_variables(
+                        code_results = add_required_variables(
                             required_vars=self.required_vars,
                             results=code_results,
-                            logging=None,
                         )
                         len_results = {
                             key: len(code_results[key])
