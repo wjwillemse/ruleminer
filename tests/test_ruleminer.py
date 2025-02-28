@@ -2013,6 +2013,78 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
 
+    def test_60(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['({"Name"} contains "Test")']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Tst_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then ({"Name"}.str.contains("Test", na=False))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", True],
+            ["Test_2", True],
+            ["Tst_3", False],
+        ]
+
+    def test_61(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['({"Name"} not contains "Test")']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Tst_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (~{"Name"}.str.contains("Test", na=False))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", False],
+            ["Tst_3", True],
+        ]
+
     def test_parser_1(self):
         assert ~ruleminer.contains_column('"A"')
         assert ruleminer.contains_column('{"A"}')

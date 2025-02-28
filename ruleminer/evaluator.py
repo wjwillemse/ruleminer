@@ -123,7 +123,6 @@ class CodeEvaluator:
                 self._quantile_logs.append(log)
             return r
 
-        # general tolerance function
         def _tol(value, direction=bool, column=None):
             """
             Adjusts the given numerical value based on the specified tolerance and direction for a given column.
@@ -159,6 +158,10 @@ class CodeEvaluator:
                 return np.nan
             elif isinstance(value, str):
                 return value
+            elif isinstance(value, np.datetime64):
+                return value
+            elif isinstance(value, pd.Timestamp):
+                return value
             for key, tol in self.tolerance.items():
                 if key == column:
                     for ((start, end)), decimals in tol.items():
@@ -176,6 +179,8 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
+            """
+            """
             if (
                 any(
                     [
@@ -270,6 +275,8 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
+            """
+            """
             if (
                 any(
                     [
@@ -309,6 +316,8 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
+            """
+            """
             if (
                 any(
                     [
@@ -405,6 +414,8 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
+            """
+            """
             if (
                 any(
                     [

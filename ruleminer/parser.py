@@ -43,6 +43,7 @@ class RuleParser:
             (set(["sumif"]), self.parse_sumif),
             (set(["countif"]), self.parse_countif),
             (set(["match"]), self.parse_match),
+            (set(["contains", "not contains"]), self.parse_contains),
             (set(["exact"]), self.parse_exact),
             (set(["corr"]), self.parse_corr),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
@@ -1207,6 +1208,52 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
         res += ".str.match(r"
+        for i in right_side:
+            res += self.parse(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return res + ", na=False)"
+
+    def parse_contains(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process match operator
+
+        Example:
+            expression = ['{"A"}', 'contains', '"A"']
+
+            result = ruleminer.RuleParser().parse_match(
+                idx=1,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                ({"A"}.str.contains("A"))
+                '
+        """
+        left_side = expression[:idx]
+        right_side = expression[idx + 1 :]
+        # process in operator
+        if item.lower() == "not contains":
+            res = "~"
+        else:
+            res = ""
+        for i in left_side:
+            res += self.parse(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        res += ".str.contains("
         for i in right_side:
             res += self.parse(
                 i,

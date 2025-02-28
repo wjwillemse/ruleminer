@@ -249,3 +249,7 @@
 
 - Added intermediate results for unequalities
 - Refactoring for logging intermediate results
+
+### 0.2.28 (2025-2-28)
+
+- Added 'contains' and 'not contains' comparison operators
