@@ -179,8 +179,7 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
-            """
-            """
+            """ """
             if (
                 any(
                     [
@@ -275,8 +274,7 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
-            """
-            """
+            """ """
             if (
                 any(
                     [
@@ -316,8 +314,7 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
-            """
-            """
+            """ """
             if (
                 any(
                     [
@@ -414,8 +411,7 @@ class CodeEvaluator:
             right_side_pos,
             right_side_neg,
         ):
-            """
-            """
+            """ """
             if (
                 any(
                     [
