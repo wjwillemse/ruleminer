@@ -253,3 +253,10 @@
 ### 0.2.28 (2025-2-28)
 
 - Added 'contains' and 'not contains' comparison operators
+
+### 0.2.29 (2025-3-4)
+
+- Added <=, <, >=, >-operators that take tolerance into account
+- Applied sqrt in the corr-function
+- Added round, ceil and floor-functions
+- Reformatted comparison-logs: {LHS - RHS = diff} operator [LHS_min - LHS - RHS_max + RHS, LHS_max - LHS - RHS_min + RHS]

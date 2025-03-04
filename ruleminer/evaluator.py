@@ -25,7 +25,7 @@ class CodeEvaluator:
 
     The class maintains an internal `globals` dictionary that contains:
     - Mathematical functions from `numpy` (e.g., `max`, `min`, `abs`, `sum`, `quantile`).
-    - Helper functions for comparisons (`_equal`, `_unequal`) and tolerance calculations (`_tol`).
+    - Helper functions for comparisons (`_eq`, `_ne`) and tolerance calculations (`_tol`).
     - References to `numpy` itself and `numpy.nan`.
 
     Attributes:
@@ -69,9 +69,9 @@ class CodeEvaluator:
         - 'nan': Reference to `numpy.nan`.
         - '_tol': A helper function that calculates tolerance for a given value based on
           predefined ranges and decimal precision.
-        - '_equal': A helper function that checks if two values (considering both positive
+        - '_eq': A helper function that checks if two values (considering both positive
           and negative sides) are equal.
-        - '_unequal': A helper function that checks if two values (considering both positive
+        - '_ne': A helper function that checks if two values (considering both positive
           and negative sides) are unequal.
 
         These functions are added to the `globals` attribute of the object, making them available
@@ -123,6 +123,26 @@ class CodeEvaluator:
                 self._quantile_logs.append(log)
             return r
 
+        def _round(*args):
+            """
+            Internal rounding function
+            pd.Series: args[0]
+            nummber_of_decimals: args[1]
+            rounding_type: args[2]
+            """
+            scale = 10 ** args[1]
+            scaled_values = args[0] * scale
+            integer_values = scaled_values // 1
+            if args[2] == "round":
+                remainder_values = np.where(
+                    (scaled_values - integer_values) >= 0.5, 1, 0
+                )
+            elif args[2] == "ceil":
+                remainder_values = np.where((scaled_values - integer_values) > 0, 1, 0)
+            elif args[2] == "floor":
+                remainder_values = 0
+            return (integer_values + remainder_values) / scale
+
         def _tol(value, direction=bool, column=None):
             """
             Adjusts the given numerical value based on the specified tolerance and direction for a given column.
@@ -171,7 +191,7 @@ class CodeEvaluator:
                             else:
                                 return value - 0.5 * 10 ** (decimals)
 
-        def _equal_with_logging(
+        def _eq_with_logging(
             left_side,
             right_side,
             left_side_pos,
@@ -209,64 +229,19 @@ class CodeEvaluator:
                 max_left = np.maximum(left_side_pos, left_side_neg)
                 min_right = np.minimum(right_side_pos, right_side_neg)
                 max_right = np.maximum(right_side_pos, right_side_neg)
-                if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
-                    # left side is a list
-                    lhs = [(a, b) for a, b in zip(min_left, max_left)]
-                    if len(self._equal_logs) == 0:
-                        for idx in range(len(lhs)):
-                            self._equal_logs.append(str(lhs[idx]))
-                    else:
-                        for idx in range(len(lhs)):
-                            self._equal_logs[idx] += ", " + str(lhs[idx])
-
-                    for i in range(len(self._equal_logs)):
-                        self._equal_logs[i] += " = "
-
-                    if hasattr(min_right, "__iter__") and hasattr(
-                        max_right, "__iter__"
-                    ):
-                        # right side is a list
-                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
-                        for idx in range(len(rhs)):
-                            self._equal_logs[idx] += str(rhs[idx])
-                    else:
-                        # right side is an item
-                        for idx in range(len(lhs)):
-                            self._equal_logs[idx] += (
-                                "(" + str(min_right) + ", " + str(max_right) + ")"
-                            )
-                else:
-                    # left side is an item
-                    lhs_part = "(" + str(min_left) + ", " + str(max_left) + ")"
-                    if hasattr(min_right, "__iter__") and hasattr(
-                        max_right, "__iter__"
-                    ):
-                        # right side is a list
-                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
-                        if len(self._equal_logs) == 0:
-                            for idx in range(len(rhs)):
-                                self._equal_logs.append(
-                                    lhs_part + " = " + str(rhs[idx])
-                                )
-                        else:
-                            for idx in range(len(rhs)):
-                                self._equal_logs[idx] += (
-                                    ", " + lhs_part + " = " + str(rhs[idx])
-                                )
-                    else:
-                        # right side is a item
-                        self._equal_logs = (
-                            lhs_part
-                            + " = "
-                            + "("
-                            + str(min_right)
-                            + ", "
-                            + str(max_right)
-                            + ")"
-                        )
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    "=",
+                    self._eq_logs,
+                )
                 return (max_left >= min_right) & (min_left <= max_right)
 
-        def _equal(
+        def _eq(
             left_side,
             right_side,
             left_side_pos,
@@ -306,7 +281,183 @@ class CodeEvaluator:
                 max_right = np.maximum(right_side_pos, right_side_neg)
                 return (max_left >= min_right) & (min_left <= max_right)
 
-        def _unequal_with_logging(
+        def _le(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                return min_left <= max_right
+
+        def _le_with_logging(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    "<=",
+                    self._le_logs,
+                )
+                return min_left <= max_right
+
+        def _ge(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                return max_left >= min_right
+
+        def _ge_with_logging(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side == right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    ">=",
+                    self._ge_logs,
+                )
+                return max_left >= min_right
+
+        def _ne_with_logging(
             left_side,
             right_side,
             left_side_pos,
@@ -344,66 +495,19 @@ class CodeEvaluator:
                 max_left = np.maximum(left_side_pos, left_side_neg)
                 min_right = np.minimum(right_side_pos, right_side_neg)
                 max_right = np.maximum(right_side_pos, right_side_neg)
-
-                if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
-                    # left side is a list
-                    lhs = [(a, b) for a, b in zip(min_left, max_left)]
-                    if len(self._unequal_logs) == 0:
-                        for idx in range(len(lhs)):
-                            self._unequal_logs.append(str(lhs[idx]))
-                    else:
-                        for idx in range(len(lhs)):
-                            self._unequal_logs[idx] += ", " + str(lhs[idx])
-
-                    for i in range(len(self._unequal_logs)):
-                        self._unequal_logs[i] += " != "
-
-                    if hasattr(min_right, "__iter__") and hasattr(
-                        max_right, "__iter__"
-                    ):
-                        # right side is a list
-                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
-                        for idx in range(len(rhs)):
-                            self._unequal_logs[idx] += str(rhs[idx])
-                    else:
-                        # right side is an item
-                        for idx in range(len(lhs)):
-                            self._unequal_logs[idx] += (
-                                "(" + str(min_right) + ", " + str(max_right) + ")"
-                            )
-                else:
-                    # left side is an item
-                    lhs_part = "(" + str(min_left) + ", " + str(max_left) + ")"
-                    if hasattr(min_right, "__iter__") and hasattr(
-                        max_right, "__iter__"
-                    ):
-                        # right side is a list
-                        rhs = [(a, b) for a, b in zip(min_right, max_right)]
-                        if len(self._unequal_logs) == 0:
-                            for idx in range(len(rhs)):
-                                self._unequal_logs.append(
-                                    lhs_part + " != " + str(rhs[idx])
-                                )
-                        else:
-                            for idx in range(len(rhs)):
-                                self._unequal_logs[idx] += (
-                                    ", " + lhs_part + " != " + str(rhs[idx])
-                                )
-                    else:
-                        # right side is a item
-                        self._unequal_logs = (
-                            lhs_part
-                            + " != "
-                            + "("
-                            + str(min_right)
-                            + ", "
-                            + str(max_right)
-                            + ")"
-                        )
-
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    "!=",
+                    self._ne_logs,
+                )
                 return ~((max_left >= min_right) & (min_left <= max_right))
 
-        def _unequal(
+        def _ne(
             left_side,
             right_side,
             left_side_pos,
@@ -527,7 +631,7 @@ class CodeEvaluator:
             for r in range(len(m)):
                 for s in range(len(m)):
                     result += m[r][s] * columns[r] * columns[s]
-            return result
+            return result.pow(0.5)
 
         # standard functions based on numpy
         self.globals = {
@@ -556,17 +660,230 @@ class CodeEvaluator:
 
         # internal functions defined above
         self.globals["_tol"] = _tol
+        self.globals["_round"] = _round
         if self.params is not None and COMPARISONS in self.params.get(
             "intermediate_results", []
         ):
-            self.globals["_equal"] = _equal_with_logging
-            self.globals["_unequal"] = _unequal_with_logging
+            self.globals["_eq"] = _eq_with_logging
+            self.globals["_ne"] = _ne_with_logging
+            self.globals["_ge"] = _ge_with_logging
+            self.globals["_le"] = _le_with_logging
         else:
-            self.globals["_equal"] = _equal
-            self.globals["_unequal"] = _unequal
+            self.globals["_eq"] = _eq
+            self.globals["_ne"] = _ne
+            self.globals["_ge"] = _ge
+            self.globals["_le"] = _le
         self.globals["_mul"] = _mul
         self.globals["_div"] = _div
         self.globals["_corr"] = _corr
+
+    def _log(
+        self,
+        left_side,
+        right_side,
+        min_left,
+        max_left,
+        min_right,
+        max_right,
+        operator,
+        logger,
+    ):
+        """ """
+        # {left-right=diff} operator [a, b] of [a]
+
+        if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
+            # left side is a list
+            lhs = [
+                (a, b, c)
+                for a, b, c in zip(
+                    left_side,
+                    min_left - left_side,
+                    max_left - left_side,
+                )
+            ]
+            if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
+                # right side is a list
+                rhs = [
+                    (a, b, c)
+                    for a, b, c in zip(
+                        right_side,
+                        min_right - right_side,
+                        max_right - right_side,
+                    )
+                ]
+                if len(logger) == 0:
+                    for idx in range(len(lhs)):
+                        s = (
+                            "{"
+                            + str(lhs[idx][0])
+                            + " - "
+                            + str(rhs[idx][0])
+                            + " = "
+                            + str(lhs[idx][0] - rhs[idx][0])
+                            + "} "
+                            + operator
+                            + " "
+                            + "["
+                            + str(lhs[idx][1] - rhs[idx][1])
+                            + ", "
+                            + str(lhs[idx][2] - rhs[idx][2])
+                            + "]"
+                        )
+                        logger.append(s)
+                else:
+                    for idx in range(len(lhs)):
+                        s = (
+                            "{"
+                            + str(lhs[idx][0])
+                            + " - "
+                            + str(rhs[idx][0])
+                            + " = "
+                            + str(lhs[idx][0] - rhs[idx][0])
+                            + "} "
+                            + operator
+                            + " "
+                            + "["
+                            + str(lhs[idx][1] - rhs[idx][1])
+                            + ", "
+                            + str(lhs[idx][2] - rhs[idx][2])
+                            + "]"
+                        )
+                        logger[idx] += s
+            else:
+                # right side is an item
+                if len(logger) == 0:
+                    for idx in range(len(lhs)):
+                        s = (
+                            "{"
+                            + str(lhs[idx][0])
+                            + " - "
+                            + str(right_side)
+                            + " = "
+                            + str(lhs[idx][0] - right_side)
+                            + "}"
+                        )
+                        logger.append(s)
+                else:
+                    for idx in range(len(lhs)):
+                        s = (
+                            "{"
+                            + str(lhs[idx][0])
+                            + " - "
+                            + str(right_side)
+                            + " = "
+                            + str(lhs[idx][0] - right_side)
+                            + "}"
+                        )
+                        logger[idx] += s
+                for idx in range(len(logger)):
+                    logger[idx] += " " + operator + " "
+                for idx in range(len(lhs)):
+                    if operator in ["==", "!="]:
+                        logger[idx] += (
+                            "["
+                            + str(lhs[idx][1] - min_right + right_side)
+                            + ", "
+                            + str(lhs[idx][2] - max_right + right_side)
+                            + "]"
+                        )
+                    elif operator in ["<=", "<"]:
+                        logger[idx] += (
+                            "[" + str(lhs[idx][1] - max_right + right_side) + "]"
+                        )
+                    elif operator in [">=", ">"]:
+                        logger[idx] += (
+                            "[" + str(lhs[idx][2] - min_right + right_side) + "]"
+                        )
+        else:
+            # left side is an item
+            if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
+                # right side is a list
+                rhs = [
+                    (a, b, c)
+                    for a, b, c in zip(
+                        right_side,
+                        min_right - right_side,
+                        max_right - right_side,
+                    )
+                ]
+                if len(logger) == 0:
+                    for idx in range(len(rhs)):
+                        s = (
+                            "{"
+                            + str(left_side)
+                            + " - "
+                            + str(rhs[idx][0])
+                            + " = "
+                            + str(left_side - rhs[idx][0])
+                            + "}"
+                        )
+                        logger.append(s)
+                else:
+                    for idx in range(len(rhs)):
+                        s = (
+                            "{"
+                            + str(left_side)
+                            + " - "
+                            + str(rhs[idx][0])
+                            + " = "
+                            + str(left_side - rhs[idx][0])
+                            + "}"
+                        )
+                        logger[idx] += s
+                for idx in range(len(logger)):
+                    logger[idx] += " " + operator + " "
+                for idx in range(len(rhs)):
+                    if operator in ["==", "!="]:
+                        logger[idx] += (
+                            "["
+                            + str(min_left - left_side - rhs[idx][1])
+                            + ", "
+                            + str(max_left - left_side - rhs[idx][2])
+                            + "]"
+                        )
+                    elif operator in ["<=", "<"]:
+                        logger[idx] += (
+                            "[" + str(min_left - left_side - rhs[idx][2]) + "]"
+                        )
+                    elif operator in [">=", ">"]:
+                        logger[idx] += (
+                            "[" + str(max_left - left_side - rhs[idx][1]) + "]"
+                        )
+
+            else:
+                # right side is a item
+                logger = (
+                    "{"
+                    + str(left_side)
+                    + " - "
+                    + str(right_side)
+                    + " = "
+                    + str(left_side - right_side)
+                    + "}"
+                )
+                for idx in range(len(logger)):
+                    logger[idx] += " " + operator + " "
+                for idx in range(len(lhs)):
+                    if operator in ["==", "!="]:
+                        logger[idx] += (
+                            "["
+                            + str(min_left - min_left - min_right + right_side)
+                            + ", "
+                            + str(max_left - max_left - max_right + right_side)
+                            + "]"
+                        )
+                    elif operator in ["<=", "<"]:
+                        logger[idx] += (
+                            "["
+                            + str(min_left - min_left - max_right + right_side)
+                            + "]"
+                        )
+                    elif operator in [">=", ">"]:
+                        logger[idx] += (
+                            "["
+                            + str(max_left - min_left - min_right + right_side)
+                            + "]"
+                        )
 
     def set_params(self, params):
         """
@@ -674,36 +991,52 @@ class CodeEvaluator:
         self._mean_logs = []
         self._std_logs = []
         self._quantile_logs = []
-        self._equal_logs = []
-        self._unequal_logs = []
+        self._eq_logs = []
+        self._ne_logs = []
+        self._ge_logs = []
+        self._le_logs = []
         for key in expressions.keys():
-            try:
-                variables[key] = eval(expressions[key], self.globals, encodings)
-                if logs is not None:
-                    # collect log
-                    log = []
-                    if len(self._mean_logs) > 0:
-                        log.append(", ".join(self._mean_logs))
-                    if len(self._std_logs) > 0:
-                        log.append(", ".join(self._std_logs))
-                    if len(self._quantile_logs) > 0:
-                        log.append(", ".join(self._quantile_logs))
-                    # put logs in pd.Series as a strings
-                    if len(self._equal_logs) > 0:
-                        logs += self._equal_logs
-                    if len(self._unequal_logs) > 0:
-                        if len(self._equal_logs) > 0:
-                            logs += ", "
-                        logs += self._unequal_logs
-                    if len(log) > 0:
-                        if len(self._equal_logs) > 0 or len(self._unequal_logs) > 0:
-                            logs += ", "
-                        logs += ", ".join(log)
-            except Exception as e:
-                self.logger.debug(
-                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
-                )
-                variables[key] = np.nan
+            # try:
+            variables[key] = eval(expressions[key], self.globals, encodings)
+            if logs is not None:
+                # collect log
+                log = []
+                if len(self._mean_logs) > 0:
+                    log.append(", ".join(self._mean_logs))
+                if len(self._std_logs) > 0:
+                    log.append(", ".join(self._std_logs))
+                if len(self._quantile_logs) > 0:
+                    log.append(", ".join(self._quantile_logs))
+                # put logs in pd.Series as a strings
+                if len(self._eq_logs) > 0:
+                    logs += self._eq_logs
+                if len(self._ne_logs) > 0:
+                    if len(self._eq_logs) > 0:
+                        logs += ", "
+                    logs += self._ne_logs
+                if len(self._ge_logs) > 0:
+                    if len(self._eq_logs) + len(self._ne_logs) > 0:
+                        logs += ", "
+                    logs += self._ge_logs
+                if len(self._le_logs) > 0:
+                    if len(self._eq_logs) + len(self._ne_logs) + len(self._ge_logs) > 0:
+                        logs += ", "
+                    logs += self._le_logs
+                if len(log) > 0:
+                    if (
+                        len(self._eq_logs)
+                        + len(self._ne_logs)
+                        + len(self._ge_logs)
+                        + len(self._le_logs)
+                        > 0
+                    ):
+                        logs += ", "
+                    logs += ", ".join(log)
+            # except Exception as e:
+            #     self.logger.debug(
+            #         "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+            #     )
+            #     variables[key] = np.nan
         return variables, logs
 
     def evaluate_str(

@@ -78,6 +78,9 @@ _function = (
     std \
     exact \
     corr \
+    round \
+    floor \
+    ceil \
     MIN \
     MAX \
     ABS \
@@ -91,7 +94,10 @@ _function = (
     MEAN \
     STD \
     EXACT \
-    CORR"
+    CORR \
+    ROUND \
+    FLOOR \
+    CEIL"
     )
     | _timedelta_functions
     | _timedate_functions

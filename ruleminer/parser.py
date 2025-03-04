@@ -47,6 +47,7 @@ class RuleParser:
             (set(["exact"]), self.parse_exact),
             (set(["corr"]), self.parse_corr),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
+            (set(["round", "floor", "ceil"]), self.parse_round),
             (
                 set(
                     [
@@ -279,6 +280,49 @@ class RuleParser:
             corr_params,
             apply_tolerance=apply_tolerance,
             positive_tolerance=positive_tolerance,
+        )
+        return res
+
+    def parse_round(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process round function
+
+        Example:
+            expression = ['CEIL', ['(', '{"d"}', ',', '2', ')']]
+            idx = 0
+
+            result = ruleminer.RuleParser().parse_round(
+                idx=idx,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '_round({"d"}, 2, "ceil")'
+        """
+        _, data_series, _, rounding_param, _ = expression[idx + 1]
+        res = (
+            "_round("
+            + self.parse(
+                data_series,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ", "
+            + self.parse(
+                rounding_param,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ', "'
+            + item.lower()
+            + '")'
         )
         return res
 
@@ -900,7 +944,7 @@ class RuleParser:
             )
             if item in ["=="]:
                 res = (
-                    "_equal("
+                    "_eq("
                     + left_side
                     + ", "
                     + right_side
@@ -916,7 +960,7 @@ class RuleParser:
                 )
             if item in ["!="]:
                 res = (
-                    "_unequal("
+                    "_ne("
                     + left_side
                     + ", "
                     + right_side
@@ -930,9 +974,41 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            elif item in [">", ">="]:
+            if item in [">="]:
+                res = (
+                    "_ge("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
+            if item in ["<="]:
+                res = (
+                    "_le("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
+            elif item in [">"]:
                 res = left_side_pos + item + right_side_neg
-            elif item in ["<", "<="]:
+            elif item in ["<"]:
                 res = left_side_neg + item + right_side_pos
         else:
             left_side = expression[:idx]
