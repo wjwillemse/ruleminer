@@ -1490,7 +1490,10 @@ def contains_string(expression: Union[str, list]):
             if isinstance(item, str) and item.lower() in ["sumif", "countif"]:
                 # if sumif or countif then do not search for string in conditions
                 return contains_string(expression[idx + 1][0])
-            if contains_string(item):
+            elif isinstance(item, str) and item.lower() in ["corr"]:
+                # if corr then do not search for string in first parameter
+                return contains_string(expression[idx + 1][2:])
+            elif contains_string(item):
                 return True
         return False
 

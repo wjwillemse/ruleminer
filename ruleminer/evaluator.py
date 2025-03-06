@@ -630,8 +630,8 @@ class CodeEvaluator:
             result = pd.Series([0] * len(columns[0]))
             for r in range(len(m)):
                 for s in range(len(m)):
-                    result += m[r][s] * columns[r] * columns[s]
-            return result.pow(0.5)
+                    result += (m[r][s] * columns[r] * columns[s]).values
+            return result.pow(0.5).values
 
         # standard functions based on numpy
         self.globals = {
