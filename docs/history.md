@@ -261,6 +261,6 @@
 - Added round, ceil and floor-functions
 - Reformatted comparison-logs: {LHS - RHS = diff} operator [LHS_min - LHS - RHS_max + RHS, LHS_max - LHS - RHS_min + RHS]
 
-### 0.2.30 (2025-3-8)
+### 0.2.31 (2025-3-8)
 
 - Two bug fixes in corr-function

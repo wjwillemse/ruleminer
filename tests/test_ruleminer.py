@@ -1994,7 +1994,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_corr("matrix_1",{"a"},{"b"},{"c"},{"d"})==10)'
+        expected = 'if () then (_eq(_corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, _corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), _corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, 10))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (

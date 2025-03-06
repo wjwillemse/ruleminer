@@ -996,47 +996,50 @@ class CodeEvaluator:
         self._ge_logs = []
         self._le_logs = []
         for key in expressions.keys():
-            # try:
-            variables[key] = eval(expressions[key], self.globals, encodings)
-            if logs is not None:
-                # collect log
-                log = []
-                if len(self._mean_logs) > 0:
-                    log.append(", ".join(self._mean_logs))
-                if len(self._std_logs) > 0:
-                    log.append(", ".join(self._std_logs))
-                if len(self._quantile_logs) > 0:
-                    log.append(", ".join(self._quantile_logs))
-                # put logs in pd.Series as a strings
-                if len(self._eq_logs) > 0:
-                    logs += self._eq_logs
-                if len(self._ne_logs) > 0:
+            try:
+                variables[key] = eval(expressions[key], self.globals, encodings)
+                if logs is not None:
+                    # collect log
+                    log = []
+                    if len(self._mean_logs) > 0:
+                        log.append(", ".join(self._mean_logs))
+                    if len(self._std_logs) > 0:
+                        log.append(", ".join(self._std_logs))
+                    if len(self._quantile_logs) > 0:
+                        log.append(", ".join(self._quantile_logs))
+                    # put logs in pd.Series as a strings
                     if len(self._eq_logs) > 0:
-                        logs += ", "
-                    logs += self._ne_logs
-                if len(self._ge_logs) > 0:
-                    if len(self._eq_logs) + len(self._ne_logs) > 0:
-                        logs += ", "
-                    logs += self._ge_logs
-                if len(self._le_logs) > 0:
-                    if len(self._eq_logs) + len(self._ne_logs) + len(self._ge_logs) > 0:
-                        logs += ", "
-                    logs += self._le_logs
-                if len(log) > 0:
-                    if (
-                        len(self._eq_logs)
-                        + len(self._ne_logs)
-                        + len(self._ge_logs)
-                        + len(self._le_logs)
-                        > 0
-                    ):
-                        logs += ", "
-                    logs += ", ".join(log)
-            # except Exception as e:
-            #     self.logger.debug(
-            #         "Error evaluating the code '" + expressions[key] + "': " + repr(e)
-            #     )
-            #     variables[key] = np.nan
+                        logs += self._eq_logs
+                    if len(self._ne_logs) > 0:
+                        if len(self._eq_logs) > 0:
+                            logs += ", "
+                        logs += self._ne_logs
+                    if len(self._ge_logs) > 0:
+                        if len(self._eq_logs) + len(self._ne_logs) > 0:
+                            logs += ", "
+                        logs += self._ge_logs
+                    if len(self._le_logs) > 0:
+                        if (
+                            len(self._eq_logs) + len(self._ne_logs) + len(self._ge_logs)
+                            > 0
+                        ):
+                            logs += ", "
+                        logs += self._le_logs
+                    if len(log) > 0:
+                        if (
+                            len(self._eq_logs)
+                            + len(self._ne_logs)
+                            + len(self._ge_logs)
+                            + len(self._le_logs)
+                            > 0
+                        ):
+                            logs += ", "
+                        logs += ", ".join(log)
+            except Exception as e:
+                self.logger.debug(
+                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+                )
+                variables[key] = np.nan
         return variables, logs
 
     def evaluate_str(
