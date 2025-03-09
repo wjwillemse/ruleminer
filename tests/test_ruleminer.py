@@ -1158,7 +1158,7 @@ class TestRuleminer(unittest.TestCase):
         expected = 'if () then (_eq({"A"}, {"B"}*0.25, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",))*0.25, {"B"}.apply(_tol, args=("-", "default",))*0.25))'
         self.assertTrue(actual == expected)
 
-    def test_45(self):
+    def test_45a(self):
         # Specify tolerance input parameters for ruleminer
         parameters = {
             "tolerance": {
@@ -1202,6 +1202,51 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_45b(self):
+        # Specify tolerance input parameters for ruleminer
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, np.inf): -1,  # 4,
+                },
+            },
+        }
+        formulas = [
+            '(ABS({"A"}) == {"B"})',
+        ]
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.1, 1.0],
+                ["Test_2", 0.1, 0.1],
+                ["Test_3", -0.1, 1.0],
+                ["Test_4", -0.1, 0.1],
+            ],
+            columns=["Name", "A", "B"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            data=df,
+            params=parameters,
+        )
+        r.evaluate()
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", True],
+            ["Test_3", False],
+            ["Test_4", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+        self.assertListEqual(list(actual[3]), expected[3])
 
     def test_46(self):
         # Specify tolerance input parameters for ruleminer

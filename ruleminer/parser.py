@@ -46,6 +46,7 @@ class RuleParser:
             (set(["contains", "not contains"]), self.parse_contains),
             (set(["exact"]), self.parse_exact),
             (set(["corr"]), self.parse_corr),
+            (set(["abs"]), self.parse_abs),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
             (set(["round", "floor", "ceil"]), self.parse_round),
             (
@@ -1153,6 +1154,52 @@ class RuleParser:
                 )
             idx += 2
         return res
+
+    def parse_abs(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process math operators
+
+        If the operator is - or / then the tolerance direction must be reversed
+
+        The item is the first math operator in de expression
+
+        We process the expression from left to right
+
+        The parser grouped + and - together and the * and / (so these are not mixed)
+
+        """
+        # parse left side and put in res
+        res = self.parse(
+            expression=expression[idx + 1 :],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        if apply_tolerance:
+            res_pos = self.parse(
+                expression=expression[idx + 1 :],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=True,
+            )
+            res_neg = self.parse(
+                expression=expression[idx + 1 :],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=False,
+            )
+            if positive_tolerance:
+                res = "_abs" + "(" + res_pos + ", " + res_neg + ', "+")'
+            else:
+                res = "_abs" + "(" + res_pos + ", " + res_neg + ', "-")'
+            return res
+        else:
+            res = "abs" + "(" + res + ")"
+            return res
 
     def parse_column(
         self,

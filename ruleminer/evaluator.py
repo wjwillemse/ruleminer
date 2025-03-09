@@ -123,6 +123,41 @@ class CodeEvaluator:
                 self._quantile_logs.append(log)
             return r
 
+        def _abs(a_pos, a_neg, direction: str):
+            """ """
+            if direction == "+":
+                # [-3, -1] -> upper limit of abs is 3
+                # [-3, 1] -> upper limit of abs is 3
+                # [1, 4] -> upper limit of abs is 4
+                # so plain max of abs(pos) and abs(neg)
+                return pd.concat(
+                    [
+                        np.abs(a_pos),
+                        np.abs(a_neg),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).max(axis=1)
+            elif direction == "-":
+                # [-3, -1] -> lower limit of abs is 1
+                # [-3, 1] -> lower limit of abs is 0
+                # [1, 4] -> lower limit of abs is 1
+                # so min of abs(pos) and abs(neg), except if neg < 0 and pos > 0 (then the result should be 0)
+                return (
+                    pd.concat(
+                        [
+                            np.abs(a_pos),
+                            np.abs(a_neg),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    )
+                    .where(~((a_neg < 0) & (a_pos > 0)), 0)
+                    .min(axis=1)
+                )
+
         def _round(*args):
             """
             Internal rounding function
@@ -236,7 +271,7 @@ class CodeEvaluator:
                     max_left,
                     min_right,
                     max_right,
-                    "=",
+                    "==",
                     self._eq_logs,
                 )
                 return (max_left >= min_right) & (min_left <= max_right)
@@ -637,12 +672,12 @@ class CodeEvaluator:
         self.globals = {
             "MAX": np.maximum,
             "MIN": np.minimum,
-            "ABS": np.abs,
             "SUM": np.sum,
+            "ABS": np.abs,
             "max": np.maximum,
             "min": np.minimum,
-            "abs": np.abs,
             "sum": np.sum,
+            "abs": np.abs,
             "np": np,
             "nan": np.nan,
         }
@@ -659,6 +694,7 @@ class CodeEvaluator:
             self.globals["QUANTILE"] = self.globals["quantile"] = np.quantile
 
         # internal functions defined above
+        self.globals["_abs"] = _abs
         self.globals["_tol"] = _tol
         self.globals["_round"] = _round
         if self.params is not None and COMPARISONS in self.params.get(
@@ -788,11 +824,11 @@ class CodeEvaluator:
                         )
                     elif operator in ["<=", "<"]:
                         logger[idx] += (
-                            "[" + str(lhs[idx][1] - max_right + right_side) + "]"
+                            "[" + str(max_right - right_side - lhs[idx][1]) + "]"
                         )
                     elif operator in [">=", ">"]:
                         logger[idx] += (
-                            "[" + str(lhs[idx][2] - min_right + right_side) + "]"
+                            "[" + str(min_right - right_side - lhs[idx][2]) + "]"
                         )
         else:
             # left side is an item
@@ -843,11 +879,11 @@ class CodeEvaluator:
                         )
                     elif operator in ["<=", "<"]:
                         logger[idx] += (
-                            "[" + str(min_left - left_side - rhs[idx][2]) + "]"
+                            "[" + str(rhs[idx][2] - min_left + left_side) + "]"
                         )
                     elif operator in [">=", ">"]:
                         logger[idx] += (
-                            "[" + str(max_left - left_side - rhs[idx][1]) + "]"
+                            "[" + str(rhs[idx][1] - max_left + left_side) + "]"
                         )
 
             else:
@@ -875,13 +911,13 @@ class CodeEvaluator:
                     elif operator in ["<=", "<"]:
                         logger[idx] += (
                             "["
-                            + str(min_left - min_left - max_right + right_side)
+                            + str(max_right - right_side - min_left + left_side)
                             + "]"
                         )
                     elif operator in [">=", ">"]:
                         logger[idx] += (
                             "["
-                            + str(max_left - min_left - min_right + right_side)
+                            + str(min_right - right_side - max_left + left_side)
                             + "]"
                         )
 

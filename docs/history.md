@@ -264,3 +264,8 @@
 ### 0.2.31 (2025-3-8)
 
 - Two bug fixes in corr-function
+
+### 0.2.32 (2025-3-9)
+
+- Fix for abs-function where lower < 0 and upper > 0 (then the real lower bound is 0)
+- Correction for logging of <=, <, >=, > comparisons
