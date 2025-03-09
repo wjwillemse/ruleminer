@@ -224,3 +224,43 @@
 	- if params={'tolerance': {"default": None, "A": { ... }}} then tolerance is not applied as default except for column A
 	- the keys of the tolerance dict can contain regular expressions. They are matched with columns when converting the expressions
 - Added regex to dependency in pyproject.toml
+
+### 0.2.22 (2025-1-28)
+
+- Fix in evaluation of unequal operators in combination with tolerances
+- Fix in evaluation of equal and unequal operators when writing debug info
+
+### 0.2.23 (2025-1-29)
+
+- Improved logging info of evaluation of rules
+
+### 0.2.25 (2025-2-11)
+
+- Improved performance of evaluation (antecedent and consequent are calculated only once)
+- Added corr-function to calculate correlations
+- Refactored code
+- Added some preparations for logging rule evaluations
+
+### 0.2.26 (2025-2-14)
+
+- Added intermediate results for equalities and statistics
+
+### 0.2.27 (2025-2-18)
+
+- Added intermediate results for unequalities
+- Refactoring for logging intermediate results
+
+### 0.2.28 (2025-2-28)
+
+- Added 'contains' and 'not contains' comparison operators
+
+### 0.2.29 (2025-3-4)
+
+- Added <=, <, >=, >-operators that take tolerance into account
+- Applied sqrt in the corr-function
+- Added round, ceil and floor-functions
+- Reformatted comparison-logs: {LHS - RHS = diff} operator [LHS_min - LHS - RHS_max + RHS, LHS_max - LHS - RHS_min + RHS]
+
+### 0.2.31 (2025-3-8)
+
+- Two bug fixes in corr-function

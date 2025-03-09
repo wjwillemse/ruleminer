@@ -6,7 +6,6 @@ from .utils import (
     is_column,
     is_string,
 )
-from .const import VAR_Z
 from .pandas_parser import (
     pandas_column,
 )
@@ -44,8 +43,11 @@ class RuleParser:
             (set(["sumif"]), self.parse_sumif),
             (set(["countif"]), self.parse_countif),
             (set(["match"]), self.parse_match),
+            (set(["contains", "not contains"]), self.parse_contains),
             (set(["exact"]), self.parse_exact),
+            (set(["corr"]), self.parse_corr),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
+            (set(["round", "floor", "ceil"]), self.parse_round),
             (
                 set(
                     [
@@ -242,6 +244,85 @@ class RuleParser:
             + ","
             + str(int(start) + int(stop) - 1)
             + ")"
+        )
+        return res
+
+    def parse_corr(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process corr function
+
+        Example:
+            expression = ['CORR', ['(', '"matrix"', ',', '{"a"}', ',', '{"b"}', ',', '{"c"}, ',', '{"d"}',')']]
+            idx = 0
+
+            result = ruleminer.RuleParser().parse_corr(
+                idx=idx,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '_corr("matrix", {"a"}, {"b"}, {"c"}, {"d"})'
+        """
+        corr_params = expression[idx + 1]
+        matrix_key = corr_params[1][1:-1]
+        if matrix_key not in list(self.params["matrices"].keys()):
+            logging.error(
+                "Matrix key is not in predefined matrices dictionary of parameters."
+            )
+        res = "_corr" + self.parse(
+            corr_params,
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        return res
+
+    def parse_round(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process round function
+
+        Example:
+            expression = ['CEIL', ['(', '{"d"}', ',', '2', ')']]
+            idx = 0
+
+            result = ruleminer.RuleParser().parse_round(
+                idx=idx,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '_round({"d"}, 2, "ceil")'
+        """
+        _, data_series, _, rounding_param, _ = expression[idx + 1]
+        res = (
+            "_round("
+            + self.parse(
+                data_series,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ", "
+            + self.parse(
+                rounding_param,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + ', "'
+            + item.lower()
+            + '")'
         )
         return res
 
@@ -704,16 +785,16 @@ class RuleParser:
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-            quantile_code = {
-                VAR_Z: pandas_column(
-                    expression=flatten(expression[idx : idx + 2]),
-                    data=self.data,
-                )
-            }
-            evaluator = CodeEvaluator()
+            quantile_code = pandas_column(
+                expression=flatten(expression[idx : idx + 2]),
+                data=self.data,
+            )
+            evaluator = CodeEvaluator(self.params)
             evaluator.set_params(self.params)
             evaluator.set_data(self.data)
-            quantile_result = evaluator.evaluate(expressions=quantile_code)[VAR_Z]
+            quantile_result, _ = evaluator.evaluate_str(
+                expression=quantile_code, encodings={}
+            )
             res += str(np.round(quantile_result, 8))
             return res
         else:
@@ -863,7 +944,7 @@ class RuleParser:
             )
             if item in ["=="]:
                 res = (
-                    "_equal("
+                    "_eq("
                     + left_side
                     + ", "
                     + right_side
@@ -879,7 +960,7 @@ class RuleParser:
                 )
             if item in ["!="]:
                 res = (
-                    "_unequal("
+                    "_ne("
                     + left_side
                     + ", "
                     + right_side
@@ -893,9 +974,41 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            elif item in [">", ">="]:
+            if item in [">="]:
+                res = (
+                    "_ge("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
+            if item in ["<="]:
+                res = (
+                    "_le("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
+            elif item in [">"]:
                 res = left_side_pos + item + right_side_neg
-            elif item in ["<", "<="]:
+            elif item in ["<"]:
                 res = left_side_neg + item + right_side_pos
         else:
             left_side = expression[:idx]
@@ -984,9 +1097,9 @@ class RuleParser:
                         positive_tolerance=False,
                     )
                     if item == "*":
-                        new_res = "_multiply"
+                        new_res = "_mul"
                     elif item == "/":
-                        new_res = "_divide"
+                        new_res = "_div"
                     new_res += (
                         "("
                         + res_pos
@@ -1179,6 +1292,52 @@ class RuleParser:
             )
         return res + ", na=False)"
 
+    def parse_contains(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process match operator
+
+        Example:
+            expression = ['{"A"}', 'contains', '"A"']
+
+            result = ruleminer.RuleParser().parse_match(
+                idx=1,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '
+                ({"A"}.str.contains("A"))
+                '
+        """
+        left_side = expression[:idx]
+        right_side = expression[idx + 1 :]
+        # process in operator
+        if item.lower() == "not contains":
+            res = "~"
+        else:
+            res = ""
+        for i in left_side:
+            res += self.parse(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        res += ".str.contains("
+        for i in right_side:
+            res += self.parse(
+                i,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+        return res + ", na=False)"
+
     def parse_exact(
         self,
         idx: int,
@@ -1331,7 +1490,10 @@ def contains_string(expression: Union[str, list]):
             if isinstance(item, str) and item.lower() in ["sumif", "countif"]:
                 # if sumif or countif then do not search for string in conditions
                 return contains_string(expression[idx + 1][0])
-            if contains_string(item):
+            elif isinstance(item, str) and item.lower() in ["corr"]:
+                # if corr then do not search for string in first parameter
+                return contains_string(expression[idx + 1][2:])
+            elif contains_string(item):
                 return True
         return False
 

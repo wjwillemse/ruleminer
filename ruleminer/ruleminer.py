@@ -28,7 +28,6 @@ from .evaluator import CodeEvaluator
 from .pandas_parser import (
     dataframe_index,
     dataframe_values,
-    dataframe_lengths,
 )
 from .utils import (
     flatten,
@@ -36,7 +35,12 @@ from .utils import (
     is_column,
     is_string,
 )
-from .metrics import metrics, required_variables, calculate_metrics
+from .metrics import (
+    metrics,
+    required_variables,
+    calculate_metrics,
+    add_required_variables,
+)
 from .const import (
     CONFIDENCE,
     ABSOLUTE_SUPPORT,
@@ -50,8 +54,9 @@ from .const import (
     INDICES,
     ENCODINGS,
     VAR_X_AND_Y,
+    VAR_NOT_X,
     VAR_X_AND_NOT_Y,
-    VAR_Z,
+    LOG,
 )
 
 
@@ -79,7 +84,7 @@ class RuleMiner:
         """ """
         self.params = dict()
         self.parser = RuleParser()
-        self.evaluator = CodeEvaluator()
+        self.evaluator = CodeEvaluator(params)
         self.update(templates=templates, rules=rules, data=data, params=params)
 
     def update(
@@ -232,6 +237,7 @@ class RuleMiner:
                 NOT_APPLICABLE: [],
                 RESULT: [],
                 INDICES: [],
+                LOG: [],
             }
         )
 
@@ -246,6 +252,7 @@ class RuleMiner:
             NOT_APPLICABLE: "Int64",
             RESULT: "object",
             INDICES: "object",
+            LOG: "object",
         }
 
         if self.params.get("apply_rules_on_indices", True):
@@ -260,15 +267,13 @@ class RuleMiner:
             rule_def = row[RULE_DEF]
             rule_group = row[RULE_GROUP]
             rule_status = row[RULE_STATUS]
-
-            required_vars = required_variables(
-                [ABSOLUTE_SUPPORT, ABSOLUTE_EXCEPTIONS, CONFIDENCE, NOT_APPLICABLE]
+            rule_code = dataframe_index(expression=rule_def, data=self.data)
+            code_results, code_log = self.evaluator.evaluate_dict(
+                expressions=rule_code, encodings={}
             )
-            rule_code = dataframe_index(
-                expression=rule_def, required=required_vars, data=self.data
-            )
-            code_results = self.evaluate_code(
-                expressions=rule_code, dataframe=self.data
+            code_results = add_required_variables(
+                required_vars=self.required_vars,
+                results=code_results,
             )
             len_results = {
                 key: len(code_results[key])
@@ -279,31 +284,29 @@ class RuleMiner:
             }
             rule_metrics = calculate_metrics(
                 len_results=len_results,
-                metrics=[
-                    ABSOLUTE_SUPPORT,
-                    ABSOLUTE_EXCEPTIONS,
-                    CONFIDENCE,
-                    NOT_APPLICABLE,
-                ],
+                metrics=self.metrics,
             )
 
             co_indices = code_results[VAR_X_AND_Y]
             ex_indices = code_results[VAR_X_AND_NOT_Y]
+            na_indices = code_results[VAR_NOT_X]
+            if code_log is not None:
+                co_log = code_log[code_results[VAR_X_AND_Y]]
+                ex_log = code_log[code_results[VAR_X_AND_NOT_Y]]
+                # na_log = code_log[VAR_NOT_X]
 
-            indices = []
             if co_indices is not None and not isinstance(co_indices, float):
                 nco = len(co_indices)
-                indices += list(co_indices)
             else:
                 nco = 0
             if ex_indices is not None and not isinstance(ex_indices, float):
                 nex = len(ex_indices)
-                indices += list(ex_indices)
             else:
                 nex = 0
-
-            n_indices = [i for i in self.data.index if i not in indices]
-            n = len(n_indices)
+            if na_indices is not None and not isinstance(na_indices, float):
+                nna = len(na_indices)
+            else:
+                nna = 0
 
             if self.params.get("output_confirmations", True):
                 if nco > 0:
@@ -321,6 +324,9 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nco)
                     results[RESULT].extend([True] * nco)
                     results[INDICES].extend(co_indices)
+                    results[LOG].extend(
+                        co_log if code_log is not None else [None] * nco
+                    )
 
             if self.params.get("output_exceptions", True):
                 if nex > 0:
@@ -338,9 +344,12 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]] * nex)
                     results[RESULT].extend([False] * nex)
                     results[INDICES].extend(ex_indices)
+                    results[LOG].extend(
+                        ex_log if code_log is not None else [None] * nex
+                    )
 
             if self.params.get("output_not_applicable", False):
-                if (nco == 0 and nex == 0) and n > 0:
+                if (nco == 0 and nex == 0) and nna > 0:
                     results[RULE_ID].extend([rule_id])
                     results[RULE_GROUP].extend([rule_group])
                     results[RULE_DEF].extend([rule_def])
@@ -353,18 +362,22 @@ class RuleMiner:
                     results[NOT_APPLICABLE].extend([rule_metrics[NOT_APPLICABLE]])
                     results[RESULT].extend([None])
                     results[INDICES].extend([None])
+                    results[LOG].extend([None])
 
-            if nco == 0 and nex == 0:
-                logger.debug(
-                    "Finished: "
-                    + str(rule_idx)
-                    + " ("
-                    + str(rule_id)
-                    + ")"
-                    + " [0 confirmations and 0 exceptions]"
-                )
-            else:
-                logger.info("Finished: " + str(rule_idx) + " (" + str(rule_id) + ")")
+            logger.info(
+                "Finished: "
+                + str(rule_idx)
+                + " ("
+                + str(rule_id)
+                + ", "
+                + str(rule_group)
+                + ")"
+                + " ["
+                + str(nco)
+                + " confirmations and "
+                + str(nex)
+                + " exceptions]"
+            )
 
         if self.results_datatype == pd.DataFrame:
             self.results = pd.DataFrame.from_dict(results).astype(mapping_dtypes)
@@ -564,12 +577,8 @@ class RuleMiner:
                 value_substitutions=[item[1] for item in if_part_substitution],
             )
             candidate = self.parser.parse(candidate)
-            df_code = {
-                VAR_Z: dataframe_values(expression=flatten(candidate), data=self.data)
-            }
-            df_eval = self.evaluate_code(expressions=df_code, dataframe=self.data)[
-                VAR_Z
-            ]
+            df_code = dataframe_values(expression=flatten(candidate), data=self.data)
+            df_eval, _ = self.evaluator.evaluate_str(expression=df_code, encodings={})
             if not isinstance(df_eval, float):  # then it is nan
                 # substitute variables in then_part
                 then_part_substituted = self.substitute_group_names(
@@ -618,17 +627,28 @@ class RuleMiner:
                     reformulated_expression = self.parser.parse(candidate)
                     if sorted_expression not in sorted_expressions.keys():
                         sorted_expressions[sorted_expression] = True
-                        rule_code = dataframe_lengths(
+                        rule_code = dataframe_index(
                             expression=reformulated_expression,
-                            required=self.required_vars,
                             data=self.data,
                         )
-                        len_results = self.evaluate_code(
-                            expressions=rule_code, dataframe=self.data
+                        code_results, _ = self.evaluator.evaluate_dict(
+                            expressions=rule_code, encodings={}
                         )
+                        code_results = add_required_variables(
+                            required_vars=self.required_vars,
+                            results=code_results,
+                        )
+                        len_results = {
+                            key: len(code_results[key])
+                            if not isinstance(code_results[key], float)
+                            else 0
+                            for key in code_results.keys()
+                            if code_results[key] is not None
+                        }
                         rule_metrics = calculate_metrics(
                             len_results=len_results, metrics=self.metrics
                         )
+
                         logger.debug(
                             "Rule code: \n"
                             + str(
@@ -945,37 +965,6 @@ class RuleMiner:
         return self.data is None or all(
             [metrics[metric] >= self.filter[metric] for metric in self.filter]
         )
-
-    def evaluate_code(
-        self,
-        expressions: dict = {},
-        dataframe: pd.DataFrame = None,
-        encodings: dict = {},
-    ) -> dict:
-        """
-        Evaluate a set of expressions and return their results.
-
-        This method evaluates a dictionary of expressions using the provided data
-        frame, encodings, and additional variables from the evaluation context.
-        The results of the expressions are stored in a dictionary and returned.
-
-        Args:
-            expressions (dict): A dictionary of variable names as keys and expressions
-            as values.
-            dataframe (pd.DataFrame): The Pandas DataFrame containing the data for
-            evaluation.
-            encodings (dict): A dictionary of variable encodings or transformations for
-            evaluation.
-
-        Returns:
-            dict: A dictionary containing the results of evaluated expressions.
-
-        """
-        res = self.evaluator.evaluate(
-            expressions,
-            encodings,
-        )
-        return res
 
 
 def flatten_and_sort(expression: str = ""):
