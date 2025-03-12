@@ -269,3 +269,11 @@
 
 - Fix for abs-function where lower < 0 and upper > 0 (then the real lower bound is 0)
 - Correction for logging of <=, <, >=, > comparisons
+
+### 0.2.33 (2025-3-11)
+
+- Fix for nan values in corr-function
+
+### 0.2.34 (2025-3-12)
+
+- Fix to not apply tolerance for Pandas datetime64-types

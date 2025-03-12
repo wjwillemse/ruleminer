@@ -53,6 +53,13 @@ class CodeEvaluator:
         self.logger = logging.getLogger(__name__)
         self.set_params(params)
         self.set_globals()
+        self._mean_logs = []
+        self._std_logs = []
+        self._quantile_logs = []
+        self._eq_logs = []
+        self._ne_logs = []
+        self._ge_logs = []
+        self._le_logs = []
 
     def set_globals(self):
         """
@@ -216,6 +223,8 @@ class CodeEvaluator:
             elif isinstance(value, np.datetime64):
                 return value
             elif isinstance(value, pd.Timestamp):
+                return value
+            elif pd.api.types.is_datetime64_any_dtype(value):
                 return value
             for key, tol in self.tolerance.items():
                 if key == column:
@@ -662,11 +671,17 @@ class CodeEvaluator:
                     + '" is not in predefined matrices dictionary of parameters.'
                 )
             m = self.matrices[key]
+            columns = list(columns)
+            for i in range(len(columns)):
+                columns[i] = [
+                    0 if pd.isna(v) else v if np.isfinite(v) else 0 for v in columns[i]
+                ]
             result = pd.Series([0] * len(columns[0]))
-            for r in range(len(m)):
-                for s in range(len(m)):
-                    result += (m[r][s] * columns[r] * columns[s]).values
-            return result.pow(0.5).values
+            c = np.array(columns)
+            result += (np.array(m, ndmin=3) * (c.T[:, :, None] * c.T[:, None])).sum(
+                axis=(1, 2)
+            )
+            return np.maximum(result.values, 0) ** 0.5
 
         # standard functions based on numpy
         self.globals = {
