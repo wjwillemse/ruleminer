@@ -23,6 +23,7 @@ RULE_VARIABLES = "variables"
 ENCODINGS = "encodings"
 RESULT = "result"
 INDICES = "indices"
+LOG = "log"
 RESULT_EXPRESSION = "result_expression"
 
 DUNDER_DF = "_df"
@@ -34,6 +35,7 @@ VAR_X = "X"
 VAR_NOT_X = "~X"
 VAR_Y = "Y"
 VAR_NOT_Y = "~Y"
-
-VAR_Z = "Z"
 VAR_N = "N"
+
+COMPARISONS = "comparisons"
+STATISTICS = "statistics"
