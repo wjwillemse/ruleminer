@@ -77,6 +77,10 @@ _function = (
     mean \
     std \
     exact \
+    corr \
+    round \
+    floor \
+    ceil \
     MIN \
     MAX \
     ABS \
@@ -89,7 +93,11 @@ _function = (
     COUNTIF \
     MEAN \
     STD \
-    EXACT"
+    EXACT \
+    CORR \
+    ROUND \
+    FLOOR \
+    CEIL"
     )
     | _timedelta_functions
     | _timedate_functions
@@ -114,9 +122,11 @@ _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
 _compa_op = (
-    pyparsing.one_of(">= > <= < != == in IN match MATCH")
+    pyparsing.one_of(">= > <= < != == in IN match MATCH contains CONTAINS")
     | pyparsing.Literal("not in")
     | pyparsing.Literal("NOT IN")
+    | pyparsing.Literal("not contains")
+    | pyparsing.Literal("NOT CONTAINS")
 )
 
 _list = pyparsing.Forward()
@@ -213,6 +223,8 @@ simple_condition_expression = pyparsing.infixNotation(
             pyparsing.opAssoc.LEFT,
         ),
     ],
+    lpar=pyparsing.Literal("("),
+    rpar=pyparsing.Literal(")"),
 )
 
 ################################################################################
@@ -279,6 +291,8 @@ condition_expression = pyparsing.infixNotation(
             pyparsing.opAssoc.LEFT,
         ),
     ],
+    lpar=pyparsing.Literal("("),
+    rpar=pyparsing.Literal(")"),
 )
 
 ################################################################################
