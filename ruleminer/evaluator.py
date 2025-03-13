@@ -217,14 +217,12 @@ class CodeEvaluator:
                 # Adjust the value 5.75 based on the tolerance for 'some_column' and direction '+'
             """
             if pd.isna(value):
-                return np.nan
+                return value
             elif isinstance(value, str):
                 return value
             elif isinstance(value, np.datetime64):
                 return value
             elif isinstance(value, pd.Timestamp):
-                return value
-            elif pd.api.types.is_datetime64_any_dtype(value):
                 return value
             for key, tol in self.tolerance.items():
                 if key == column:
