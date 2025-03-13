@@ -223,6 +223,8 @@ simple_condition_expression = pyparsing.infixNotation(
             pyparsing.opAssoc.LEFT,
         ),
     ],
+    lpar=pyparsing.Literal("("),
+    rpar=pyparsing.Literal(")"),
 )
 
 ################################################################################
@@ -289,6 +291,8 @@ condition_expression = pyparsing.infixNotation(
             pyparsing.opAssoc.LEFT,
         ),
     ],
+    lpar=pyparsing.Literal("("),
+    rpar=pyparsing.Literal(")"),
 )
 
 ################################################################################

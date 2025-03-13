@@ -277,3 +277,8 @@
 ### 0.2.34 (2025-3-12)
 
 - Fix to not apply tolerance for Pandas datetime64-types
+
+### 0.2.35 (2025-3-13)
+
+- Fix to accept NaT in tolerance function
+- Fix to not suppress parentheses in pyparsing.infixNotation (Kevin's curious case)

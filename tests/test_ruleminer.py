@@ -177,7 +177,11 @@ class TestRuleminer(unittest.TestCase):
         )
         expected = [
             "IF",
-            ["not", ["(", '"F3"', "in", ["[", '"G1"', ",", '"G3"', "]"], ")"]],
+            [
+                "(",
+                ["not", ["(", '"F3"', "in", ["[", '"G1"', ",", '"G3"', "]"], ")"]],
+                ")",
+            ],
             "THEN",
             [
                 "(",
@@ -201,7 +205,11 @@ class TestRuleminer(unittest.TestCase):
         )
         expected = [
             "IF",
-            ["not", ["(", '"F3"', "not in", ["[", '"G1"', ",", '"G3"', "]"], ")"]],
+            [
+                "(",
+                ["not", ["(", '"F3"', "not in", ["[", '"G1"', ",", '"G3"', "]"], ")"]],
+                ")",
+            ],
             "THEN",
             [
                 "(",
@@ -304,7 +312,7 @@ class TestRuleminer(unittest.TestCase):
             .parse_string('(({"4"} > {"3"}) & ({"2"} > {"1"}))', parse_all=True)
             .as_list()
         )
-        expected = '({"2"}>{"1"})&({"4"}>{"3"})'
+        expected = '(({"2"}>{"1"})&({"4"}>{"3"}))'
         self.assertTrue(actual == expected)
 
     def test_26(self):
@@ -313,7 +321,7 @@ class TestRuleminer(unittest.TestCase):
             .parse_string('(({"4"} > {"3"}) & ({"2"} == {"1"}))', parse_all=True)
             .as_list()
         )
-        expected = '({"1"}=={"2"})&({"4"}>{"3"})'
+        expected = '(({"1"}=={"2"})&({"4"}>{"3"}))'
         self.assertTrue(actual == expected)
 
     def test_27(self):
@@ -324,7 +332,7 @@ class TestRuleminer(unittest.TestCase):
             )
             .as_list()
         )
-        expected = '(({"0"}+{"2"})=={"1"})&({"4"}>{"3"})'
+        expected = '((({"0"}+{"2"})=={"1"})&({"4"}>{"3"}))'
         self.assertTrue(actual == expected)
 
     def test_28(self):
@@ -1094,7 +1102,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (_ge({"1"}, 0, {"1"}.apply(_tol, args=("+", "default",)), {"1"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        expected = 'if () then ((_ge({"1"}, 0, {"1"}.apply(_tol, args=("+", "default",)), {"1"}.apply(_tol, args=("-", "default",)), 0, 0)))'
         self.assertTrue(actual == expected)
 
     def test_42(self):
