@@ -282,3 +282,10 @@
 
 - Fix to accept NaT in tolerance function
 - Fix to not suppress parentheses in pyparsing.infixNotation (Kevin's curious case)
+
+### 0.2.36 (2025-3-14)
+
+- Correction for logging and calculation of < and > comparisons
+- Logging: added ; as separator between comparison results
+- Logging: separated if and then comparisons
+- Grammar: an extra exact-function is allowed around nested functions

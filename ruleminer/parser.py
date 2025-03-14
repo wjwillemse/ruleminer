@@ -1008,9 +1008,37 @@ class RuleParser:
                     + ")"
                 )
             elif item in [">"]:
-                res = left_side_pos + item + right_side_neg
+                res = (
+                    "_gt("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
             elif item in ["<"]:
-                res = left_side_neg + item + right_side_pos
+                res = (
+                    "_lt("
+                    + left_side
+                    + ", "
+                    + right_side
+                    + ", "
+                    + left_side_pos
+                    + ", "
+                    + left_side_neg
+                    + ", "
+                    + right_side_pos
+                    + ", "
+                    + right_side_neg
+                    + ")"
+                )
         else:
             left_side = expression[:idx]
             right_side = expression[idx + 1 :]

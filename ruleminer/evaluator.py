@@ -60,6 +60,8 @@ class CodeEvaluator:
         self._ne_logs = []
         self._ge_logs = []
         self._le_logs = []
+        self._gt_logs = []
+        self._lt_logs = []
 
     def set_globals(self):
         """
@@ -355,7 +357,7 @@ class CodeEvaluator:
                     ]
                 )
             ):
-                return left_side == right_side
+                return left_side <= right_side
             else:
                 min_left = np.minimum(left_side_pos, left_side_neg)
                 max_right = np.maximum(right_side_pos, right_side_neg)
@@ -393,7 +395,7 @@ class CodeEvaluator:
                     ]
                 )
             ):
-                return left_side == right_side
+                return left_side <= right_side
             else:
                 min_left = np.minimum(left_side_pos, left_side_neg)
                 max_left = np.maximum(left_side_pos, left_side_neg)
@@ -410,6 +412,94 @@ class CodeEvaluator:
                     self._le_logs,
                 )
                 return min_left <= max_right
+
+        def _lt(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side < right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                return min_left < max_right
+
+        def _lt_with_logging(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side < right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    "<",
+                    self._le_logs,
+                )
+                return min_left < max_right
 
         def _ge(
             left_side,
@@ -443,7 +533,7 @@ class CodeEvaluator:
                     ]
                 )
             ):
-                return left_side == right_side
+                return left_side >= right_side
             else:
                 max_left = np.maximum(left_side_pos, left_side_neg)
                 min_right = np.minimum(right_side_pos, right_side_neg)
@@ -481,7 +571,7 @@ class CodeEvaluator:
                     ]
                 )
             ):
-                return left_side == right_side
+                return left_side >= right_side
             else:
                 min_left = np.minimum(left_side_pos, left_side_neg)
                 max_left = np.maximum(left_side_pos, left_side_neg)
@@ -498,6 +588,94 @@ class CodeEvaluator:
                     self._ge_logs,
                 )
                 return max_left >= min_right
+
+        def _gt(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side > right_side
+            else:
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                return max_left > min_right
+
+        def _gt_with_logging(
+            left_side,
+            right_side,
+            left_side_pos,
+            left_side_neg,
+            right_side_pos,
+            right_side_neg,
+        ):
+            """ """
+            if (
+                any(
+                    [
+                        p(left_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ) or (
+                any(
+                    [
+                        p(right_side)
+                        for p in [
+                            pd.api.types.is_string_dtype,
+                            pd.api.types.is_bool_dtype,
+                            pd.api.types.is_datetime64_ns_dtype,
+                        ]
+                    ]
+                )
+            ):
+                return left_side > right_side
+            else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                self._log(
+                    left_side,
+                    right_side,
+                    min_left,
+                    max_left,
+                    min_right,
+                    max_right,
+                    ">",
+                    self._ge_logs,
+                )
+                return max_left > min_right
 
         def _ne_with_logging(
             left_side,
@@ -717,11 +895,15 @@ class CodeEvaluator:
             self.globals["_ne"] = _ne_with_logging
             self.globals["_ge"] = _ge_with_logging
             self.globals["_le"] = _le_with_logging
+            self.globals["_gt"] = _gt_with_logging
+            self.globals["_lt"] = _lt_with_logging
         else:
             self.globals["_eq"] = _eq
             self.globals["_ne"] = _ne
             self.globals["_ge"] = _ge
             self.globals["_le"] = _le
+            self.globals["_gt"] = _gt
+            self.globals["_lt"] = _lt
         self.globals["_mul"] = _mul
         self.globals["_div"] = _div
         self.globals["_corr"] = _corr
@@ -739,7 +921,6 @@ class CodeEvaluator:
     ):
         """ """
         # {left-right=diff} operator [a, b] of [a]
-
         if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
             # left side is a list
             lhs = [
@@ -797,7 +978,7 @@ class CodeEvaluator:
                             + str(lhs[idx][2] - rhs[idx][2])
                             + "]"
                         )
-                        logger[idx] += s
+                        logger[idx] += "; " + s
             else:
                 # right side is an item
                 if len(logger) == 0:
@@ -823,7 +1004,7 @@ class CodeEvaluator:
                             + str(lhs[idx][0] - right_side)
                             + "}"
                         )
-                        logger[idx] += s
+                        logger[idx] += "; " + s
                 for idx in range(len(logger)):
                     logger[idx] += " " + operator + " "
                 for idx in range(len(lhs)):
@@ -878,7 +1059,7 @@ class CodeEvaluator:
                             + str(left_side - rhs[idx][0])
                             + "}"
                         )
-                        logger[idx] += s
+                        logger[idx] += "; " + s
                 for idx in range(len(logger)):
                     logger[idx] += " " + operator + " "
                 for idx in range(len(rhs)):
@@ -910,29 +1091,23 @@ class CodeEvaluator:
                     + str(left_side - right_side)
                     + "}"
                 )
-                for idx in range(len(logger)):
-                    logger[idx] += " " + operator + " "
-                for idx in range(len(lhs)):
-                    if operator in ["==", "!="]:
-                        logger[idx] += (
-                            "["
-                            + str(min_left - min_left - min_right + right_side)
-                            + ", "
-                            + str(max_left - max_left - max_right + right_side)
-                            + "]"
-                        )
-                    elif operator in ["<=", "<"]:
-                        logger[idx] += (
-                            "["
-                            + str(max_right - right_side - min_left + left_side)
-                            + "]"
-                        )
-                    elif operator in [">=", ">"]:
-                        logger[idx] += (
-                            "["
-                            + str(min_right - right_side - max_left + left_side)
-                            + "]"
-                        )
+                logger += " " + operator + " "
+                if operator in ["==", "!="]:
+                    logger += (
+                        "["
+                        + str(min_left - min_left - min_right + right_side)
+                        + ", "
+                        + str(max_left - max_left - max_right + right_side)
+                        + "]"
+                    )
+                elif operator in ["<=", "<"]:
+                    logger += (
+                        "[" + str(max_right - right_side - min_left + left_side) + "]"
+                    )
+                elif operator in [">=", ">"]:
+                    logger += (
+                        "[" + str(min_right - right_side - max_left + left_side) + "]"
+                    )
 
     def set_params(self, params):
         """
@@ -1034,56 +1209,59 @@ class CodeEvaluator:
                 data=[""] * len(self.globals[DUNDER_DF].index),
                 dtype="object",
             )
+            logs_added = False
         else:
             logs = None
-        # clear logs
-        self._mean_logs = []
-        self._std_logs = []
-        self._quantile_logs = []
-        self._eq_logs = []
-        self._ne_logs = []
-        self._ge_logs = []
-        self._le_logs = []
         for key in expressions.keys():
+            if logs is not None:
+                # initialize logs
+                self._mean_logs = []
+                self._std_logs = []
+                self._quantile_logs = []
+                self._eq_logs = []
+                self._ne_logs = []
+                self._ge_logs = []
+                self._le_logs = []
+                self._gt_logs = []
+                self._lt_logs = []
+                if key == "X":
+                    logs += "if ("
+                    logs_added = False
+                elif key == "Y":
+                    logs += " then ("
+                    logs_added = False
             try:
                 variables[key] = eval(expressions[key], self.globals, encodings)
                 if logs is not None:
-                    # collect log
+                    # collect log of statistics
                     log = []
                     if len(self._mean_logs) > 0:
-                        log.append(", ".join(self._mean_logs))
+                        log.append("; ".join(self._mean_logs))
                     if len(self._std_logs) > 0:
-                        log.append(", ".join(self._std_logs))
+                        log.append("; ".join(self._std_logs))
                     if len(self._quantile_logs) > 0:
-                        log.append(", ".join(self._quantile_logs))
+                        log.append("; ".join(self._quantile_logs))
                     # put logs in pd.Series as a strings
-                    if len(self._eq_logs) > 0:
-                        logs += self._eq_logs
-                    if len(self._ne_logs) > 0:
-                        if len(self._eq_logs) > 0:
-                            logs += ", "
-                        logs += self._ne_logs
-                    if len(self._ge_logs) > 0:
-                        if len(self._eq_logs) + len(self._ne_logs) > 0:
-                            logs += ", "
-                        logs += self._ge_logs
-                    if len(self._le_logs) > 0:
-                        if (
-                            len(self._eq_logs) + len(self._ne_logs) + len(self._ge_logs)
-                            > 0
-                        ):
-                            logs += ", "
-                        logs += self._le_logs
+                    for item in [
+                        self._eq_logs,
+                        self._ne_logs,
+                        self._ge_logs,
+                        self._le_logs,
+                        self._gt_logs,
+                        self._lt_logs,
+                    ]:
+                        if len(item) > 0:
+                            if logs_added:
+                                logs += "; "
+                            logs += item
+                            logs_added = True
                     if len(log) > 0:
-                        if (
-                            len(self._eq_logs)
-                            + len(self._ne_logs)
-                            + len(self._ge_logs)
-                            + len(self._le_logs)
-                            > 0
-                        ):
-                            logs += ", "
-                        logs += ", ".join(log)
+                        if logs_added:
+                            logs += "; "
+                        logs += "; ".join(log)
+                        logs_added = True
+                    if key != "N":
+                        logs += ")"
             except Exception as e:
                 self.logger.debug(
                     "Error evaluating the code '" + expressions[key] + "': " + repr(e)

@@ -1421,7 +1421,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)>1.0)'
+            == 'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, 1.0))'
         )
         r.evaluate()
         actual = (

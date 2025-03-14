@@ -247,16 +247,20 @@ _function_param = (
     simple_condition_expression | simple_math_expression | list_comprehension_expression
 )
 _function_params = _function_param + (_sep + _function_param)[...]
-function_expression = pyparsing.Forward()
-function_expression <<= pyparsing.Group(
+function_expression = pyparsing.Group(
     _function + pyparsing.Group(_lpar + _function_params + _rpar)
+)
+# the following is to allow an additional exact-function around a function
+exact_function_expression = pyparsing.Group(
+    pyparsing.one_of("EXACT exact")
+    + pyparsing.Group(_lpar + function_expression + _rpar)
 )
 
 ################################################################################
 # definition of a math_expression
 ################################################################################
 math_expression = pyparsing.Forward()
-_math_element = function_expression | simple_math_expression
+_math_element = exact_function_expression | function_expression | simple_math_expression
 _math_atom = _math_element | pyparsing.Group(_lpar + math_expression + _rpar)
 _math_factor = pyparsing.Forward()
 # if expression contains ** then put parentheses around this part

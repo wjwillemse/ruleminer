@@ -291,8 +291,8 @@ class RuleMiner:
             ex_indices = code_results[VAR_X_AND_NOT_Y]
             na_indices = code_results[VAR_NOT_X]
             if code_log is not None:
-                co_log = code_log[code_results[VAR_X_AND_Y]]
-                ex_log = code_log[code_results[VAR_X_AND_NOT_Y]]
+                co_log = code_log.get(code_results[VAR_X_AND_Y], "")
+                ex_log = code_log.get(code_results[VAR_X_AND_NOT_Y], "")
                 # na_log = code_log[VAR_NOT_X]
 
             if co_indices is not None and not isinstance(co_indices, float):
