@@ -400,11 +400,11 @@ class RuleParser:
         """
         date = expression[idx + 1][1:-1]
         if item.lower() == "days":
-            s = "'D'"
+            s = '"D"'
         elif item.lower() == "months":
-            s = "'M'"
+            s = '"M"'
         elif item.lower() == "years":
-            s = "'Y'"
+            s = '"Y"'
         res = (
             "(("
             + self.parse(
@@ -1437,11 +1437,83 @@ class RuleParser:
                 ({"A"})
                 '
         """
-        return self.parse(
-            expression[idx + 1 :],
-            apply_tolerance=False,
-            positive_tolerance=positive_tolerance,
-        )
+        parameters_len = len(expression[idx + 1])
+        if parameters_len == 3:
+            # no parameters, only expression -> do no apply lower and upper bound
+            return self.parse(
+                expression[idx + 1][1],
+                apply_tolerance=False,
+                positive_tolerance=positive_tolerance,
+            )
+        elif parameters_len == 5:
+            # one parameter -> upper and lower bound combined
+            bound = expression[idx + 1][3]
+            if apply_tolerance:
+                if positive_tolerance:
+                    return (
+                        "("
+                        + self.parse(
+                            expression[idx + 1][1],
+                            apply_tolerance=False,
+                            positive_tolerance=positive_tolerance,
+                        )
+                        + "+"
+                        + str(bound)
+                        + ")"
+                    )
+                else:
+                    return (
+                        "("
+                        + self.parse(
+                            expression[idx + 1][1],
+                            apply_tolerance=False,
+                            positive_tolerance=positive_tolerance,
+                        )
+                        + "-"
+                        + str(bound)
+                        + ")"
+                    )
+            else:
+                return self.parse(
+                    expression[idx + 1][1],
+                    apply_tolerance=False,
+                    positive_tolerance=positive_tolerance,
+                )
+        elif parameters_len == 7:
+            lower_bound = expression[idx + 1][3]
+            upper_bound = expression[idx + 1][5]
+            # two parameter -> upper and lower bound separately
+            if apply_tolerance:
+                if positive_tolerance:
+                    return (
+                        "("
+                        + self.parse(
+                            expression[idx + 1][1],
+                            apply_tolerance=False,
+                            positive_tolerance=positive_tolerance,
+                        )
+                        + "+"
+                        + str(upper_bound)
+                        + ")"
+                    )
+                else:
+                    return (
+                        "("
+                        + self.parse(
+                            expression[idx + 1][1],
+                            apply_tolerance=False,
+                            positive_tolerance=positive_tolerance,
+                        )
+                        + "-"
+                        + str(lower_bound)
+                        + ")"
+                    )
+            else:
+                return self.parse(
+                    expression[idx + 1][1],
+                    apply_tolerance=False,
+                    positive_tolerance=positive_tolerance,
+                )
 
     def parse_maxminabs(
         self,

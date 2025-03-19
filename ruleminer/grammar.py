@@ -81,6 +81,7 @@ _function = (
     round \
     floor \
     ceil \
+    table \
     MIN \
     MAX \
     ABS \
@@ -97,7 +98,8 @@ _function = (
     CORR \
     ROUND \
     FLOOR \
-    CEIL"
+    CEIL \
+    TABLE"
     )
     | _timedelta_functions
     | _timedate_functions

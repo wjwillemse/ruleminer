@@ -1985,7 +1985,71 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq(({"A"}), 0, ({"A"}), ({"A"}), 0, 0))'
+        expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        actual = r.rules.values[1][2]
+        self.assertEqual(actual, expected)
+
+    def test_57b(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, 1e3): 0,  # 1,
+                    (1e3, 1e6): 0,  # 2,
+                    (1e6, 1e8): 0,  # 3,
+                    (1e8, np.inf): 0,  # 4,
+                },
+            },
+        }
+        formulas = ['(exact({"A"}, 10) == 0)', '({"A"} == 0)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Test_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_eq({"A"}, 0, ({"A"}+10), ({"A"}-10), 0, 0))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        actual = r.rules.values[1][2]
+        self.assertEqual(actual, expected)
+
+    def test_57c(self):
+        parameters = {
+            "tolerance": {
+                "default": {
+                    (0, 1e3): 0,  # 1,
+                    (1e3, 1e6): 0,  # 2,
+                    (1e6, 1e8): 0,  # 3,
+                    (1e8, np.inf): 0,  # 4,
+                },
+            },
+        }
+        formulas = ['(exact({"A"}, 10, 20) == 0)', '({"A"} == 0)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.0],
+                ["Test_2", 1.0],
+                ["Test_3", 2.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_eq({"A"}, 0, ({"A"}+20), ({"A"}-10), 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
@@ -2012,7 +2076,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq(({"A"}), 0, ({"A"}), ({"A"}), 0, 0))'
+        expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'

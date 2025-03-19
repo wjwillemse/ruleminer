@@ -289,3 +289,11 @@
 - Logging: added ; as separator between comparison results
 - Logging: separated if and then comparisons
 - Grammar: an extra exact-function is allowed around nested functions
+
+### 0.2.38 (2025-3-19)
+
+- Added unittests for logging of intermediate results
+- Fix in logging of ranges for == and !=
+- Fix for consistent use of double parentheses in parser
+- Changed exact function with one or two extra parameters to include lower and upper bounds
+- Refactored evaluator code
