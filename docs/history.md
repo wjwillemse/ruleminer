@@ -290,7 +290,7 @@
 - Logging: separated if and then comparisons
 - Grammar: an extra exact-function is allowed around nested functions
 
-### 0.2.38 (2025-3-19)
+### 0.2.39 (2025-3-20)
 
 - Added unittests for logging of intermediate results
 - Fix in logging of ranges for == and !=

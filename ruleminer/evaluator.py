@@ -683,12 +683,12 @@ class CodeEvaluator:
         # {left-right=diff} operator [a, b] of [a]
         if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
             # left side is a list
-            left_side = [item for item in left_side]
+            left_side = [float(item) for item in left_side]
             min_left = [item for item in min_left]
             max_left = [item for item in max_left]
             if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
                 # right side is a list
-                right_side = [item for item in right_side]
+                right_side = [float(item) for item in right_side]
                 min_right = [item for item in min_right]
                 max_right = [item for item in max_right]
                 if len(self._eval_logs) == 0:
@@ -704,17 +704,11 @@ class CodeEvaluator:
                             + operator
                             + " "
                         )
-                        lower_bound = (
-                            min_left[idx]
-                            - left_side[idx]
-                            - max_right[idx]
-                            + right_side[idx]
+                        lower_bound = float(min_left[idx] - left_side[idx]) - float(
+                            max_right[idx] - right_side[idx]
                         )
-                        upper_bound = (
-                            max_left[idx]
-                            - left_side[idx]
-                            - min_right[idx]
-                            + right_side[idx]
+                        upper_bound = float(max_left[idx] - left_side[idx]) - float(
+                            min_right[idx] - right_side[idx]
                         )
                         if lower_bound == upper_bound:
                             s += "[" + str(lower_bound) + "]"
@@ -734,17 +728,11 @@ class CodeEvaluator:
                             + operator
                             + " "
                         )
-                        lower_bound = (
-                            min_left[idx]
-                            - left_side[idx]
-                            - max_right[idx]
-                            + right_side[idx]
+                        lower_bound = float(min_left[idx] - left_side[idx]) - float(
+                            max_right[idx] - right_side[idx]
                         )
-                        upper_bound = (
-                            max_left[idx]
-                            - left_side[idx]
-                            - min_right[idx]
-                            + right_side[idx]
+                        upper_bound = float(max_left[idx] - left_side[idx]) - float(
+                            min_right[idx] - right_side[idx]
                         )
                         if lower_bound == upper_bound:
                             s += "[" + str(lower_bound) + "]"
@@ -781,11 +769,11 @@ class CodeEvaluator:
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(left_side)):
                     if operator in ["==", "!="]:
-                        lower_bound = (
-                            min_left[idx] - left_side[idx] - max_right + right_side
+                        lower_bound = float(min_left[idx] - left_side[idx]) - float(
+                            max_right - right_side
                         )
-                        upper_bound = (
-                            max_left[idx] - left_side[idx] - min_right + right_side
+                        upper_bound = float(max_left[idx] - left_side[idx]) - float(
+                            min_right - right_side
                         )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
@@ -794,16 +782,20 @@ class CodeEvaluator:
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
                     elif operator in ["<=", "<"]:
-                        bound = max_right - right_side - min_left[idx] + left_side[idx]
+                        bound = float(max_right - right_side) - float(
+                            min_left[idx] - left_side[idx]
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
                     elif operator in [">=", ">"]:
-                        bound = min_right - right_side - max_left[idx] + left_side[idx]
+                        bound = float(min_right - right_side) - float(
+                            max_left[idx] - left_side[idx]
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
         else:
             # left side is an item
             if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
                 # right side is a list
-                right_side = [item for item in right_side]
+                right_side = [float(item) for item in right_side]
                 min_right = [item for item in min_right]
                 max_right = [item for item in max_right]
                 if len(self._eval_logs) == 0:
@@ -834,11 +826,11 @@ class CodeEvaluator:
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(right_side)):
                     if operator in ["==", "!="]:
-                        lower_bound = (
-                            min_left - left_side - max_right[idx] + right_side[idx]
+                        lower_bound = float(min_left - left_side) - float(
+                            max_right[idx] - right_side[idx]
                         )
-                        upper_bound = (
-                            max_left - left_side - min_right[idx] + right_side[idx]
+                        upper_bound = float(max_left - left_side) - float(
+                            min_right[idx] - right_side[idx]
                         )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
@@ -847,10 +839,14 @@ class CodeEvaluator:
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
                     elif operator in ["<=", "<"]:
-                        bound = max_right[idx] - right_side[idx] - min_left + left_side
+                        bound = float(max_right[idx] - right_side[idx]) - float(
+                            min_left - left_side
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
                     elif operator in [">=", ">"]:
-                        bound = min_right[idx] - right_side[idx] - max_left + left_side
+                        bound = float(min_right[idx] - right_side[idx]) - float(
+                            max_left - left_side
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
 
             else:
@@ -866,16 +862,20 @@ class CodeEvaluator:
                 )
                 self._eval_logs += " " + operator + " "
                 if operator in ["==", "!="]:
-                    lower_bound = min_left - left_side - max_right + right_side
-                    upper_bound = max_left - left_side - min_right + right_side
+                    lower_bound = float(min_left - left_side) - float(
+                        max_right - right_side
+                    )
+                    upper_bound = float(max_left - left_side) - float(
+                        min_right - right_side
+                    )
                     self._eval_logs += (
                         "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                     )
                 elif operator in ["<=", "<"]:
-                    bound = max_right - right_side - min_left + left_side
+                    bound = float(max_right - right_side) - float(min_left - left_side)
                     self._eval_logs += "[" + str(bound) + "]"
                 elif operator in [">=", ">"]:
-                    bound = min_right - right_side - max_left + left_side
+                    bound = float(min_right - right_side) - float(max_left - left_side)
                     self._eval_logs += "[" + str(bound) + "]"
 
     def set_params(self, params):
