@@ -282,3 +282,25 @@
 
 - Fix to accept NaT in tolerance function
 - Fix to not suppress parentheses in pyparsing.infixNotation (Kevin's curious case)
+
+### 0.2.36 (2025-3-14)
+
+- Correction for logging and calculation of < and > comparisons
+- Logging: added ; as separator between comparison results
+- Logging: separated if and then comparisons
+- Grammar: an extra exact-function is allowed around nested functions
+
+### 0.2.40 (2025-3-20)
+
+- Added unittests for logging of intermediate results
+- Fix in logging of ranges for == and !=
+- Fix for consistent use of double parentheses in parser
+- Changed exact function with one or two extra parameters to include lower and upper bounds
+- Refactored evaluator code
+
+### 0.3.0 (2025-3-21)
+
+- Applied rounding to 8 decimals in interval numbers
+- Changed strictly higher-operator: (max_left >= min_right) & (min_left > max_right) (instead of max_left > min_right)
+- Changed strictly lower-operator: (min_left <= max_right) & (max_left < min_right) (instead of min_left < max_right)
+- deleted rule_status from rules and results dataframes

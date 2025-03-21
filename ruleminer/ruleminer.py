@@ -49,7 +49,6 @@ from .const import (
     RULE_ID,
     RULE_GROUP,
     RULE_DEF,
-    RULE_STATUS,
     RESULT,
     INDICES,
     ENCODINGS,
@@ -230,7 +229,6 @@ class RuleMiner:
                 RULE_ID: [],
                 RULE_GROUP: [],
                 RULE_DEF: [],
-                RULE_STATUS: [],
                 ABSOLUTE_SUPPORT: [],
                 ABSOLUTE_EXCEPTIONS: [],
                 CONFIDENCE: [],
@@ -245,7 +243,6 @@ class RuleMiner:
             RULE_ID: self.rules[RULE_ID].dtype,
             RULE_GROUP: self.rules[RULE_GROUP].dtype,
             RULE_DEF: self.rules[RULE_DEF].dtype,
-            RULE_STATUS: self.rules[RULE_STATUS].dtype,
             ABSOLUTE_SUPPORT: "Int64",
             ABSOLUTE_EXCEPTIONS: "Int64",
             CONFIDENCE: "Float64",
@@ -266,7 +263,6 @@ class RuleMiner:
             rule_id = row[RULE_ID]
             rule_def = row[RULE_DEF]
             rule_group = row[RULE_GROUP]
-            rule_status = row[RULE_STATUS]
             rule_code = dataframe_index(expression=rule_def, data=self.data)
             code_results, code_log = self.evaluator.evaluate_dict(
                 expressions=rule_code, encodings={}
@@ -291,8 +287,8 @@ class RuleMiner:
             ex_indices = code_results[VAR_X_AND_NOT_Y]
             na_indices = code_results[VAR_NOT_X]
             if code_log is not None:
-                co_log = code_log[code_results[VAR_X_AND_Y]]
-                ex_log = code_log[code_results[VAR_X_AND_NOT_Y]]
+                co_log = code_log.get(code_results[VAR_X_AND_Y], "")
+                ex_log = code_log.get(code_results[VAR_X_AND_NOT_Y], "")
                 # na_log = code_log[VAR_NOT_X]
 
             if co_indices is not None and not isinstance(co_indices, float):
@@ -313,7 +309,6 @@ class RuleMiner:
                     results[RULE_ID].extend([rule_id] * nco)
                     results[RULE_GROUP].extend([rule_group] * nco)
                     results[RULE_DEF].extend([rule_def] * nco)
-                    results[RULE_STATUS].extend([rule_status] * nco)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nco
                     )
@@ -333,7 +328,6 @@ class RuleMiner:
                     results[RULE_ID].extend([rule_id] * nex)
                     results[RULE_GROUP].extend([rule_group] * nex)
                     results[RULE_DEF].extend([rule_def] * nex)
-                    results[RULE_STATUS].extend([rule_status] * nex)
                     results[ABSOLUTE_SUPPORT].extend(
                         [rule_metrics[ABSOLUTE_SUPPORT]] * nex
                     )
@@ -353,7 +347,6 @@ class RuleMiner:
                     results[RULE_ID].extend([rule_id])
                     results[RULE_GROUP].extend([rule_group])
                     results[RULE_DEF].extend([rule_def])
-                    results[RULE_STATUS].extend([rule_status])
                     results[ABSOLUTE_SUPPORT].extend([rule_metrics[ABSOLUTE_SUPPORT]])
                     results[ABSOLUTE_EXCEPTIONS].extend(
                         [rule_metrics[ABSOLUTE_EXCEPTIONS]]
@@ -428,7 +421,6 @@ class RuleMiner:
                     RULE_ID: [],
                     RULE_GROUP: [],
                     RULE_DEF: [],
-                    RULE_STATUS: [],
                 },
                 **{metric: [] for metric in self.metrics},
                 **{ENCODINGS: []},
@@ -467,7 +459,6 @@ class RuleMiner:
             rules[RULE_ID].append(rule_id)
             rules[RULE_GROUP].append(group)
             rules[RULE_DEF].append(reformulated_expression)
-            rules[RULE_STATUS].append("")
             for metric in self.metrics:
                 rules[metric].append(np.nan)
             rules[ENCODINGS].append(encodings)
@@ -533,7 +524,6 @@ class RuleMiner:
                     RULE_ID: [],
                     RULE_GROUP: [],
                     RULE_DEF: [],
-                    RULE_STATUS: [],
                 },
                 **{metric: [] for metric in self.metrics},
                 **{ENCODINGS: []},
@@ -667,7 +657,6 @@ class RuleMiner:
                             rules[RULE_ID].append(rule_id)
                             rules[RULE_GROUP].append(group)
                             rules[RULE_DEF].append(reformulated_expression)
-                            rules[RULE_STATUS].append("")
                             for metric, value in rule_metrics.items():
                                 rules[metric].append(value)
                             rules[ENCODINGS].append(encodings)
