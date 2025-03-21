@@ -297,3 +297,10 @@
 - Fix for consistent use of double parentheses in parser
 - Changed exact function with one or two extra parameters to include lower and upper bounds
 - Refactored evaluator code
+
+### 0.3.0 (2025-3-21)
+
+- Applied rounding to 8 decimals in interval numbers
+- Changed strictly higher-operator: (max_left >= min_right) & (min_left > max_right) (instead of max_left > min_right)
+- Changed strictly lower-operator: (min_left <= max_right) & (max_left < min_right) (instead of min_left < max_right)
+- deleted rule_status from rules and results dataframes

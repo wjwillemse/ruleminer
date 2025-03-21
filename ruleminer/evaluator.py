@@ -341,8 +341,10 @@ class CodeEvaluator:
                 return left_side < right_side
             else:
                 min_left = np.minimum(left_side_pos, left_side_neg)
+                max_left = np.maximum(left_side_pos, left_side_neg)
+                min_right = np.minimum(right_side_pos, right_side_neg)
                 max_right = np.maximum(right_side_pos, right_side_neg)
-                return min_left < max_right
+                return (min_left <= max_right) & (max_left < min_right)
 
         def _lt_with_logging(
             left_side,
@@ -371,7 +373,7 @@ class CodeEvaluator:
                     max_right,
                     "<",
                 )
-                return min_left < max_right
+                return (min_left <= max_right) & (max_left < min_right)
 
         def _ge(
             left_side,
@@ -434,9 +436,11 @@ class CodeEvaluator:
             ):
                 return left_side > right_side
             else:
+                min_left = np.minimum(left_side_pos, left_side_neg)
                 max_left = np.maximum(left_side_pos, left_side_neg)
                 min_right = np.minimum(right_side_pos, right_side_neg)
-                return max_left > min_right
+                max_right = np.maximum(right_side_pos, right_side_neg)
+                return (max_left >= min_right) & (min_left > max_right)
 
         def _gt_with_logging(
             left_side,
@@ -465,7 +469,7 @@ class CodeEvaluator:
                     max_right,
                     ">",
                 )
-                return max_left > min_right
+                return (max_left >= min_right) & (min_left > max_right)
 
         def _ne_with_logging(
             left_side,
@@ -683,23 +687,24 @@ class CodeEvaluator:
         # {left-right=diff} operator [a, b] of [a]
         if hasattr(min_left, "__iter__") and hasattr(max_left, "__iter__"):
             # left side is a list
-            left_side = [float(item) for item in left_side]
-            min_left = [float(item) for item in min_left]
-            max_left = [float(item) for item in max_left]
+            left_side = [float(np.round(item, 8)) for item in left_side]
+            min_left = [float(np.round(item, 8)) for item in min_left]
+            max_left = [float(np.round(item, 8)) for item in max_left]
             if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
                 # right side is a list
-                right_side = [float(item) for item in right_side]
-                min_right = [float(item) for item in min_right]
-                max_right = [float(item) for item in max_right]
+                right_side = [float(np.round(item, 8)) for item in right_side]
+                min_right = [float(np.round(item, 8)) for item in min_right]
+                max_right = [float(np.round(item, 8)) for item in max_right]
                 if len(self._eval_logs) == 0:
                     for idx in range(len(left_side)):
+                        diff = np.round(left_side[idx] - right_side[idx], 8)
                         s = (
                             "{"
                             + str(left_side[idx])
                             + " - "
                             + str(right_side[idx])
                             + " = "
-                            + str(left_side[idx] - right_side[idx])
+                            + str(diff)
                             + "} "
                             + operator
                             + " "
@@ -723,28 +728,31 @@ class CodeEvaluator:
                         self._eval_logs.append(s)
                 else:
                     for idx in range(len(left_side)):
+                        diff = np.round(left_side[idx] - right_side[idx], 8)
                         s = (
                             "{"
                             + str(left_side[idx])
                             + " - "
                             + str(right_side[idx])
                             + " = "
-                            + str(left_side[idx] - right_side[idx])
+                            + str(diff)
                             + "} "
                             + operator
                             + " "
                         )
-                        lower_bound = (
+                        lower_bound = np.round(
                             min_left[idx]
                             - left_side[idx]
                             - max_right[idx]
-                            + right_side[idx]
+                            + right_side[idx],
+                            8,
                         )
-                        upper_bound = (
+                        upper_bound = np.round(
                             max_left[idx]
                             - left_side[idx]
                             - min_right[idx]
-                            + right_side[idx]
+                            + right_side[idx],
+                            8,
                         )
                         if lower_bound == upper_bound:
                             s += "[" + str(lower_bound) + "]"
@@ -753,27 +761,32 @@ class CodeEvaluator:
                         self._eval_logs[idx] += "; " + s
             else:
                 # right side is an item
+                right_side = float(np.round(right_side, 8))
+                max_right = float(np.round(max_right, 8))
+                min_right = float(np.round(min_right, 8))
                 if len(self._eval_logs) == 0:
                     for idx in range(len(left_side)):
+                        diff = np.round(left_side[idx] - right_side)
                         s = (
                             "{"
                             + str(left_side[idx])
                             + " - "
                             + str(right_side)
                             + " = "
-                            + str(left_side[idx] - right_side)
+                            + str(diff)
                             + "}"
                         )
                         self._eval_logs.append(s)
                 else:
                     for idx in range(len(left_side)):
+                        diff = np.round(left_side[idx] - right_side, 8)
                         s = (
                             "{"
                             + str(left_side[idx])
                             + " - "
                             + str(right_side)
                             + " = "
-                            + str(left_side[idx] - right_side)
+                            + str(diff)
                             + "}"
                         )
                         self._eval_logs[idx] += "; " + s
@@ -781,11 +794,11 @@ class CodeEvaluator:
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(left_side)):
                     if operator in ["==", "!="]:
-                        lower_bound = (
-                            min_left[idx] - left_side[idx] - max_right + right_side
+                        lower_bound = np.round(
+                            min_left[idx] - left_side[idx] - max_right + right_side, 8
                         )
-                        upper_bound = (
-                            max_left[idx] - left_side[idx] - min_right + right_side
+                        upper_bound = np.round(
+                            max_left[idx] - left_side[idx] - min_right + right_side, 8
                         )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
@@ -794,39 +807,48 @@ class CodeEvaluator:
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
                     elif operator in ["<=", "<"]:
-                        bound = max_right - right_side - min_left[idx] + left_side[idx]
+                        bound = np.round(
+                            max_right - right_side - min_left[idx] + left_side[idx], 8
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
                     elif operator in [">=", ">"]:
-                        bound = min_right - right_side - max_left[idx] + left_side[idx]
+                        bound = np.round(
+                            min_right - right_side - max_left[idx] + left_side[idx], 8
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
         else:
             # left side is an item
+            left_side = float(np.round(left_side, 8))
+            max_left = float(np.round(max_left, 8))
+            min_left = float(np.round(min_left, 8))
             if hasattr(min_right, "__iter__") and hasattr(max_right, "__iter__"):
                 # right side is a list
-                right_side = [float(item) for item in right_side]
-                min_right = [float(item) for item in min_right]
-                max_right = [float(item) for item in max_right]
+                right_side = [float(np.round(item, 8)) for item in right_side]
+                min_right = [float(np.round(item, 8)) for item in min_right]
+                max_right = [float(np.round(item, 8)) for item in max_right]
                 if len(self._eval_logs) == 0:
                     for idx in range(len(right_side)):
+                        diff = np.round(left_side - right_side[idx], 8)
                         s = (
                             "{"
                             + str(left_side)
                             + " - "
                             + str(right_side[idx])
                             + " = "
-                            + str(left_side - right_side[idx])
+                            + str(diff)
                             + "}"
                         )
                         self._eval_logs.append(s)
                 else:
                     for idx in range(len(right_side)):
+                        diff = np.round(left_side - right_side[idx], 8)
                         s = (
                             "{"
                             + str(left_side)
                             + " - "
                             + str(right_side[idx])
                             + " = "
-                            + str(left_side - right_side[idx])
+                            + str(diff)
                             + "}"
                         )
                         self._eval_logs[idx] += "; " + s
@@ -834,11 +856,11 @@ class CodeEvaluator:
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(right_side)):
                     if operator in ["==", "!="]:
-                        lower_bound = (
-                            min_left - left_side - max_right[idx] + right_side[idx]
+                        lower_bound = np.round(
+                            min_left - left_side - max_right[idx] + right_side[idx], 8
                         )
-                        upper_bound = (
-                            max_left - left_side - min_right[idx] + right_side[idx]
+                        upper_bound = np.round(
+                            max_left - left_side - min_right[idx] + right_side[idx], 8
                         )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
@@ -847,14 +869,21 @@ class CodeEvaluator:
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
                     elif operator in ["<=", "<"]:
-                        bound = max_right[idx] - right_side[idx] - min_left + left_side
+                        bound = np.round(
+                            max_right[idx] - right_side[idx] - min_left + left_side, 8
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
                     elif operator in [">=", ">"]:
-                        bound = min_right[idx] - right_side[idx] - max_left + left_side
+                        bound = np.round(
+                            min_right[idx] - right_side[idx] - max_left + left_side, 8
+                        )
                         self._eval_logs[idx] += "[" + str(bound) + "]"
 
             else:
                 # right side is a item
+                right_side = float(np.round(right_side, 8))
+                max_right = float(np.round(max_right, 8))
+                min_right = float(np.round(min_right, 8))
                 self._eval_logs += (
                     "{"
                     + str(left_side)
@@ -866,16 +895,20 @@ class CodeEvaluator:
                 )
                 self._eval_logs += " " + operator + " "
                 if operator in ["==", "!="]:
-                    lower_bound = min_left - left_side - max_right + right_side
-                    upper_bound = max_left - left_side - min_right + right_side
+                    lower_bound = np.round(
+                        min_left - left_side - max_right + right_side, 8
+                    )
+                    upper_bound = np.round(
+                        max_left - left_side - min_right + right_side, 8
+                    )
                     self._eval_logs += (
                         "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                     )
                 elif operator in ["<=", "<"]:
-                    bound = max_right - right_side - min_left + left_side
+                    bound = np.round(max_right - right_side - min_left + left_side, 8)
                     self._eval_logs += "[" + str(bound) + "]"
                 elif operator in [">=", ">"]:
-                    bound = min_right - right_side - max_left + left_side
+                    bound = np.round(min_right - right_side - max_left + left_side, 8)
                     self._eval_logs += "[" + str(bound) + "]"
 
     def set_params(self, params):

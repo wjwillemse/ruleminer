@@ -368,7 +368,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if({"Type"}=="life_insurer")then({"TP-life"}>0)',
-                    "",
                     5,
                     0,
                     1.0,
@@ -379,7 +378,6 @@ class TestRuleminer(unittest.TestCase):
                     1,
                     0,
                     'if({"Type"}=="non-life_insurer")then({"TP-nonlife"}>0)',
-                    "",
                     4,
                     1,
                     0.8,
@@ -391,7 +389,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -431,12 +428,11 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then ({"Own_funds"}<=755.0)', "", 9, 1, 0.9, 0, {}]],
+            data=[[0, 0, 'if () then ({"Own_funds"}<=755.0)', 9, 1, 0.9, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -476,12 +472,11 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then ({"Own_funds"}<=300.0)', "", 8, 2, 0.8, 0, {}]],
+            data=[[0, 0, 'if () then ({"Own_funds"}<=300.0)', 8, 2, 0.8, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -521,14 +516,11 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[
-                [0, 0, 'if () then ({"Own_funds"}<=228.03508502)', "", 8, 2, 0.8, 0, {}]
-            ],
+            data=[[0, 0, 'if () then ({"Own_funds"}<=228.03508502)', 8, 2, 0.8, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -571,7 +563,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then ({"Own_funds"}<=quantile({"Own_funds"},0.95))',
-                    "",
                     9,
                     1,
                     0.9,
@@ -583,7 +574,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -626,7 +616,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then ({"Own_funds"}<=mean({"Own_funds"}))',
-                    "",
                     8,
                     2,
                     0.8,
@@ -638,7 +627,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -681,7 +669,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then ({"Own_funds"}<=std({"Own_funds"}))',
-                    "",
                     8,
                     2,
                     0.8,
@@ -693,7 +680,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -741,7 +727,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then (sum([K for K in [{"Assets"}.where({"Type"}=="life_insurer", other=0),{"Own_funds"}.where({"Type"}=="life_insurer", other=0)]], axis=0, dtype=float)>0)',
-                    "",
                     5,
                     5,
                     0.5,
@@ -753,7 +738,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -801,7 +785,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[K=="life_insurer" for K in [{"Type"},{"Type"}]])], axis=0, dtype=float)>0)',
-                    "",
                     5,
                     5,
                     0.5,
@@ -813,7 +796,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -856,7 +838,6 @@ class TestRuleminer(unittest.TestCase):
                     0,
                     0,
                     'if () then (sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0, dtype=float)>0)',
-                    "",
                     10,
                     0,
                     1.0,
@@ -868,7 +849,6 @@ class TestRuleminer(unittest.TestCase):
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
                 ruleminer.RULE_DEF,
-                ruleminer.RULE_STATUS,
                 ruleminer.ABSOLUTE_SUPPORT,
                 ruleminer.ABSOLUTE_EXCEPTIONS,
                 ruleminer.CONFIDENCE,
@@ -1184,8 +1164,9 @@ class TestRuleminer(unittest.TestCase):
         df = pd.DataFrame(
             [
                 ["Test_1", 0.25, 1.0, "ABCD"],
-                ["Test_2", 1.0, 1.0, ""],
-                ["Test_3", 0.0, 0.0, "ABCD"],
+                ["Test_2", 0.5, 1.0, "ABCD"],
+                ["Test_3", 1.0, 1.0, "ABCD"],
+                ["Test_4", 1.0, 0.0, "ABCD"],
             ],
             columns=["Name", "A", "B", "C"],
         )
@@ -1204,12 +1185,14 @@ class TestRuleminer(unittest.TestCase):
         )
         expected = [
             ["Test_1", True],
-            ["Test_2", False],
-            ["Test_3", True],
+            ["Test_2", True],
+            ["Test_3", False],
+            ["Test_4", True],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+        self.assertListEqual(list(actual[3]), expected[3])
 
     def test_45b(self):
         # Specify tolerance input parameters for ruleminer
@@ -1706,7 +1689,6 @@ class TestRuleminer(unittest.TestCase):
                     "rule_id",
                     "rule_group",
                     "rule_definition",
-                    "rule_status",
                     "abs support",
                     "abs exceptions",
                     "confidence",
@@ -1722,7 +1704,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 'if () then (MAX(0,{"A"})>0)',
-                "",
                 2,
                 1,
                 0.6666666666666666,
@@ -1736,7 +1717,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 'if () then (MAX(0,{"A"})>0)',
-                "",
                 2,
                 1,
                 0.6666666666666666,
@@ -1750,7 +1730,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 'if () then (MAX(0,{"A"})>0)',
-                "",
                 2,
                 1,
                 0.6666666666666666,
@@ -1764,7 +1743,6 @@ class TestRuleminer(unittest.TestCase):
                 8,
                 0,
                 'if () then ({"A"}==MAX(0,MAX(0,{"A"})-MAX(0,{"B"})))',
-                "",
                 1,
                 2,
                 0.3333333333333333,
@@ -1807,7 +1785,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
-                "",
                 2,
                 2,
                 0.5,
@@ -1823,7 +1800,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
-                "",
                 2,
                 2,
                 0.5,
@@ -1839,7 +1815,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
-                "",
                 2,
                 2,
                 0.5,
@@ -1855,7 +1830,6 @@ class TestRuleminer(unittest.TestCase):
                 0,
                 0,
                 r'if () then ({"C0450"}.str.match(r"^\s*[\w\s]+\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*[+-]?\d+([.,]\d+)?\s*%\s*;\s*\w{3}$", na=False))',
-                "",
                 2,
                 2,
                 0.5,
@@ -2007,8 +1981,8 @@ class TestRuleminer(unittest.TestCase):
         df = pd.DataFrame(
             [
                 ["Test_1", 0.0],
-                ["Test_2", 1.0],
-                ["Test_3", 2.0],
+                ["Test_2", 9.0],
+                ["Test_3", 15.0],
             ],
             columns=["Name", "A"],
         )
@@ -2023,6 +1997,28 @@ class TestRuleminer(unittest.TestCase):
         expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
+        r.evaluate()
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "rule_id", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", 0, True],
+            ["Test_1", 1, True],
+            ["Test_2", 0, True],
+            ["Test_2", 1, False],
+            ["Test_3", 0, False],
+            ["Test_3", 1, False],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+        self.assertListEqual(list(actual[3]), expected[3])
+        self.assertListEqual(list(actual[4]), expected[4])
+        self.assertListEqual(list(actual[5]), expected[5])
 
     def test_57c(self):
         parameters = {
