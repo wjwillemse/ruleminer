@@ -304,3 +304,7 @@
 - Changed strictly higher-operator: (max_left >= min_right) & (min_left > max_right) (instead of max_left > min_right)
 - Changed strictly lower-operator: (min_left <= max_right) & (max_left < min_right) (instead of min_left < max_right)
 - deleted rule_status from rules and results dataframes
+
+### 0.3.1 (2025-3-25)
+
+- Small fix in logging when comparing two columns
