@@ -2243,12 +2243,90 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
 
+    def test_63(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['({"A"} between [1, 15])']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 11.0],
+                ["Test_2", 15.0],
+                ["Test_3", 16.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then ({"A"}.between(1,15))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", True],
+            ["Test_2", True],
+            ["Test_3", False],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_64(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['({"A"} not between [1, 15])']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 11.0],
+                ["Test_2", 15.0],
+                ["Test_3", 16.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (~{"A"}.between(1,15))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", False],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
     def test_parser_1(self):
-        assert ~ruleminer.contains_column('"A"')
+        assert not ruleminer.contains_column('"A"')
         assert ruleminer.contains_column('{"A"}')
         assert ruleminer.contains_column(['{"A"}', '"B"'])
         assert ruleminer.contains_string('"A"')
-        assert ~ruleminer.contains_string('{"A"}')
+        assert not ruleminer.contains_string('{"A"}')
         assert ruleminer.contains_string(['{"A"}', '"B"'])
         # when expression is a sumif or countif then skip the condition part
         expression = [
@@ -2261,7 +2339,7 @@ class TestRuleminer(unittest.TestCase):
                 '"life_insurer"',
             ],
         ]
-        assert ~ruleminer.contains_string(expression)
+        assert not ruleminer.contains_string(expression)
         assert ruleminer.contains_column(expression)
 
     # def setUp_templates(self):

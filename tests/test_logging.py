@@ -135,9 +135,9 @@ class TestLogging(unittest.TestCase):
             .values
         )
         expected = [
-            ["Test_1", True, "if () then ({0.0 - 0.5 = -0.5} <= [-1.0, 1.0])"],
-            ["Test_2", True, "if () then ({1.0 - 0.5 = 0.5} <= [-1.0, 1.0])"],
-            ["Test_3", False, "if () then ({2.0 - 0.5 = 1.5} <= [-1.0, 1.0])"],
+            ["Test_1", True, "if () then ({0.0 - 0.5 = -0.5} <= [1.0])"],
+            ["Test_2", True, "if () then ({1.0 - 0.5 = 0.5} <= [1.0])"],
+            ["Test_3", False, "if () then ({2.0 - 0.5 = 1.5} <= [1.0])"],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
@@ -158,9 +158,9 @@ class TestLogging(unittest.TestCase):
             .values
         )
         expected = [
-            ["Test_1", True, "if () then ({0.0 - 0.5 = -0.5} >= [-1.0, 1.0])"],
-            ["Test_2", True, "if () then ({1.0 - 0.5 = 0.5} >= [-1.0, 1.0])"],
-            ["Test_3", True, "if () then ({2.0 - 0.5 = 1.5} >= [-1.0, 1.0])"],
+            ["Test_1", True, "if () then ({0.0 - 0.5 = -0.5} >= [-1.0])"],
+            ["Test_2", True, "if () then ({1.0 - 0.5 = 0.5} >= [-1.0])"],
+            ["Test_3", True, "if () then ({2.0 - 0.5 = 1.5} >= [-1.0])"],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
