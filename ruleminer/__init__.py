@@ -35,6 +35,9 @@ from .utils import (
     fit_ensemble_and_extract_expressions,
     fit_dataframe_to_ensemble,
 )
+from .tolerance import (
+    FloatWithTolerance
+)
 
 __all__ = [
     RuleMiner,
