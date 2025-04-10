@@ -660,8 +660,11 @@ class RuleParser:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        if isinstance(expression[1][3], str):
-            # the sumif conditions a single condition that has to be applied to all item in the sumlist
+        if len(expression[1]) == 3:
+            # the countif conditions is empty so count the True elements
+            res = "(sum(" + countlist[:-1] + ", axis=0, dtype=float))"
+        elif isinstance(expression[1][3], str):
+            # the countif conditions a single condition that has to be applied to all item in the sumlist
             condition = self.parse(
                 expression[1][3:],
                 apply_tolerance=apply_tolerance,
@@ -678,7 +681,7 @@ class RuleParser:
                 + ", axis=0, dtype=float))"
             )
         else:
-            # the sumif conditions a list of conditions
+            # the countif conditions a list of conditions
             conditionlist = self.parse(
                 expression[1][3][:-1],
                 apply_tolerance=apply_tolerance,

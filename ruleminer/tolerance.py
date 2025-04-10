@@ -2,22 +2,17 @@
 
 import numpy as np
 
-class FloatWithTolerance:
 
+class FloatWithTolerance:
     def __init__(
-        self, 
-        value, 
+        self,
+        value,
         upper_bound=None,
         lower_bound=None,
-        key="default", 
+        key="default",
         tolerances={
-            "default": {
-                (  0, 1e3): 1,
-                (1e3, 1e6): 2, 
-                (1e6, 1e8): 3, 
-                (1e8, np.inf): 4
-            }
-        }
+            "default": {(0, 1e3): 1, (1e3, 1e6): 2, (1e6, 1e8): 3, (1e8, np.inf): 4}
+        },
     ):
         """ """
         self.value = value
@@ -31,7 +26,14 @@ class FloatWithTolerance:
             self.lower_bound = lower_bound
 
     def __repr__(self):
-        return str(self.value)+" ("+str(self.lower_bound)+", "+str(self.upper_bound)+")"
+        return (
+            str(self.value)
+            + " ("
+            + str(self.lower_bound)
+            + ", "
+            + str(self.upper_bound)
+            + ")"
+        )
 
     def __str__(self):
         return self.__repr()
@@ -44,7 +46,7 @@ class FloatWithTolerance:
     def __add__(self, other):
         """ """
         return FloatWithTolerance(
-            value=self.value+other.value,
+            value=self.value + other.value,
             upper_bound=self.upper_bound + other.upper_bound,
             lower_bound=self.lower_bound + other.lower_bound,
         )
@@ -52,7 +54,7 @@ class FloatWithTolerance:
     def __minus__(self, other):
         """ """
         return FloatWithTolerance(
-            value=self.value-other.value,
+            value=self.value - other.value,
             upper_bound=self.upper_bound + other.upper_bound,
             lower_bound=self.lower_bound + other.lower_bound,
         )
@@ -65,7 +67,7 @@ class FloatWithTolerance:
                     self.upper_bound * other.upper_bound,
                     self.upper_bound * other.lower_bound,
                     self.lower_bound * other.upper_bound,
-                    self.lower_bound * other.lower_bound
+                    self.lower_bound * other.lower_bound,
                 ]
             ),
             lower_bound=np.min(
@@ -73,7 +75,7 @@ class FloatWithTolerance:
                     self.upper_bound * other.upper_bound,
                     self.upper_bound * other.lower_bound,
                     self.lower_bound * other.upper_bound,
-                    self.lower_bound * other.lower_bound
+                    self.lower_bound * other.lower_bound,
                 ]
             ),
         )
@@ -86,7 +88,7 @@ class FloatWithTolerance:
                     self.upper_bound / other.upper_bound,
                     self.upper_bound / other.lower_bound,
                     self.lower_bound / other.upper_bound,
-                    self.lower_bound / other.lower_bound
+                    self.lower_bound / other.lower_bound,
                 ]
             ),
             lower_bound=np.min(
@@ -94,7 +96,7 @@ class FloatWithTolerance:
                     self.upper_bound / other.upper_bound,
                     self.upper_bound / other.lower_bound,
                     self.lower_bound / other.upper_bound,
-                    self.lower_bound / other.lower_bound
+                    self.lower_bound / other.lower_bound,
                 ]
             ),
         )
@@ -107,7 +109,7 @@ class FloatWithTolerance:
                     self.upper_bound // other.upper_bound,
                     self.upper_bound // other.lower_bound,
                     self.lower_bound // other.upper_bound,
-                    self.lower_bound // other.lower_bound
+                    self.lower_bound // other.lower_bound,
                 ]
             ),
             lower_bound=np.min(
@@ -115,7 +117,7 @@ class FloatWithTolerance:
                     self.upper_bound // other.upper_bound,
                     self.upper_bound // other.lower_bound,
                     self.lower_bound // other.upper_bound,
-                    self.lower_bound // other.lower_bound
+                    self.lower_bound // other.lower_bound,
                 ]
             ),
         )
@@ -170,4 +172,3 @@ class FloatWithTolerance:
 
     def __str__(self, other):
         pass
-

@@ -2321,6 +2321,45 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
 
+    def test_65(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['(COUNTIF([K > 0 FOR K in [{"A"}, {"B"}, {"C"}]]) > 1)']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 1, 0, 0],
+                ["Test_2", 1, 1, 0],
+                ["Test_3", 1, 1, 1],
+            ],
+            columns=["Name", "A", "B", "C"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (_gt((sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, (sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), (sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, 1))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", True],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
     def test_parser_1(self):
         assert not ruleminer.contains_column('"A"')
         assert ruleminer.contains_column('{"A"}')
