@@ -36,7 +36,7 @@ class RuleParser:
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
             (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["for"]), self.parse_list_comprehension),
-            (set(["in", "not in"]), self.parse_in),
+            (set(["in", "not in", "between", "not between"]), self.parse_in),
             (set(["substr"]), self.parse_substr),
             (set(["split"]), self.parse_split),
             (set(["sum"]), self.parse_sum),
@@ -725,7 +725,7 @@ class RuleParser:
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        if item.lower() == "not in":
+        if item.lower() in ["not in", "not between"]:
             res = "~"
         else:
             res = ""
@@ -735,14 +735,25 @@ class RuleParser:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        res += ".isin("
-        for i in right_side:
-            res += self.parse(
-                i,
-                apply_tolerance=apply_tolerance,
-                positive_tolerance=positive_tolerance,
-            )
-        return res + ")"
+        if item.lower() in ["in", "not in"]:
+            res += ".isin("
+            for i in right_side:
+                res += self.parse(
+                    i,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+            res += ")"
+        elif item.lower() in ["between", "not between"]:
+            res += ".between("
+            for i in right_side[0][1:-1]:
+                res += self.parse(
+                    i,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                ).lower()
+            res += ")"
+        return res
 
     def parse_statistical_functions(
         self,

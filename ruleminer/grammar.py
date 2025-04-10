@@ -124,9 +124,13 @@ _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
 _compa_op = (
-    pyparsing.one_of(">= > <= < != == in IN match MATCH contains CONTAINS")
+    pyparsing.one_of(
+        ">= > <= < != == in IN between BETWEEN match MATCH contains CONTAINS"
+    )
     | pyparsing.Literal("not in")
     | pyparsing.Literal("NOT IN")
+    | pyparsing.Literal("not between")
+    | pyparsing.Literal("NOT BETWEEN")
     | pyparsing.Literal("not contains")
     | pyparsing.Literal("NOT CONTAINS")
 )

@@ -308,3 +308,8 @@
 ### 0.3.1 (2025-3-25)
 
 - Small fix in logging when comparing two columns
+
+### 0.3.3 (2025-4-10)
+
+- Added 'between' and 'not between' as comparison operator to grammar
+- Enforced parameters of 'between' to lowercase

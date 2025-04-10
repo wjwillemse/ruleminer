@@ -603,7 +603,8 @@ class CodeEvaluator:
             columns = list(columns)
             for i in range(len(columns)):
                 columns[i] = [
-                    0 if pd.isna(v) else v if np.isfinite(v) else 0 for v in columns[i]
+                    0 if pd.isna(v) else np.maximum(0, v) if np.isfinite(v) else 0
+                    for v in columns[i]
                 ]
             result = pd.Series([0] * len(columns[0]))
             c = np.array(columns)
