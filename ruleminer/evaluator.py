@@ -614,7 +614,7 @@ class CodeEvaluator:
             return np.maximum(result.values, 0) ** 0.5
 
         # standard functions based on numpy
-        self.globals = {
+        standard_functions = {
             "MAX": np.maximum,
             "MIN": np.minimum,
             "SUM": np.sum,
@@ -623,9 +623,12 @@ class CodeEvaluator:
             "min": np.minimum,
             "sum": np.sum,
             "abs": np.abs,
-            "np": np,
             "nan": np.nan,
+            "np": np,
+            "pd": pd,
         }
+        self.globals = {**self.tables, **standard_functions}
+
         # differentiate between function with and without logging
         if self.params is not None and STATISTICS in self.params.get(
             "intermediate_results", []
@@ -984,6 +987,7 @@ class CodeEvaluator:
           provided parameters and validates the tolerance settings.
         """
         self.params = params
+        self.tables = dict()
         if params is not None:
             # set up tolerance dictionary
             self.tolerance = self.params.get("tolerance", None)
@@ -1001,6 +1005,12 @@ class CodeEvaluator:
                 self.matrices = dict()
                 for key, value in matrices.items():
                     self.matrices[key] = np.array(value)
+
+            # set up tables
+            tables = self.params.get("tables", None)
+            if tables is not None:
+                for key, value in tables.items():
+                    self.tables["_table_" + key] = value
 
     def set_data(
         self,

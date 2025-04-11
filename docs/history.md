@@ -313,3 +313,8 @@
 
 - Added 'between' and 'not between' as comparison operator to grammar
 - Enforced parameters of 'between' to lowercase
+
+### 0.3.4 (2025-4-11)
+
+- When using COUNTIF() with a single list as a parameter, all elements that evaluate to True are counted, like for example COUNTIF([K==1 FOR K in [{"A"}, {"B"}, {"C"}]]) counts the number of items that evaluate to 1.
+- Added 'table' function to check whether a tuple is in an external table, for example '([{"A"}, {"B"}] in TABLE("data", ["a", "b"]))' checks for each row in columns A and B whether the tuple is in the data DataFrame with columns a and b.

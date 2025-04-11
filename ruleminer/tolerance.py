@@ -35,9 +35,6 @@ class FloatWithTolerance:
             + ")"
         )
 
-    def __str__(self):
-        return self.__repr()
-
     def _tol(self, value, tolerance_def):
         for ((start, end)), decimals in tolerance_def.items():
             if abs(value) >= start and abs(value) < end:
@@ -122,53 +119,53 @@ class FloatWithTolerance:
             ),
         )
 
-    def __abs__(self, other):
-        pass
+    # def __abs__(self, other):
+    #     pass
 
-    def __mod__(self, other):
-        pass
+    # def __mod__(self, other):
+    #     pass
 
-    def __divmod__(self, other):
-        pass
+    # def __divmod__(self, other):
+    #     pass
 
-    def __pow__(self, other):
-        pass
+    # def __pow__(self, other):
+    #     pass
 
-    def __ceil__(self, other):
-        pass
+    # def __ceil__(self, other):
+    #     pass
 
-    def __floor__(self, other):
-        pass
+    # def __floor__(self, other):
+    #     pass
 
-    def __round__(self, other):
-        pass
+    # def __round__(self, other):
+    #     pass
 
-    def __floordiv__(self, other):
-        pass
+    # def __floordiv__(self, other):
+    #     pass
 
-    def __eq__(self, other):
-        pass
+    # def __eq__(self, other):
+    #     pass
 
-    def __ne__(self, other):
-        pass
+    # def __ne__(self, other):
+    #     pass
 
-    def __ge__(self, other):
-        pass
+    # def __ge__(self, other):
+    #     pass
 
-    def __gt__(self, other):
-        pass
+    # def __gt__(self, other):
+    #     pass
 
-    def __le__(self, other):
-        pass
+    # def __le__(self, other):
+    #     pass
 
-    def __lt__(self, other):
-        pass
+    # def __lt__(self, other):
+    #     pass
 
-    def __neg__(self, other):
-        pass
+    # def __neg__(self, other):
+    #     pass
 
-    def __pos__(self, other):
-        pass
+    # def __pos__(self, other):
+    #     pass
 
-    def __str__(self, other):
-        pass
+    # def __str__(self, other):
+    #     pass

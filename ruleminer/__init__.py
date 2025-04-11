@@ -62,4 +62,5 @@ __all__ = [
     tree_to_expressions,
     fit_ensemble_and_extract_expressions,
     fit_dataframe_to_ensemble,
+    FloatWithTolerance,
 ]
