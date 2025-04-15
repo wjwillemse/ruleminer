@@ -319,6 +319,7 @@
 - When using COUNTIF() with a single list as a parameter, all elements that evaluate to True are counted, like for example COUNTIF([K==1 FOR K in [{"A"}, {"B"}, {"C"}]]) counts the number of items that evaluate to 1.
 - Added 'table' function to check whether a tuple is in an external table, for example '([{"A"}, {"B"}] in TABLE("data", ["a", "b"]))' checks for each row in columns A and B whether the tuple is in the data DataFrame with columns a and b.
 
-### 0.3.5 (2025-4-15)
+### 0.3.6 (2025-4-15)
 
 - The right side of a 'between' comparison operator can now be a list of mathematical expressions
+- Added 'not match' as comparison operator.

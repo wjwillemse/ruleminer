@@ -131,6 +131,8 @@ _compa_op = (
     | pyparsing.Literal("NOT IN")
     | pyparsing.Literal("not between")
     | pyparsing.Literal("NOT BETWEEN")
+    | pyparsing.Literal("not match")
+    | pyparsing.Literal("NOT MATCH")
     | pyparsing.Literal("not contains")
     | pyparsing.Literal("NOT CONTAINS")
 )
