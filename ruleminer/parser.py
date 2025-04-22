@@ -800,14 +800,14 @@ class RuleParser:
             res += ")"
         elif item.lower() in ["between", "not between"]:
             res += ".between("
-            for i in right_side[0][1:-1]:
+            for count, i in enumerate(right_side[0][1:-1]):
                 parameter = self.parse(
                     i,
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
                 # only the third parameter should be lowercase
-                if res.count(",") == 2:
+                if count == 4:
                     parameter = parameter.lower()
                 res += parameter
             res += ")"
