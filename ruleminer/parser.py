@@ -825,10 +825,13 @@ class RuleParser:
                 + ")"
             )
             if len(parameters) == 5:
-                res += "," + self.parse(
-                    parameters[4].lower(),
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
+                res += (
+                    ","
+                    + self.parse(
+                        parameters[4],
+                        apply_tolerance=apply_tolerance,
+                        positive_tolerance=positive_tolerance,
+                    ).lower()
                 )
             res += ")"
         return res

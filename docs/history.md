@@ -328,7 +328,7 @@
 
 - Minor buf fix for 'between'-function
 
-### 0.3.8 (2025-4-25)
+### 0.3.9 (2025-4-25)
 
 - Minor change to 'between'-function: if interval is (a,b) then (min(a,b),max(a,b)) is used
 - Refactoring of comparisons logging (and fix for logging of > operators)
