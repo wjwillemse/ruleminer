@@ -2263,7 +2263,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then ({"A"}.between(1,15))'
+        expected = 'if () then ({"A"}.between(min(1,15),max(1,15)))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2282,7 +2282,7 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
 
-    def test_64(self):
+    def test_64a(self):
         parameters = {
             "tolerance": {
                 "default": None,
@@ -2302,7 +2302,46 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (~{"A"}.between(1,15))'
+        expected = 'if () then (~{"A"}.between(min(1,15),max(1,15)))'
+        actual = r.rules.values[0][2]
+        self.assertEqual(actual, expected)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False],
+            ["Test_2", False],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_64b(self):
+        parameters = {
+            "tolerance": {
+                "default": None,
+            },
+        }
+        formulas = ['({"A"} not between [1, 15, "BOTH"])']
+        df = pd.DataFrame(
+            [
+                ["Test_1", 11.0],
+                ["Test_2", 15.0],
+                ["Test_3", 16.0],
+            ],
+            columns=["Name", "A"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        expected = 'if () then (~{"A"}.between(min(1,15),max(1,15),"both"))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (

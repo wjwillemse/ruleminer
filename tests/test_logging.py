@@ -165,3 +165,49 @@ class TestLogging(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_7(self):
+        formulas = ['({"A"}>{"B"})']
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result", "log"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False, "if () then ({0.0 - 0.5 = -0.5} > [1.0])"],
+            ["Test_2", False, "if () then ({1.0 - 0.5 = 0.5} > [1.0])"],
+            ["Test_3", True, "if () then ({2.0 - 0.5 = 1.5} > [1.0])"],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_8(self):
+        formulas = ['({"A"}<{"B"})']
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result", "log"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", False, "if () then ({0.0 - 0.5 = -0.5} < [-1.0])"],
+            ["Test_2", False, "if () then ({1.0 - 0.5 = 0.5} < [-1.0])"],
+            ["Test_3", False, "if () then ({2.0 - 0.5 = 1.5} < [-1.0])"],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])

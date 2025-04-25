@@ -800,16 +800,36 @@ class RuleParser:
             res += ")"
         elif item.lower() in ["between", "not between"]:
             res += ".between("
-            for count, i in enumerate(right_side[0][1:-1]):
-                parameter = self.parse(
-                    i,
+            parameters = right_side[0][1:-1]
+            first_param = self.parse(
+                parameters[0],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            second_param = self.parse(
+                parameters[2],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            # we convert (a,b) to (min(a,b),max(a,b)) in case that a > b
+            res += (
+                "min("
+                + first_param
+                + ","
+                + second_param
+                + "),"
+                + "max("
+                + first_param
+                + ","
+                + second_param
+                + ")"
+            )
+            if len(parameters) == 5:
+                res += "," + self.parse(
+                    parameters[4].lower(),
                     apply_tolerance=apply_tolerance,
                     positive_tolerance=positive_tolerance,
                 )
-                # only the third parameter should be lowercase
-                if count == 4:
-                    parameter = parameter.lower()
-                res += parameter
             res += ")"
         return res
 
