@@ -36,7 +36,7 @@ class RuleParser:
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
             (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["for"]), self.parse_list_comprehension),
-            (set(["in", "not in"]), self.parse_in),
+            (set(["in", "not in", "between", "not between"]), self.parse_in),
             (set(["substr"]), self.parse_substr),
             (set(["split"]), self.parse_split),
             (set(["sum"]), self.parse_sum),
@@ -46,6 +46,7 @@ class RuleParser:
             (set(["contains", "not contains"]), self.parse_contains),
             (set(["exact"]), self.parse_exact),
             (set(["corr"]), self.parse_corr),
+            (set(["table"]), self.parse_table),
             (set(["abs"]), self.parse_abs),
             (set(["max", "min", "abs"]), self.parse_maxminabs),
             (set(["round", "floor", "ceil"]), self.parse_round),
@@ -281,6 +282,48 @@ class RuleParser:
             corr_params,
             apply_tolerance=apply_tolerance,
             positive_tolerance=positive_tolerance,
+        )
+        return res
+
+    def parse_table(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process corr function
+
+        Example:
+            expression = ['TABLE', ['(', '"table_name"', ',', '{"a"}', ',', '{"b"}', ',', '{"c"}, ',', '{"d"}',')']]
+            idx = 0
+
+            result = ruleminer.RuleParser().parse_corr(
+                idx=idx,
+                expression=expression,
+                apply_tolerance=False
+            )
+            print(result)
+                '__table_name({"a"}, {"b"}, {"c"}, {"d"})'
+        """
+        table_params = expression[idx + 1][3:][0]
+        table_name = expression[idx + 1][1][1:-1]
+        if table_name not in list(self.params.get("tables", {}).keys()):
+            logging.error(
+                "Table name is not in predefined tables dictionary of parameters."
+            )
+        res = (
+            "_table_"
+            + table_name
+            + "["
+            + self.parse(
+                table_params,
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            + "].apply(tuple, axis=1)"
         )
         return res
 
@@ -660,8 +703,11 @@ class RuleParser:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        if isinstance(expression[1][3], str):
-            # the sumif conditions a single condition that has to be applied to all item in the sumlist
+        if len(expression[1]) == 3:
+            # the countif conditions is empty so count the True elements
+            res = "(sum(" + countlist[:-1] + ", axis=0, dtype=float))"
+        elif isinstance(expression[1][3], str):
+            # the countif conditions a single condition that has to be applied to all item in the sumlist
             condition = self.parse(
                 expression[1][3:],
                 apply_tolerance=apply_tolerance,
@@ -678,7 +724,7 @@ class RuleParser:
                 + ", axis=0, dtype=float))"
             )
         else:
-            # the sumif conditions a list of conditions
+            # the countif conditions a list of conditions
             conditionlist = self.parse(
                 expression[1][3][:-1],
                 apply_tolerance=apply_tolerance,
@@ -725,7 +771,7 @@ class RuleParser:
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        if item.lower() == "not in":
+        if item.lower() in ["not in", "not between"]:
             res = "~"
         else:
             res = ""
@@ -735,14 +781,57 @@ class RuleParser:
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        res += ".isin("
-        for i in right_side:
-            res += self.parse(
-                i,
+        if left_side[0][0] == "[":
+            # if the left side is a list of columns then we concat the columns to a dataframe and convert it to tuples
+            left_side_list = self.parse(
+                left_side[0],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-        return res + ")"
+            res = "pd.concat(" + left_side_list + ", axis=1).apply(tuple, axis=1)"
+        if item.lower() in ["in", "not in"]:
+            res += ".isin("
+            for i in right_side:
+                res += self.parse(
+                    i,
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+            res += ")"
+        elif item.lower() in ["between", "not between"]:
+            res += ".between("
+            parameters = right_side[0][1:-1]
+            first_param = self.parse(
+                parameters[0],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            second_param = self.parse(
+                parameters[2],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            # we convert (a,b) to (min(a,b),max(a,b)) in case that a > b
+            res += (
+                "min("
+                + first_param
+                + ","
+                + second_param
+                + "),"
+                + "max("
+                + first_param
+                + ","
+                + second_param
+                + ")"
+            )
+            if len(parameters) == 5:
+                res += "," + self.parse(
+                    parameters[4].lower(),
+                    apply_tolerance=apply_tolerance,
+                    positive_tolerance=positive_tolerance,
+                )
+            res += ")"
+        return res
 
     def parse_statistical_functions(
         self,

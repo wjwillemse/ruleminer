@@ -304,3 +304,32 @@
 - Changed strictly higher-operator: (max_left >= min_right) & (min_left > max_right) (instead of max_left > min_right)
 - Changed strictly lower-operator: (min_left <= max_right) & (max_left < min_right) (instead of min_left < max_right)
 - deleted rule_status from rules and results dataframes
+
+### 0.3.1 (2025-3-25)
+
+- Small fix in logging when comparing two columns
+
+### 0.3.3 (2025-4-10)
+
+- Added 'between' and 'not between' as comparison operator to grammar
+- Enforced parameters of 'between' to lowercase
+
+### 0.3.4 (2025-4-11)
+
+- When using COUNTIF() with a single list as a parameter, all elements that evaluate to True are counted, like for example COUNTIF([K==1 FOR K in [{"A"}, {"B"}, {"C"}]]) counts the number of items that evaluate to 1.
+- Added 'table' function to check whether a tuple is in an external table, for example '([{"A"}, {"B"}] in TABLE("data", ["a", "b"]))' checks for each row in columns A and B whether the tuple is in the data DataFrame with columns a and b.
+
+### 0.3.6 (2025-4-15)
+
+- The right side of a 'between' comparison operator can now be a list of mathematical expressions
+- Added 'not match' as comparison operator.
+
+### 0.3.7 (2025-4-22)
+
+- Minor buf fix for 'between'-function
+
+### 0.3.8 (2025-4-25)
+
+- Minor change to 'between'-function: if interval is (a,b) then (min(a,b),max(a,b)) is used
+- Refactoring of comparisons logging (and fix for logging of > operators)
+- Added unittests for these changes

@@ -124,9 +124,15 @@ _addop = pyparsing.Literal("+") | pyparsing.Literal("-")
 _multop = pyparsing.Literal("*") | pyparsing.Literal("/")
 _expop = pyparsing.Literal("**")
 _compa_op = (
-    pyparsing.one_of(">= > <= < != == in IN match MATCH contains CONTAINS")
+    pyparsing.one_of(
+        ">= > <= < != == in IN between BETWEEN match MATCH contains CONTAINS"
+    )
     | pyparsing.Literal("not in")
     | pyparsing.Literal("NOT IN")
+    | pyparsing.Literal("not between")
+    | pyparsing.Literal("NOT BETWEEN")
+    | pyparsing.Literal("not match")
+    | pyparsing.Literal("NOT MATCH")
     | pyparsing.Literal("not contains")
     | pyparsing.Literal("NOT CONTAINS")
 )
@@ -230,6 +236,16 @@ simple_condition_expression = pyparsing.infixNotation(
 )
 
 ################################################################################
+# definition of a list expression
+################################################################################
+list_expression = pyparsing.Group(
+    _lbra
+    + pyparsing.Group(simple_math_expression)
+    + (_sep + pyparsing.Group(simple_math_expression))[...]
+    + _rbra
+)
+
+################################################################################
 # definition of a list_comprehension expression
 ################################################################################
 list_comprehension_expression = pyparsing.Group(
@@ -262,7 +278,12 @@ exact_function_expression = pyparsing.Group(
 # definition of a math_expression
 ################################################################################
 math_expression = pyparsing.Forward()
-_math_element = exact_function_expression | function_expression | simple_math_expression
+_math_element = (
+    exact_function_expression
+    | function_expression
+    | simple_math_expression
+    | list_expression
+)
 _math_atom = _math_element | pyparsing.Group(_lpar + math_expression + _rpar)
 _math_factor = pyparsing.Forward()
 # if expression contains ** then put parentheses around this part

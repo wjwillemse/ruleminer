@@ -603,7 +603,8 @@ class CodeEvaluator:
             columns = list(columns)
             for i in range(len(columns)):
                 columns[i] = [
-                    0 if pd.isna(v) else v if np.isfinite(v) else 0 for v in columns[i]
+                    0 if pd.isna(v) else np.maximum(0, v) if np.isfinite(v) else 0
+                    for v in columns[i]
                 ]
             result = pd.Series([0] * len(columns[0]))
             c = np.array(columns)
@@ -613,7 +614,7 @@ class CodeEvaluator:
             return np.maximum(result.values, 0) ** 0.5
 
         # standard functions based on numpy
-        self.globals = {
+        standard_functions = {
             "MAX": np.maximum,
             "MIN": np.minimum,
             "SUM": np.sum,
@@ -622,9 +623,12 @@ class CodeEvaluator:
             "min": np.minimum,
             "sum": np.sum,
             "abs": np.abs,
-            "np": np,
             "nan": np.nan,
+            "np": np,
+            "pd": pd,
         }
+        self.globals = {**self.tables, **standard_functions}
+
         # differentiate between function with and without logging
         if self.params is not None and STATISTICS in self.params.get(
             "intermediate_results", []
@@ -721,10 +725,21 @@ class CodeEvaluator:
                             - min_right[idx]
                             + right_side[idx]
                         )
-                        if lower_bound == upper_bound:
+                        if operator in ["==", "!="]:
+                            if lower_bound == upper_bound:
+                                s += "[" + str(lower_bound) + "]"
+                            else:
+                                s += (
+                                    "["
+                                    + str(lower_bound)
+                                    + ", "
+                                    + str(upper_bound)
+                                    + "]"
+                                )
+                        elif operator in ["<=", ">"]:
+                            s += "[" + str(upper_bound) + "]"
+                        elif operator in [">=", "<"]:
                             s += "[" + str(lower_bound) + "]"
-                        else:
-                            s += "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                         self._eval_logs.append(s)
                 else:
                     for idx in range(len(left_side)):
@@ -754,10 +769,21 @@ class CodeEvaluator:
                             + right_side[idx],
                             8,
                         )
-                        if lower_bound == upper_bound:
+                        if operator in ["==", "!="]:
+                            if lower_bound == upper_bound:
+                                s += "[" + str(lower_bound) + "]"
+                            else:
+                                s += (
+                                    "["
+                                    + str(lower_bound)
+                                    + ", "
+                                    + str(upper_bound)
+                                    + "]"
+                                )
+                        elif operator in ["<=", ">"]:
+                            s += "[" + str(upper_bound) + "]"
+                        elif operator in [">=", "<"]:
                             s += "[" + str(lower_bound) + "]"
-                        else:
-                            s += "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                         self._eval_logs[idx] += "; " + s
             else:
                 # right side is an item
@@ -793,29 +819,23 @@ class CodeEvaluator:
                 for idx in range(len(self._eval_logs)):
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(left_side)):
+                    lower_bound = np.round(
+                        min_left[idx] - left_side[idx] - max_right + right_side, 8
+                    )
+                    upper_bound = np.round(
+                        max_left[idx] - left_side[idx] - min_right + right_side, 8
+                    )
                     if operator in ["==", "!="]:
-                        lower_bound = np.round(
-                            min_left[idx] - left_side[idx] - max_right + right_side, 8
-                        )
-                        upper_bound = np.round(
-                            max_left[idx] - left_side[idx] - min_right + right_side, 8
-                        )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
                         else:
                             self._eval_logs[idx] += (
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
-                    elif operator in ["<=", "<"]:
-                        bound = np.round(
-                            max_right - right_side - min_left[idx] + left_side[idx], 8
-                        )
-                        self._eval_logs[idx] += "[" + str(bound) + "]"
-                    elif operator in [">=", ">"]:
-                        bound = np.round(
-                            min_right - right_side - max_left[idx] + left_side[idx], 8
-                        )
-                        self._eval_logs[idx] += "[" + str(bound) + "]"
+                    elif operator in ["<=", ">"]:
+                        self._eval_logs[idx] += "[" + str(upper_bound) + "]"
+                    elif operator in [">=", "<"]:
+                        self._eval_logs[idx] += "[" + str(lower_bound) + "]"
         else:
             # left side is an item
             left_side = float(np.round(left_side, 8))
@@ -855,30 +875,23 @@ class CodeEvaluator:
                 for idx in range(len(self._eval_logs)):
                     self._eval_logs[idx] += " " + operator + " "
                 for idx in range(len(right_side)):
+                    lower_bound = np.round(
+                        min_left - left_side - max_right[idx] + right_side[idx], 8
+                    )
+                    upper_bound = np.round(
+                        max_left - left_side - min_right[idx] + right_side[idx], 8
+                    )
                     if operator in ["==", "!="]:
-                        lower_bound = np.round(
-                            min_left - left_side - max_right[idx] + right_side[idx], 8
-                        )
-                        upper_bound = np.round(
-                            max_left - left_side - min_right[idx] + right_side[idx], 8
-                        )
                         if lower_bound == upper_bound:
                             self._eval_logs[idx] += "[" + str(lower_bound) + "]"
                         else:
                             self._eval_logs[idx] += (
                                 "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                             )
-                    elif operator in ["<=", "<"]:
-                        bound = np.round(
-                            max_right[idx] - right_side[idx] - min_left + left_side, 8
-                        )
-                        self._eval_logs[idx] += "[" + str(bound) + "]"
-                    elif operator in [">=", ">"]:
-                        bound = np.round(
-                            min_right[idx] - right_side[idx] - max_left + left_side, 8
-                        )
-                        self._eval_logs[idx] += "[" + str(bound) + "]"
-
+                    elif operator in ["<=", ">"]:
+                        self._eval_logs[idx] += "[" + str(upper_bound) + "]"
+                    elif operator in [">=", "<"]:
+                        self._eval_logs[idx] += "[" + str(lower_bound) + "]"
             else:
                 # right side is a item
                 right_side = float(np.round(right_side, 8))
@@ -894,22 +907,16 @@ class CodeEvaluator:
                     + "}"
                 )
                 self._eval_logs += " " + operator + " "
+                lower_bound = np.round(min_left - left_side - max_right + right_side, 8)
+                upper_bound = np.round(max_left - left_side - min_right + right_side, 8)
                 if operator in ["==", "!="]:
-                    lower_bound = np.round(
-                        min_left - left_side - max_right + right_side, 8
-                    )
-                    upper_bound = np.round(
-                        max_left - left_side - min_right + right_side, 8
-                    )
                     self._eval_logs += (
                         "[" + str(lower_bound) + ", " + str(upper_bound) + "]"
                     )
-                elif operator in ["<=", "<"]:
-                    bound = np.round(max_right - right_side - min_left + left_side, 8)
-                    self._eval_logs += "[" + str(bound) + "]"
-                elif operator in [">=", ">"]:
-                    bound = np.round(min_right - right_side - max_left + left_side, 8)
-                    self._eval_logs += "[" + str(bound) + "]"
+                elif operator in ["<=", ">"]:
+                    self._eval_logs += "[" + str(upper_bound) + "]"
+                elif operator in [">=", "<"]:
+                    self._eval_logs += "[" + str(lower_bound) + "]"
 
     def set_params(self, params):
         """
@@ -933,6 +940,7 @@ class CodeEvaluator:
           provided parameters and validates the tolerance settings.
         """
         self.params = params
+        self.tables = dict()
         if params is not None:
             # set up tolerance dictionary
             self.tolerance = self.params.get("tolerance", None)
@@ -950,6 +958,12 @@ class CodeEvaluator:
                 self.matrices = dict()
                 for key, value in matrices.items():
                     self.matrices[key] = np.array(value)
+
+            # set up tables
+            tables = self.params.get("tables", None)
+            if tables is not None:
+                for key, value in tables.items():
+                    self.tables["_table_" + key] = value
 
     def set_data(
         self,
