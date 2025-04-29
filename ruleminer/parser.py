@@ -598,7 +598,9 @@ class RuleParser:
             # add tolerance to list comprehension variable
             var_k = self.parse(
                 expression="K",
-                apply_tolerance=True if "tolerance" in self.params.keys() else False,
+                apply_tolerance=True
+                if ("tolerance" in self.params.keys() and apply_tolerance)
+                else False,
                 positive_tolerance=positive_tolerance,
             )
             sumlist = "[" + var_k + " for K in " + sumlist + "]"
@@ -1132,21 +1134,28 @@ class RuleParser:
                     + ")"
                 )
         else:
-            left_side = expression[:idx]
-            right_side = expression[idx + 1 :]
-            res = (
-                self.parse(
-                    left_side,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
-                + item
-                + self.parse(
-                    right_side,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
+            left_side = self.parse(
+                expression=expression[:idx],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
             )
+            right_side = self.parse(
+                expression=expression[idx + 1 :],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            if item in ["=="]:
+                res = "_eq(" + left_side + ", " + right_side + ")"
+            if item in ["!="]:
+                res = "_ne(" + left_side + ", " + right_side + ")"
+            if item in [">="]:
+                res = "_ge(" + left_side + ", " + right_side + ")"
+            if item in ["<="]:
+                res = "_le(" + left_side + ", " + right_side + ")"
+            elif item in [">"]:
+                res = "_gt(" + left_side + ", " + right_side + ")"
+            elif item in ["<"]:
+                res = "_lt(" + left_side + ", " + right_side + ")"
         return res
 
     def parse_math_operator(

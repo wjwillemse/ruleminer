@@ -333,3 +333,8 @@
 - Minor change to 'between'-function: if interval is (a,b) then (min(a,b),max(a,b)) is used
 - Refactoring of comparisons logging (and fix for logging of > operators)
 - Added unittests for these changes
+
+### 0.3.10 (2025-4-29)
+
+- Added logging for comparisions without tolerance
+- Fix for bug parsing list comprehensions

@@ -367,7 +367,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if({"Type"}=="life_insurer")then({"TP-life"}>0)',
+                    'if(_eq({"Type"}, "life_insurer"))then(_gt({"TP-life"}, 0))',
                     5,
                     0,
                     1.0,
@@ -377,7 +377,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     1,
                     0,
-                    'if({"Type"}=="non-life_insurer")then({"TP-nonlife"}>0)',
+                    'if(_eq({"Type"}, "non-life_insurer"))then(_gt({"TP-nonlife"}, 0))',
                     4,
                     1,
                     0.8,
@@ -428,7 +428,7 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then ({"Own_funds"}<=755.0)', 9, 1, 0.9, 0, {}]],
+            data=[[0, 0, 'if () then (_le({"Own_funds"}, 755.0))', 9, 1, 0.9, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
@@ -472,7 +472,7 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then ({"Own_funds"}<=300.0)', 8, 2, 0.8, 0, {}]],
+            data=[[0, 0, 'if () then (_le({"Own_funds"}, 300.0))', 8, 2, 0.8, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
@@ -516,7 +516,18 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then ({"Own_funds"}<=228.03508502)', 8, 2, 0.8, 0, {}]],
+            data=[
+                [
+                    0,
+                    0,
+                    'if () then (_le({"Own_funds"}, 228.03508502))',
+                    8,
+                    2,
+                    0.8,
+                    0,
+                    {},
+                ]
+            ],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
@@ -562,7 +573,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then ({"Own_funds"}<=quantile({"Own_funds"},0.95))',
+                    'if () then (_le({"Own_funds"}, quantile({"Own_funds"},0.95)))',
                     9,
                     1,
                     0.9,
@@ -615,7 +626,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then ({"Own_funds"}<=mean({"Own_funds"}))',
+                    'if () then (_le({"Own_funds"}, mean({"Own_funds"})))',
                     8,
                     2,
                     0.8,
@@ -668,7 +679,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then ({"Own_funds"}<=std({"Own_funds"}))',
+                    'if () then (_le({"Own_funds"}, std({"Own_funds"})))',
                     8,
                     2,
                     0.8,
@@ -726,7 +737,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"}.where({"Type"}=="life_insurer", other=0),{"Own_funds"}.where({"Type"}=="life_insurer", other=0)]], axis=0, dtype=float)>0)',
+                    'if () then (_gt(sum([K for K in [{"Assets"}.where(_eq({"Type"}, "life_insurer"), other=0),{"Own_funds"}.where(_eq({"Type"}, "life_insurer"), other=0)]], axis=0, dtype=float), 0))',
                     5,
                     5,
                     0.5,
@@ -784,7 +795,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[K=="life_insurer" for K in [{"Type"},{"Type"}]])], axis=0, dtype=float)>0)',
+                    'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[_eq(K, "life_insurer") for K in [{"Type"},{"Type"}]])], axis=0, dtype=float), 0))',
                     5,
                     5,
                     0.5,
@@ -837,7 +848,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0, dtype=float)>0)',
+                    'if () then (_gt(sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0, dtype=float), 0))',
                     10,
                     0,
                     1.0,
@@ -1404,7 +1415,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, 1.0))'
+            == 'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, 1.0))'
         )
         r.evaluate()
         actual = (
@@ -1621,7 +1632,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (_eq((sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, 0))',
+            == 'if () then (_eq((sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, 0))'
         )
         r.evaluate()
         actual = (
@@ -1656,21 +1667,29 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas],
             params={},
         )
-        self.assertTrue(r.rules.values[0][2] == 'if () then (MAX(0,{"A"})>0)')
-        self.assertTrue(r.rules.values[1][2] == 'if () then (MAX(0,({"A"}))>0)')
-        self.assertTrue(r.rules.values[2][2] == 'if () then ((MAX(0,({"A"})))>(0))')
-        self.assertTrue(r.rules.values[3][2] == 'if () then (MAX(0,{"A"}-{"B"})>0)')
-        self.assertTrue(r.rules.values[4][2] == 'if () then (MAX(0,({"A"}-{"B"}))>0)')
+        self.assertTrue(r.rules.values[0][2] == 'if () then (_gt(MAX(0,{"A"}), 0))')
+        self.assertTrue(r.rules.values[1][2] == 'if () then (_gt(MAX(0,({"A"})), 0))')
         self.assertTrue(
-            r.rules.values[5][2] == 'if () then ((MAX(0,({"A"}-{"B"})))>(0))'
+            r.rules.values[2][2] == 'if () then (_gt((MAX(0,({"A"}))), (0)))'
         )
-        self.assertTrue(r.rules.values[6][2] == 'if () then (MAX(0,({"A"})-{"B"})>0)')
         self.assertTrue(
-            r.rules.values[7][2] == 'if () then ((MAX(0,(({"A"})-{"B"})))>(0))'
+            r.rules.values[3][2] == 'if () then (_gt(MAX(0,{"A"}-{"B"}), 0))'
+        )
+        self.assertTrue(
+            r.rules.values[4][2] == 'if () then (_gt(MAX(0,({"A"}-{"B"})), 0))'
+        )
+        self.assertTrue(
+            r.rules.values[5][2] == 'if () then (_gt((MAX(0,({"A"}-{"B"}))), (0)))'
+        )
+        self.assertTrue(
+            r.rules.values[6][2] == 'if () then (_gt(MAX(0,({"A"})-{"B"}), 0))'
+        )
+        self.assertTrue(
+            r.rules.values[7][2] == 'if () then (_gt((MAX(0,(({"A"})-{"B"}))), (0)))'
         )
         self.assertTrue(
             r.rules.values[8][2]
-            == 'if () then ({"A"}==MAX(0,MAX(0,{"A"})-MAX(0,{"B"})))'
+            == 'if () then (_eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))'
         )
         df = pd.DataFrame(
             [
@@ -1703,7 +1722,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (MAX(0,{"A"})>0)',
+                'if () then (_gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1716,7 +1735,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (MAX(0,{"A"})>0)',
+                'if () then (_gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1729,7 +1748,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (MAX(0,{"A"})>0)',
+                'if () then (_gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1742,7 +1761,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 8,
                 0,
-                'if () then ({"A"}==MAX(0,MAX(0,{"A"})-MAX(0,{"B"})))',
+                'if () then (_eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))',
                 1,
                 2,
                 0.3333333333333333,

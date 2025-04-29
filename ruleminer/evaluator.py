@@ -233,10 +233,10 @@ class CodeEvaluator:
         def _eq_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -244,28 +244,41 @@ class CodeEvaluator:
             ):
                 return left_side == right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    "==",
-                )
-                return (max_left >= min_right) & (min_left <= max_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        "==",
+                    )
+                    return left_side == right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        "==",
+                    )
+                    return (max_left >= min_right) & (min_left <= max_right)
 
         def _eq(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -273,19 +286,27 @@ class CodeEvaluator:
             ):
                 return left_side == right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                return (max_left >= min_right) & (min_left <= max_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side == right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    return (max_left >= min_right) & (min_left <= max_right)
 
         def _le(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -293,17 +314,25 @@ class CodeEvaluator:
             ):
                 return left_side <= right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                return min_left <= max_right
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side <= right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    return min_left <= max_right
 
         def _le_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -311,28 +340,41 @@ class CodeEvaluator:
             ):
                 return left_side <= right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    "<=",
-                )
-                return min_left <= max_right
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        "<=",
+                    )
+                    return left_side <= right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        "<=",
+                    )
+                    return min_left <= max_right
 
         def _lt(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -340,19 +382,27 @@ class CodeEvaluator:
             ):
                 return left_side < right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                return (min_left <= max_right) & (max_left < min_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side < right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    return (min_left <= max_right) & (max_left < min_right)
 
         def _lt_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -360,28 +410,41 @@ class CodeEvaluator:
             ):
                 return left_side < right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    "<",
-                )
-                return (min_left <= max_right) & (max_left < min_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        "<",
+                    )
+                    return left_side < right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        "<",
+                    )
+                    return (min_left <= max_right) & (max_left < min_right)
 
         def _ge(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -389,17 +452,25 @@ class CodeEvaluator:
             ):
                 return left_side >= right_side
             else:
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                return max_left >= min_right
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side >= right_side
+                else:
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    return max_left >= min_right
 
         def _ge_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -407,28 +478,41 @@ class CodeEvaluator:
             ):
                 return left_side >= right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    ">=",
-                )
-                return max_left >= min_right
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        ">=",
+                    )
+                    return left_side >= right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        ">=",
+                    )
+                    return max_left >= min_right
 
         def _gt(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -436,19 +520,27 @@ class CodeEvaluator:
             ):
                 return left_side > right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                return (max_left >= min_right) & (min_left > max_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side > right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    return (max_left >= min_right) & (min_left > max_right)
 
         def _gt_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -456,28 +548,41 @@ class CodeEvaluator:
             ):
                 return left_side > right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    ">",
-                )
-                return (max_left >= min_right) & (min_left > max_right)
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        ">",
+                    )
+                    return left_side > right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        ">",
+                    )
+                    return (max_left >= min_right) & (min_left > max_right)
 
         def _ne_with_logging(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -485,28 +590,41 @@ class CodeEvaluator:
             ):
                 return left_side != right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                self._log(
-                    left_side,
-                    right_side,
-                    min_left,
-                    max_left,
-                    min_right,
-                    max_right,
-                    "!=",
-                )
-                return ~((max_left >= min_right) & (min_left <= max_right))
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    self._log(
+                        left_side,
+                        right_side,
+                        "!=",
+                    )
+                    return left_side != right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    self._log_tol(
+                        left_side,
+                        right_side,
+                        min_left,
+                        max_left,
+                        min_right,
+                        max_right,
+                        "!=",
+                    )
+                    return ~((max_left >= min_right) & (min_left <= max_right))
 
         def _ne(
             left_side,
             right_side,
-            left_side_pos,
-            left_side_neg,
-            right_side_pos,
-            right_side_neg,
+            left_side_pos=None,
+            left_side_neg=None,
+            right_side_pos=None,
+            right_side_neg=None,
         ):
             """ """
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
@@ -514,11 +632,19 @@ class CodeEvaluator:
             ):
                 return left_side != right_side
             else:
-                min_left = np.minimum(left_side_pos, left_side_neg)
-                max_left = np.maximum(left_side_pos, left_side_neg)
-                min_right = np.minimum(right_side_pos, right_side_neg)
-                max_right = np.maximum(right_side_pos, right_side_neg)
-                return ~((max_left >= min_right) & (min_left <= max_right))
+                if (
+                    left_side_pos is None
+                    and left_side_neg is None
+                    and right_side_pos is None
+                    and right_side_neg is None
+                ):
+                    return left_side != right_side
+                else:
+                    min_left = np.minimum(left_side_pos, left_side_neg)
+                    max_left = np.maximum(left_side_pos, left_side_neg)
+                    min_right = np.minimum(right_side_pos, right_side_neg)
+                    max_right = np.maximum(right_side_pos, right_side_neg)
+                    return ~((max_left >= min_right) & (min_left <= max_right))
 
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
@@ -678,6 +804,86 @@ class CodeEvaluator:
         )
 
     def _log(
+        self,
+        left_side,
+        right_side,
+        operator,
+    ):
+        """ """
+        # {left} operator {right}
+        if hasattr(left_side, "__iter__"):
+            # left side is a list
+            left_side = [float(np.round(item, 8)) for item in left_side]
+            if hasattr(right_side, "__iter__"):
+                # right side is a list
+                right_side = [float(np.round(item, 8)) for item in right_side]
+                if len(self._eval_logs) == 0:
+                    for idx in range(len(left_side)):
+                        s = (
+                            "{"
+                            + str(left_side[idx])
+                            + "} "
+                            + operator
+                            + " "
+                            + "{"
+                            + str(right_side[idx])
+                            + "}"
+                        )
+                        self._eval_logs.append(s)
+                else:
+                    for idx in range(len(left_side)):
+                        s = (
+                            "{"
+                            + str(left_side[idx])
+                            + "} "
+                            + operator
+                            + " "
+                            + "{"
+                            + str(right_side[idx])
+                            + "}"
+                        )
+                        self._eval_logs[idx] += "; " + s
+            else:
+                # right side is an item
+                right_side = float(np.round(right_side, 8))
+                if len(self._eval_logs) == 0:
+                    for idx in range(len(left_side)):
+                        s = "{" + str(left_side[idx]) + "}"
+                        self._eval_logs.append(s)
+                else:
+                    for idx in range(len(left_side)):
+                        s = "{" + str(left_side[idx]) + "}"
+                        self._eval_logs[idx] += "; " + s
+                for idx in range(len(self._eval_logs)):
+                    self._eval_logs[idx] += " " + operator + " "
+                for idx in range(len(left_side)):
+                    self._eval_logs[idx] += "{" + str(right_side) + "}"
+        else:
+            # left side is an item
+            left_side = float(np.round(left_side, 8))
+            if hasattr(right_side, "__iter__"):
+                # right side is a list
+                right_side = [float(np.round(item, 8)) for item in right_side]
+                if len(self._eval_logs) == 0:
+                    for idx in range(len(right_side)):
+                        s = "{" + str(left_side) + "}"
+                        self._eval_logs.append(s)
+                else:
+                    for idx in range(len(right_side)):
+                        s = "{" + str(left_side) + "}"
+                        self._eval_logs[idx] += "; " + s
+                for idx in range(len(self._eval_logs)):
+                    self._eval_logs[idx] += " " + operator + " "
+                for idx in range(len(right_side)):
+                    self._eval_logs[idx] += "{" + str(right_side) + "}"
+            else:
+                # right side is a item
+                right_side = float(np.round(right_side, 8))
+                self._eval_logs += "{" + str(left_side) + "}"
+                self._eval_logs += " " + operator + " "
+                self._eval_logs += "{" + str(right_side) + "}"
+
+    def _log_tol(
         self,
         left_side,
         right_side,
@@ -1041,35 +1247,35 @@ class CodeEvaluator:
                 elif key == "Y":
                     logs += " then ("
                     logs_added = False
-            try:
-                variables[key] = eval(expressions[key], self.globals, encodings)
-                if logs is not None:
-                    # collect log of statistics
-                    log = []
-                    if len(self._mean_logs) > 0:
-                        log.append("; ".join(self._mean_logs))
-                    if len(self._std_logs) > 0:
-                        log.append("; ".join(self._std_logs))
-                    if len(self._quantile_logs) > 0:
-                        log.append("; ".join(self._quantile_logs))
-                    # put logs in pd.Series as a strings
-                    if len(self._eval_logs) > 0:
-                        if logs_added:
-                            logs += "; "
-                        logs += self._eval_logs
-                        logs_added = True
-                    if len(log) > 0:
-                        if logs_added:
-                            logs += "; "
-                        logs += "; ".join(log)
-                        logs_added = True
-                    if key != "N":
-                        logs += ")"
-            except Exception as e:
-                self.logger.debug(
-                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
-                )
-                variables[key] = np.nan
+            # try:
+            variables[key] = eval(expressions[key], self.globals, encodings)
+            if logs is not None:
+                # collect log of statistics
+                log = []
+                if len(self._mean_logs) > 0:
+                    log.append("; ".join(self._mean_logs))
+                if len(self._std_logs) > 0:
+                    log.append("; ".join(self._std_logs))
+                if len(self._quantile_logs) > 0:
+                    log.append("; ".join(self._quantile_logs))
+                # put logs in pd.Series as a strings
+                if len(self._eval_logs) > 0:
+                    if logs_added:
+                        logs += "; "
+                    logs += self._eval_logs
+                    logs_added = True
+                if len(log) > 0:
+                    if logs_added:
+                        logs += "; "
+                    logs += "; ".join(log)
+                    logs_added = True
+                if key != "N":
+                    logs += ")"
+            # except Exception as e:
+            #     self.logger.debug(
+            #         "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+            #     )
+            #     variables[key] = np.nan
         return variables, logs
 
     def evaluate_str(
