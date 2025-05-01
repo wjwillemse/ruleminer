@@ -16,14 +16,15 @@ This package implements the code of the paper [Discovering and ranking validatio
 
 Here is what the package does:
 
-* Generate human-readable validation rules using rule templates containing regular expressions and a Pandas DataFrame dataset
+* Discover human-readable validation rules using rule templates with regular expressions
 
-  - available functions: min, max, abs, quantile, sum, substr, split, count, sumif and countif
-  - including parameters for metric filters and rule precisions (including XBRL tolerances)
+* Evaluate rules using interval arithmetics
 
-* Evaluate rules and calculate association rules metrics
+* Calculate association rules metrics
 
-  - available metrics: abs support, abs exceptions, confidence, support, added value, casual confidence, casual support, conviction, lift and rule power factor
+Available functions: available functions: min, max, abs, quantile, sum, substr, split, count, sumif, countif, mean, std, exact, corr, round, floor, ceil, table
+
+Available metrics: available metrics: abs support, abs exceptions, confidence, support, added value, casual confidence, casual support, conviction, lift and rule power factor
 
 Here are some examples of rule templates with regexes with which you can generate validation rules:
 
@@ -46,4 +47,4 @@ These generated validation rules can then be used to validate new datasets.
 
 ## Contributors
 
-* Willem Jan Willemse <https://github.com/wjwillemse>
+* Willem Jan Willemse <https://codeberg.org/wjwillemse>
