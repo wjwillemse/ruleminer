@@ -334,7 +334,10 @@
 - Refactoring of comparisons logging (and fix for logging of > operators)
 - Added unittests for these changes
 
-### 0.3.10 (2025-4-29)
+### 0.3.11 (2025-5-1)
 
 - Added logging for comparisions without tolerance
 - Fix for bug parsing list comprehensions
+- Added power function to deal with interval arithmetic
+- Changed 'between'-function to a >= lower_bound and a <= upper_bound instead of internal Pandas function
+- Renamed interval functions by removing '_'

@@ -367,7 +367,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if(_eq({"Type"}, "life_insurer"))then(_gt({"TP-life"}, 0))',
+                    'if(eq({"Type"}, "life_insurer"))then(gt({"TP-life"}, 0))',
                     5,
                     0,
                     1.0,
@@ -377,7 +377,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     1,
                     0,
-                    'if(_eq({"Type"}, "non-life_insurer"))then(_gt({"TP-nonlife"}, 0))',
+                    'if(eq({"Type"}, "non-life_insurer"))then(gt({"TP-nonlife"}, 0))',
                     4,
                     1,
                     0.8,
@@ -428,7 +428,7 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then (_le({"Own_funds"}, 755.0))', 9, 1, 0.9, 0, {}]],
+            data=[[0, 0, 'if () then (le({"Own_funds"}, 755.0))', 9, 1, 0.9, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
@@ -472,7 +472,7 @@ class TestRuleminer(unittest.TestCase):
             templates=templates, data=df, params={"evaluate_statistics": True}
         ).rules
         expected = pd.DataFrame(
-            data=[[0, 0, 'if () then (_le({"Own_funds"}, 300.0))', 8, 2, 0.8, 0, {}]],
+            data=[[0, 0, 'if () then (le({"Own_funds"}, 300.0))', 8, 2, 0.8, 0, {}]],
             columns=[
                 ruleminer.RULE_ID,
                 ruleminer.RULE_GROUP,
@@ -520,7 +520,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_le({"Own_funds"}, 228.03508502))',
+                    'if () then (le({"Own_funds"}, 228.03508502))',
                     8,
                     2,
                     0.8,
@@ -573,7 +573,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_le({"Own_funds"}, quantile({"Own_funds"},0.95)))',
+                    'if () then (le({"Own_funds"}, quantile({"Own_funds"},0.95)))',
                     9,
                     1,
                     0.9,
@@ -626,7 +626,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_le({"Own_funds"}, mean({"Own_funds"})))',
+                    'if () then (le({"Own_funds"}, mean({"Own_funds"})))',
                     8,
                     2,
                     0.8,
@@ -679,7 +679,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_le({"Own_funds"}, std({"Own_funds"})))',
+                    'if () then (le({"Own_funds"}, std({"Own_funds"})))',
                     8,
                     2,
                     0.8,
@@ -737,7 +737,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_gt(sum([K for K in [{"Assets"}.where(_eq({"Type"}, "life_insurer"), other=0),{"Own_funds"}.where(_eq({"Type"}, "life_insurer"), other=0)]], axis=0, dtype=float), 0))',
+                    'if () then (gt(sum([K for K in [{"Assets"}.where(eq({"Type"}, "life_insurer"), other=0),{"Own_funds"}.where(eq({"Type"}, "life_insurer"), other=0)]], axis=0, dtype=float), 0))',
                     5,
                     5,
                     0.5,
@@ -795,7 +795,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[_eq(K, "life_insurer") for K in [{"Type"},{"Type"}]])], axis=0, dtype=float), 0))',
+                    'if () then (gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"Assets"},{"Own_funds"}]],[eq(K, "life_insurer") for K in [{"Type"},{"Type"}]])], axis=0, dtype=float), 0))',
                     5,
                     5,
                     0.5,
@@ -848,7 +848,7 @@ class TestRuleminer(unittest.TestCase):
                 [
                     0,
                     0,
-                    'if () then (_gt(sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0, dtype=float), 0))',
+                    'if () then (gt(sum([K for K in [{"Assets"},{"Own_funds"}]], axis=0, dtype=float), 0))',
                     10,
                     0,
                     1.0,
@@ -1093,7 +1093,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then ((_ge({"1"}, 0, {"1"}.apply(_tol, args=("+", "default",)), {"1"}.apply(_tol, args=("-", "default",)), 0, 0)))'
+        expected = 'if () then ((ge({"1"}, 0, {"1"}.apply(_tol, args=("+", "default",)), {"1"}.apply(_tol, args=("-", "default",)), 0, 0)))'
         self.assertTrue(actual == expected)
 
     def test_42(self):
@@ -1112,7 +1112,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (_eq(({"1"}-{"2"}-{"3"}), 0, ({"1"}.apply(_tol, args=("+", "default",))-{"2"}.apply(_tol, args=("-", "default",))-{"3"}.apply(_tol, args=("-", "default",))), ({"1"}.apply(_tol, args=("-", "default",))-{"2"}.apply(_tol, args=("+", "default",))-{"3"}.apply(_tol, args=("+", "default",))), 0, 0))'
+        expected = 'if () then (eq(({"1"}-{"2"}-{"3"}), 0, ({"1"}.apply(_tol, args=("+", "default",))-{"2"}.apply(_tol, args=("-", "default",))-{"3"}.apply(_tol, args=("-", "default",))), ({"1"}.apply(_tol, args=("-", "default",))-{"2"}.apply(_tol, args=("+", "default",))-{"3"}.apply(_tol, args=("+", "default",))), 0, 0))'
 
         self.assertTrue(actual == expected)
 
@@ -1132,7 +1132,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": formula}], params=parameters
         )
         actual = rm_rules.rules.values[0][2]
-        expected = 'if () then (_eq(({"1"}-({"2"}+{"3"})), 0, ({"1"}.apply(_tol, args=("+", "default",))-({"2"}.apply(_tol, args=("-", "default",))+{"3"}.apply(_tol, args=("-", "default",)))), ({"1"}.apply(_tol, args=("-", "default",))-({"2"}.apply(_tol, args=("+", "default",))+{"3"}.apply(_tol, args=("+", "default",)))), 0, 0))'
+        expected = 'if () then (eq(({"1"}-({"2"}+{"3"})), 0, ({"1"}.apply(_tol, args=("+", "default",))-({"2"}.apply(_tol, args=("-", "default",))+{"3"}.apply(_tol, args=("-", "default",)))), ({"1"}.apply(_tol, args=("-", "default",))-({"2"}.apply(_tol, args=("+", "default",))+{"3"}.apply(_tol, args=("+", "default",)))), 0, 0))'
         self.assertTrue(actual == expected)
 
     def test_44(self):
@@ -1154,7 +1154,7 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas], params=parameters
         )
         actual = r.rules.values[0][2]
-        expected = 'if () then (_eq({"A"}, {"B"}*0.25, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",))*0.25, {"B"}.apply(_tol, args=("-", "default",))*0.25))'
+        expected = 'if () then (eq({"A"}, {"B"}*0.25, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), mul({"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)), 0.25, 0.25,"+"), mul({"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)), 0.25, 0.25,"-")))'
         self.assertTrue(actual == expected)
 
     def test_45a(self):
@@ -1415,7 +1415,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (_gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, 1.0))'
+            == 'if () then (gt(sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float), 1.0, 1.0))'
         )
         r.evaluate()
         actual = (
@@ -1554,7 +1554,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (_eq((sum([K for K in [{"A"},{"B"}]], axis=0, dtype=float)), 0, (sum([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]], axis=0, dtype=float)), (sum([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]], axis=0, dtype=float)), 0, 0))'
+            == 'if () then (eq((sum([K for K in [{"A"},{"B"}]], axis=0, dtype=float)), 0, (sum([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]], axis=0, dtype=float)), (sum([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]], axis=0, dtype=float)), 0, 0))'
         )
 
     def test_51b(self):
@@ -1632,7 +1632,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2]
-            == 'if () then (_eq((sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, 0))'
+            == 'if () then (eq((sum([v.where(c, other=0) for (v,c) in zip([K for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("+", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), (sum([v.where(c, other=0) for (v,c) in zip([K.apply(_tol, args=("-", "default",)) for K in [{"A"},{"B"}]],[K.str.slice(2,4).isin(["CD"]) for K in [{"C"},{"D"}]])], axis=0, dtype=float)), 0, 0))'
         )
         r.evaluate()
         actual = (
@@ -1667,29 +1667,29 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas],
             params={},
         )
-        self.assertTrue(r.rules.values[0][2] == 'if () then (_gt(MAX(0,{"A"}), 0))')
-        self.assertTrue(r.rules.values[1][2] == 'if () then (_gt(MAX(0,({"A"})), 0))')
+        self.assertTrue(r.rules.values[0][2] == 'if () then (gt(MAX(0,{"A"}), 0))')
+        self.assertTrue(r.rules.values[1][2] == 'if () then (gt(MAX(0,({"A"})), 0))')
         self.assertTrue(
-            r.rules.values[2][2] == 'if () then (_gt((MAX(0,({"A"}))), (0)))'
+            r.rules.values[2][2] == 'if () then (gt((MAX(0,({"A"}))), (0)))'
         )
         self.assertTrue(
-            r.rules.values[3][2] == 'if () then (_gt(MAX(0,{"A"}-{"B"}), 0))'
+            r.rules.values[3][2] == 'if () then (gt(MAX(0,{"A"}-{"B"}), 0))'
         )
         self.assertTrue(
-            r.rules.values[4][2] == 'if () then (_gt(MAX(0,({"A"}-{"B"})), 0))'
+            r.rules.values[4][2] == 'if () then (gt(MAX(0,({"A"}-{"B"})), 0))'
         )
         self.assertTrue(
-            r.rules.values[5][2] == 'if () then (_gt((MAX(0,({"A"}-{"B"}))), (0)))'
+            r.rules.values[5][2] == 'if () then (gt((MAX(0,({"A"}-{"B"}))), (0)))'
         )
         self.assertTrue(
-            r.rules.values[6][2] == 'if () then (_gt(MAX(0,({"A"})-{"B"}), 0))'
+            r.rules.values[6][2] == 'if () then (gt(MAX(0,({"A"})-{"B"}), 0))'
         )
         self.assertTrue(
-            r.rules.values[7][2] == 'if () then (_gt((MAX(0,(({"A"})-{"B"}))), (0)))'
+            r.rules.values[7][2] == 'if () then (gt((MAX(0,(({"A"})-{"B"}))), (0)))'
         )
         self.assertTrue(
             r.rules.values[8][2]
-            == 'if () then (_eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))'
+            == 'if () then (eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))'
         )
         df = pd.DataFrame(
             [
@@ -1722,7 +1722,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (_gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1735,7 +1735,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (_gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1748,7 +1748,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (_gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(MAX(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1761,7 +1761,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 8,
                 0,
-                'if () then (_eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))',
+                'if () then (eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))',
                 1,
                 2,
                 0.3333333333333333,
@@ -1889,7 +1889,7 @@ class TestRuleminer(unittest.TestCase):
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         self.assertTrue(
             r.rules.values[0][2],
-            'if () then _equal(({"C" + default}, ({"C" - default}, {"D" + default}), {"D" - default}))',
+            'if () then eq(({"C" + default}, ({"C" - default}, {"D" + default}), {"D" - default}))',
         )
         r.evaluate()
         actual = (
@@ -1934,7 +1934,7 @@ class TestRuleminer(unittest.TestCase):
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
         actual = r.rules.values[0][2]
-        expected = """if () then (_eq({"A"}, max(0, (2*{"B"}*{"B"}+0.3*{"B"}*{"C"}))**0.5, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), max(0, (_mul(2*{"B"}.apply(_tol, args=("+", "default",)), 2*{"B"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+")+_mul(0.3*{"B"}.apply(_tol, args=("+", "default",)), 0.3*{"B"}.apply(_tol, args=("-", "default",)), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"+")))**0.5, max(0, (_mul(2*{"B"}.apply(_tol, args=("+", "default",)), 2*{"B"}.apply(_tol, args=("-", "default",)), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-")+_mul(0.3*{"B"}.apply(_tol, args=("+", "default",)), 0.3*{"B"}.apply(_tol, args=("-", "default",)), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"-")))**0.5))"""
+        expected = """if () then (eq({"A"}, (2*{"B"}*{"B"}+0.3*{"B"}*{"C"})**0.5, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), pow((mul(mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+")+mul(mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"+")), (mul(mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-")+mul(mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"-")), 0.5, 0.5,"+"), pow((mul(mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+")+mul(mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"+")), (mul(mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(2, 2, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-")+mul(mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"+"), mul(0.3, 0.3, {"B"}.apply(_tol, args=("+", "default",)), {"B"}.apply(_tol, args=("-", "default",)),"-"), {"C"}.apply(_tol, args=("+", "default",)), {"C"}.apply(_tol, args=("-", "default",)),"-")), 0.5, 0.5,"-")))"""
         self.assertEqual(expected, actual)
         r.evaluate()
         actual = (
@@ -1978,10 +1978,10 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
 
@@ -2010,10 +2010,10 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq({"A"}, 0, ({"A"}+10), ({"A"}-10), 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, ({"A"}+10), ({"A"}-10), 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
         r.evaluate()
@@ -2064,10 +2064,10 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq({"A"}, 0, ({"A"}+20), ({"A"}-10), 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, ({"A"}+20), ({"A"}-10), 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}.apply(_tol, args=("+", "default",)), {"A"}.apply(_tol, args=("-", "default",)), 0, 0))'
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
 
@@ -2091,10 +2091,10 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
-        expected = 'if () then (_eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
+        expected = 'if () then (eq({"A"}, 0, {"A"}, {"A"}, 0, 0))'
         actual = r.rules.values[1][2]
         self.assertEqual(actual, expected)
 
@@ -2126,7 +2126,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq(_corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, _corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), _corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, 10))'
+        expected = 'if () then (eq(corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), corr("matrix_1",{"a"},{"b"},{"c"},{"d"}), 10, 10))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2243,7 +2243,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_eq(_round({"A"}, -1, "round"), 10, _round({"A"}, -1, "round"), _round({"A"}, -1, "round"), 10, 10))'
+        expected = 'if () then (eq(_round({"A"}, -1, "round"), 10, _round({"A"}, -1, "round"), _round({"A"}, -1, "round"), 10, 10))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2268,7 +2268,7 @@ class TestRuleminer(unittest.TestCase):
                 "default": None,
             },
         }
-        formulas = ['({"A"} between [1, 15])']
+        formulas = ['(SUM([{"A"}, {"A"}]) between [2, 30])']
         df = pd.DataFrame(
             [
                 ["Test_1", 11.0],
@@ -2282,7 +2282,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then ({"A"}.between(min(1,15),max(1,15)))'
+        expected = 'if () then ((ge(sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), min(2,30), sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), min(2,30), min(2,30)) & le(sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), max(2,30), sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), sum([K for K in [{"A"},{"A"}]], axis=0, dtype=float), max(2,30), max(2,30))))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2321,7 +2321,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (~{"A"}.between(min(1,15),max(1,15)))'
+        expected = 'if () then (~(ge({"A"}, min(1,15), {"A"}, {"A"}, min(1,15), min(1,15)) & le({"A"}, max(1,15), {"A"}, {"A"}, max(1,15), max(1,15))))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2360,7 +2360,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (~{"A"}.between(min(1,15),max(1,15),"both"))'
+        expected = 'if () then (~(ge({"A"}, min(1,15), {"A"}, {"A"}, min(1,15), min(1,15)) & le({"A"}, max(1,15), {"A"}, {"A"}, max(1,15), max(1,15))))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
@@ -2399,7 +2399,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (_gt((sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, (sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), (sum([_gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, 1))'
+        expected = 'if () then (gt((sum([gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, (sum([gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), (sum([gt(K, 0, K, K, 0, 0) for K in [{"A"},{"B"},{"C"}]], axis=0, dtype=float)), 1, 1))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (

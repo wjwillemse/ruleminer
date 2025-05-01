@@ -36,7 +36,8 @@ class RuleParser:
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
             (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["for"]), self.parse_list_comprehension),
-            (set(["in", "not in", "between", "not between"]), self.parse_in),
+            (set(["in", "not in"]), self.parse_in),
+            (set(["between", "not between"]), self.parse_between),
             (set(["substr"]), self.parse_substr),
             (set(["split"]), self.parse_split),
             (set(["sum"]), self.parse_sum),
@@ -278,7 +279,7 @@ class RuleParser:
             logging.error(
                 "Matrix key is not in predefined matrices dictionary of parameters."
             )
-        res = "_corr" + self.parse(
+        res = "corr" + self.parse(
             corr_params,
             apply_tolerance=apply_tolerance,
             positive_tolerance=positive_tolerance,
@@ -773,7 +774,7 @@ class RuleParser:
         left_side = expression[:idx]
         right_side = expression[idx + 1 :]
         # process in operator
-        if item.lower() in ["not in", "not between"]:
+        if item.lower() == "not in":
             res = "~"
         else:
             res = ""
@@ -791,51 +792,90 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
             res = "pd.concat(" + left_side_list + ", axis=1).apply(tuple, axis=1)"
-        if item.lower() in ["in", "not in"]:
-            res += ".isin("
-            for i in right_side:
-                res += self.parse(
-                    i,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
-            res += ")"
-        elif item.lower() in ["between", "not between"]:
-            res += ".between("
-            parameters = right_side[0][1:-1]
-            first_param = self.parse(
-                parameters[0],
+        res += ".isin("
+        for i in right_side:
+            res += self.parse(
+                i,
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
-            second_param = self.parse(
-                parameters[2],
+        res += ")"
+        return res
+
+    def parse_between(
+        self,
+        idx: int,
+        item: str,
+        expression: Union[str, list],
+        apply_tolerance: bool = False,
+        positive_tolerance: bool = True,
+    ) -> str:
+        """
+        Process in operator
+
+        Example
+            # Test Case for the parse_in method
+            expression = ['{"A"}', 'between', ['[', '0', ',', '1', ']']]  # Example expression for 'between' operation
+            idx = 1  # The index of 'in' in the expression
+
+            # Call the parse_in method
+            result = ruleminer.RuleParser().parse_in(
+                idx=idx,
+                item="between",
+                expression=expression,
+            )
+
+            # Print the result
+            print(result)
+                (_ge({"A"}, min(0,1), {"A"}, {"A"}, min(0,1), min(0,1)) & _le({"A"}, max(0,1), {"A"}, {"A"}, max(0,1), max(0,1)))
+        """
+        left_side = expression[:idx]
+        right_side = expression[idx + 1 :]
+        # a between [c, d] is translated to a > c and a < d
+        # we convert [c, d] to (min(c,d),max(c,d)) in case that c > d
+        parameters = right_side[0][1:-1]
+        first_param = self.parse(
+            parameters[0],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        second_param = self.parse(
+            parameters[2],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        if len(parameters) == 5:
+            third_parameter = self.parse(
+                parameters[4],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
-            )
-            # we convert (a,b) to (min(a,b),max(a,b)) in case that a > b
-            res += (
-                "min("
-                + first_param
-                + ","
-                + second_param
-                + "),"
-                + "max("
-                + first_param
-                + ","
-                + second_param
-                + ")"
-            )
-            if len(parameters) == 5:
-                res += (
-                    ","
-                    + self.parse(
-                        parameters[4],
-                        apply_tolerance=apply_tolerance,
-                        positive_tolerance=positive_tolerance,
-                    ).lower()
-                )
-            res += ")"
+            ).lower()
+            if third_parameter == '"both"':
+                operators = (">=", "<=")
+            elif third_parameter == '"neither"':
+                operators = (">", "<")
+            elif third_parameter == '"left"':
+                operators = (">=", "<")
+            elif third_parameter == '"right"':
+                operators = (">", "<=")
+        else:
+            # default is "both"
+            operators = (">=", "<=")
+        lower_bound = "min(" + first_param + "," + second_param + ")"
+        upper_bound = "max(" + first_param + "," + second_param + ")"
+        a = self.parse(
+            [left_side, operators[0], lower_bound],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        b = self.parse(
+            [left_side, operators[1], upper_bound],
+            apply_tolerance=apply_tolerance,
+            positive_tolerance=positive_tolerance,
+        )
+        res = "(" + a + " & " + b + ")"
+        if item.lower() == "not between":
+            res = "~" + res
         return res
 
     def parse_statistical_functions(
@@ -998,20 +1038,37 @@ class RuleParser:
             )
 
             print(f"Result with tolerance: {result_with_tolerance}")
-                Result with tolerance: _equal(A(+), A(-), B(+), B(-))
+                Result with tolerance: eq(A(+), A(-), B(+), B(-))
 
         """
+        left_side = self.parse(
+            expression=expression[:idx],
+            apply_tolerance=False,
+            positive_tolerance=True,
+        )
+        right_side = self.parse(
+            expression=expression[idx + 1 :],
+            apply_tolerance=False,
+            positive_tolerance=True,
+        )
+        if item == "==":
+            res = "eq(" + left_side + ", " + right_side
+        elif item == "!=":
+            res = "ne(" + left_side + ", " + right_side
+        elif item == ">=":
+            res = "ge(" + left_side + ", " + right_side
+        elif item == "<=":
+            res = "le(" + left_side + ", " + right_side
+        elif item == ">":
+            res = "gt(" + left_side + ", " + right_side
+        elif item == "<":
+            res = "lt(" + left_side + ", " + right_side
         if "tolerance" in self.params.keys() and (
             not (
                 contains_string(expression[:idx])
                 or contains_string(expression[idx + 1 :])
             )
         ):
-            left_side = self.parse(
-                expression=expression[:idx],
-                apply_tolerance=False,
-                positive_tolerance=True,
-            )
             left_side_pos = self.parse(
                 expression=expression[:idx],
                 apply_tolerance=True,
@@ -1021,11 +1078,6 @@ class RuleParser:
                 expression=expression[:idx],
                 apply_tolerance=True,
                 positive_tolerance=False,
-            )
-            right_side = self.parse(
-                expression=expression[idx + 1 :],
-                apply_tolerance=False,
-                positive_tolerance=True,
             )
             right_side_pos = self.parse(
                 expression=expression[idx + 1 :],
@@ -1037,13 +1089,9 @@ class RuleParser:
                 apply_tolerance=True,
                 positive_tolerance=False,
             )
-            if item in ["=="]:
-                res = (
-                    "_eq("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            if item == "==":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1053,13 +1101,9 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            if item in ["!="]:
-                res = (
-                    "_ne("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            elif item == "!=":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1069,13 +1113,9 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            if item in [">="]:
-                res = (
-                    "_ge("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            elif item == ">=":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1085,13 +1125,9 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            if item in ["<="]:
-                res = (
-                    "_le("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            elif item == "<=":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1101,13 +1137,9 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            elif item in [">"]:
-                res = (
-                    "_gt("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            elif item == ">":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1117,13 +1149,9 @@ class RuleParser:
                     + right_side_neg
                     + ")"
                 )
-            elif item in ["<"]:
-                res = (
-                    "_lt("
-                    + left_side
-                    + ", "
-                    + right_side
-                    + ", "
+            elif item == "<":
+                res += (
+                    ", "
                     + left_side_pos
                     + ", "
                     + left_side_neg
@@ -1134,28 +1162,7 @@ class RuleParser:
                     + ")"
                 )
         else:
-            left_side = self.parse(
-                expression=expression[:idx],
-                apply_tolerance=apply_tolerance,
-                positive_tolerance=positive_tolerance,
-            )
-            right_side = self.parse(
-                expression=expression[idx + 1 :],
-                apply_tolerance=apply_tolerance,
-                positive_tolerance=positive_tolerance,
-            )
-            if item in ["=="]:
-                res = "_eq(" + left_side + ", " + right_side + ")"
-            if item in ["!="]:
-                res = "_ne(" + left_side + ", " + right_side + ")"
-            if item in [">="]:
-                res = "_ge(" + left_side + ", " + right_side + ")"
-            if item in ["<="]:
-                res = "_le(" + left_side + ", " + right_side + ")"
-            elif item in [">"]:
-                res = "_gt(" + left_side + ", " + right_side + ")"
-            elif item in ["<"]:
-                res = "_lt(" + left_side + ", " + right_side + ")"
+            res += ")"
         return res
 
     def parse_math_operator(
@@ -1207,12 +1214,8 @@ class RuleParser:
                 current_positive_tolerance = (
                     not positive_tolerance if apply_tolerance else positive_tolerance
                 )
-            if item in ["*", "/"]:
-                if (
-                    apply_tolerance
-                    and contains_column(expression[idx + 1])
-                    and contains_column(expression[:idx])
-                ):
+            if item in ["*", "/", "**"]:
+                if apply_tolerance:
                     # both sides contain at least one column that are multiplied or divided
                     # so we must use adjusted * and / operators that calculate the
                     # lower and upper bound correctly
@@ -1227,9 +1230,11 @@ class RuleParser:
                         positive_tolerance=False,
                     )
                     if item == "*":
-                        new_res = "_mul"
+                        new_res = "mul"
                     elif item == "/":
-                        new_res = "_div"
+                        new_res = "div"
+                    elif item == "**":
+                        new_res = "pow"
                     new_res += (
                         "("
                         + res_pos
@@ -1262,18 +1267,18 @@ class RuleParser:
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=False,
                     )
-            elif item == "**":
-                res = (
-                    "max(0, "
-                    + res
-                    + ")"
-                    + item
-                    + self.parse(
-                        expression=expression[idx + 1],
-                        apply_tolerance=apply_tolerance,
-                        positive_tolerance=current_positive_tolerance,
-                    )
-                )
+            # elif item == "**":
+            #     res = (
+            #         "max(0, "
+            #         + res
+            #         + ")"
+            #         + item
+            #         + self.parse(
+            #             expression=expression[idx + 1],
+            #             apply_tolerance=apply_tolerance,
+            #             positive_tolerance=current_positive_tolerance,
+            #         )
+            #     )
             else:
                 # for + and - simply process expression
                 res += item + self.parse(

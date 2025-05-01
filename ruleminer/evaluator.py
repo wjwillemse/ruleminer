@@ -646,6 +646,39 @@ class CodeEvaluator:
                     max_right = np.maximum(right_side_pos, right_side_neg)
                     return ~((max_left >= min_right) & (min_left <= max_right))
 
+        def _pow(a_pos, a_neg, b_pos, b_neg, direction: str):
+            """
+            Perform power based on the given direction and return the maximum or minimum result
+            based on the values of a+, a-, b+, b-.
+
+            Input is pd.Series, so output should be pd.Series
+
+            """
+            if direction == "+":
+                return pd.concat(
+                    [
+                        (np.maximum(0, a_neg) ** b_neg),
+                        (np.maximum(0, a_neg) ** b_pos),
+                        (np.maximum(0, a_pos) ** b_neg),
+                        (np.maximum(0, a_pos) ** b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).max(axis=1)
+            else:
+                return pd.concat(
+                    [
+                        (np.maximum(0, a_neg) ** b_neg),
+                        (np.maximum(0, a_neg) ** b_pos),
+                        (np.maximum(0, a_pos) ** b_neg),
+                        (np.maximum(0, a_pos) ** b_pos),
+                    ],
+                    join="inner",
+                    ignore_index=True,
+                    axis=1,
+                ).min(axis=1)
+
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
             Perform multiplication based on the given direction and return the maximum or minimum result
@@ -774,22 +807,23 @@ class CodeEvaluator:
         if self.params is not None and COMPARISONS in self.params.get(
             "intermediate_results", []
         ):
-            self.globals["_eq"] = _eq_with_logging
-            self.globals["_ne"] = _ne_with_logging
-            self.globals["_ge"] = _ge_with_logging
-            self.globals["_le"] = _le_with_logging
-            self.globals["_gt"] = _gt_with_logging
-            self.globals["_lt"] = _lt_with_logging
+            self.globals["eq"] = _eq_with_logging
+            self.globals["ne"] = _ne_with_logging
+            self.globals["ge"] = _ge_with_logging
+            self.globals["le"] = _le_with_logging
+            self.globals["gt"] = _gt_with_logging
+            self.globals["lt"] = _lt_with_logging
         else:
-            self.globals["_eq"] = _eq
-            self.globals["_ne"] = _ne
-            self.globals["_ge"] = _ge
-            self.globals["_le"] = _le
-            self.globals["_gt"] = _gt
-            self.globals["_lt"] = _lt
-        self.globals["_mul"] = _mul
-        self.globals["_div"] = _div
-        self.globals["_corr"] = _corr
+            self.globals["eq"] = _eq
+            self.globals["ne"] = _ne
+            self.globals["ge"] = _ge
+            self.globals["le"] = _le
+            self.globals["gt"] = _gt
+            self.globals["lt"] = _lt
+        self.globals["pow"] = _pow
+        self.globals["mul"] = _mul
+        self.globals["div"] = _div
+        self.globals["corr"] = _corr
 
     def datatype_not_apply_xbrl_tolerance(self, value):
         return any(
@@ -1247,35 +1281,35 @@ class CodeEvaluator:
                 elif key == "Y":
                     logs += " then ("
                     logs_added = False
-            # try:
-            variables[key] = eval(expressions[key], self.globals, encodings)
-            if logs is not None:
-                # collect log of statistics
-                log = []
-                if len(self._mean_logs) > 0:
-                    log.append("; ".join(self._mean_logs))
-                if len(self._std_logs) > 0:
-                    log.append("; ".join(self._std_logs))
-                if len(self._quantile_logs) > 0:
-                    log.append("; ".join(self._quantile_logs))
-                # put logs in pd.Series as a strings
-                if len(self._eval_logs) > 0:
-                    if logs_added:
-                        logs += "; "
-                    logs += self._eval_logs
-                    logs_added = True
-                if len(log) > 0:
-                    if logs_added:
-                        logs += "; "
-                    logs += "; ".join(log)
-                    logs_added = True
-                if key != "N":
-                    logs += ")"
-            # except Exception as e:
-            #     self.logger.debug(
-            #         "Error evaluating the code '" + expressions[key] + "': " + repr(e)
-            #     )
-            #     variables[key] = np.nan
+            try:
+                variables[key] = eval(expressions[key], self.globals, encodings)
+                if logs is not None:
+                    # collect log of statistics
+                    log = []
+                    if len(self._mean_logs) > 0:
+                        log.append("; ".join(self._mean_logs))
+                    if len(self._std_logs) > 0:
+                        log.append("; ".join(self._std_logs))
+                    if len(self._quantile_logs) > 0:
+                        log.append("; ".join(self._quantile_logs))
+                    # put logs in pd.Series as a strings
+                    if len(self._eval_logs) > 0:
+                        if logs_added:
+                            logs += "; "
+                        logs += self._eval_logs
+                        logs_added = True
+                    if len(log) > 0:
+                        if logs_added:
+                            logs += "; "
+                        logs += "; ".join(log)
+                        logs_added = True
+                    if key != "N":
+                        logs += ")"
+            except Exception as e:
+                self.logger.debug(
+                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+                )
+                variables[key] = np.nan
         return variables, logs
 
     def evaluate_str(
