@@ -42,20 +42,25 @@ The following comparison operators are availabe:
 
 ## Terms: numbers, strings, columns, functions
 
-* a *term* can be a *number* (e.g. +3, -4.1, 2.1e-8 and 0.9e10), *quoted string* (a string with single or double quotes), or a *function of columns*
+* a `term` can be a `number` (e.g. +3, -4.1, 2.1e-8 and 0.9e10), `quoted string` (a string with single or double quotes), a `column` or a `function of columns`
 
-* a *string* consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
+* a `string` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
 
-* a *function of columns* is either a prefix operator (min, max, quantile, or abs, in lower or uppercase) on one or more *columns*, and of the form, for example:
+* a `column` is a `string` with braces, so:
+```
+{"Type"}
+```
+
+Here "Type" is the name of the column in the DataFrame with the data
+
+* a `function of columns` is either a prefix operator (min, max, quantile, or abs, in lower or uppercase) on one or more *columns*, and of the form, for example:
 ```
 min(col_1, col_2, col_3)
 ```
-  or infix operators with one or more columns:
+or infix operators with one or more columns:
 ```
 (col_1 + col_2 * col_3)
 ```
-
-The following functions are available:
 
 ## General mathematical functions
 
@@ -103,12 +108,11 @@ The following functions are available:
 
 * table
 
+## Date and time functions
 
-* a *column* is a *string* with braces, so:
-```
-{"Type"}
-```
+* days
 
-  where "Type" is the name of the column in the DataFrame with the data
+* months
 
+* years
  

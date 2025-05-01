@@ -16,11 +16,11 @@ This package implements the code of the paper [Discovering and ranking validatio
 
 Here is what the package does:
 
-* Generate human-readable validation rules using rule templates containing regular expressions and a Pandas DataFrame dataset
+* Discover human-readable validation rules using rule templates with regular expressions
 
-* Evaluate rules and calculate association rules metrics
+* Evaluate rules using interval arithmetics
 
-* Evaluating rules with interval arithmetics
+* Calculate association rules metrics
 
 Available functions: available functions: min, max, abs, quantile, sum, substr, split, count, sumif, countif, mean, std, exact, corr, round, floor, ceil, table
 
