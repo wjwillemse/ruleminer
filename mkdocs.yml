@@ -33,7 +33,9 @@ plugins:
 nav:
   - Home: 'index.md'
   - Installation: 'installation.md'
-  - Usage: 'usage.md'
+  - General usage: 'usage.md'
+  - Rule grammar: 'syntax.md'
+  - Interval arithmetics: 'interval_arithmetics.md'
   - Contributing: 'contributing.md'
   - History: 'history.md'
   - API documentation: 'api_docs.md'

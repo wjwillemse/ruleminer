@@ -18,12 +18,13 @@ Here is what the package does:
 
 * Generate human-readable validation rules using rule templates containing regular expressions and a Pandas DataFrame dataset
 
-  - available functions: min, max, abs, quantile, sum, substr, split, count, sumif and countif
-  - including parameters for metric filters and rule precisions (including XBRL tolerances)
-
 * Evaluate rules and calculate association rules metrics
 
-  - available metrics: abs support, abs exceptions, confidence, support, added value, casual confidence, casual support, conviction, lift and rule power factor
+* Evaluating rules with interval arithmetics
+
+Available functions: available functions: min, max, abs, quantile, sum, substr, split, count, sumif, countif, mean, std, exact, corr, round, floor, ceil, table
+
+Available metrics: available metrics: abs support, abs exceptions, confidence, support, added value, casual confidence, casual support, conviction, lift and rule power factor
 
 Here are some examples of rule templates with regexes with which you can generate validation rules:
 
@@ -46,4 +47,4 @@ These generated validation rules can then be used to validate new datasets.
 
 ## Contributors
 
-* Willem Jan Willemse <https://github.com/wjwillemse>
+* Willem Jan Willemse <https://codeberg.org/wjwillemse>
