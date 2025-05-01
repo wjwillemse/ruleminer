@@ -1,6 +1,6 @@
 # Interval arithmetics
 
-Ruleminer provides a complete implementation of interval arithmetics when evaluating rules (see for a general description the [Wiki page](https://en.wikipedia.org/wiki/Interval_arithmetic) on Interval Arithmetics. This allows for evaluating rules in the same manner as XBRL validation rules which is based on Interval arithmetics.
+Ruleminer provides a complete implementation of interval arithmetics when evaluating rules (see for a general description the [Wiki page](https://en.wikipedia.org/wiki/Interval_arithmetic) on Interval Arithmetics). This allows for evaluating rules in the same manner as XBRL validation rules which is based on Interval arithmetics. You can define different interval definitions for different columns. 
 
 ## Implementation of interval arithmetics for operators
 
@@ -44,13 +44,13 @@ Mathematical operators are evaluated as follows (a and b can be any (nested) mat
 
 * `UB(a**b)`: `max(LB(a)**LB(b), UB(a)**LB(b), LB(a)**UB(b), UB(a)**UB(b))`
 
-Note that the plus operator does not change the direction of the tolerance, but the minus operator does change the direction of the tolerance for the right side of the expression, i.e. the lower bound of A - B is calculated by (A-tol) - (B+tol). This also holds for negative values.
+Note that the plus operator does not change the direction of the tolerance, but the minus operator does change the direction of the tolerance for the right side of the expression, i.e. the lower bound of A - B is calculated by LB(A) - UP(B). This also holds for negative values.
 
-For the multiply and divide operators we need to calculate all possible directions and take the lower or upper bound. This is because A and/or B can be negative. The lower bound of A * B can be either (A+tol) * (B+tol), (A+tol) * (B-tol), (A-tol) * (B+tol), or (A-tol) * (B-tol), depending on the specific values of A and B.
+For the multiply and divide operators we need to calculate all possible directions and take the lower or upper bound. This is because A and/or B can be negative. The lower bound of A * B can be either UP(A) * UP(B), UP(A) * LB(B), LB(A) * UP(B), or LB(A), LB(B), depending on the specific values of A and B.
 
-## The XBRL interval definition
+## Using a tolerance definition in ruleminer
 
-If the precision should depend on the specific value, which is the case for some XBRL validation rules (see for example [EIOPA XBRL Taxonomy Documentation](https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Taxonomy_Documentation_2.8.0.pdf), then you can define tolerances that depend on the values in this way:
+You can define tolerances that depend on the values in this way:
 
 ```python
 params = {
@@ -65,7 +65,31 @@ params = {
 }
 ```
 
-This means that if abs(value) >= 1e3 and < 1e6 then the precision of that value is -2, and so on.
+This means for example that if abs(value) >= 1e3 and < 1e6 then the precision of that value is 2, and so on.
+
+## Using different tolerances for different columns
+
+If you have different tolerances per report of per data point then you can add keys in the form of regexes in the tolerance dictionary. For example the following tolerance definition would use for all columns that start with an "A" zero decimals and for the rest the default tolerance:
+
+```python
+params = {
+    'tolerance': {
+        "A.*": {
+            (0, np.inf): 0
+        },
+        "default": {
+            (  0, 1e3): 1,
+            (1e3, 1e6): 2, 
+            (1e6, 1e8): 3, 
+            (1e8, np.inf): 4
+        }
+    }
+}
+```
+
+## EIOPA's XBRL tolerance definition
+
+The example above is based on the XBRL tolerance definition (see [EIOPA XBRL Taxonomy Documentation](https://dev.eiopa.europa.eu/Taxonomy/Full/2.8.0/Common/EIOPA_XBRL_Taxonomy_Documentation_2.8.0.pdf).
 
 To describe how it works we use the following example taken from the document mentioned above (page 41). In case of addition of two numbers A and B, where A is interval [A1, A2], and B is interval [B1, B2], the result is interval [A1+B1, A2+B2]. If the interval of the reported numbers overlap with the computed interval the rule is satisfied. An example in C = A + B, where:
 
@@ -112,25 +136,4 @@ And r.rules gives you the following output
 
 
 Note that the tolerance function is not stored in the formula; the 'tolerance' parameter should be passed every time a Ruleminer object is constructed.
-
-If a rule contains minus or division operators then the signs of tolerances of the right part (that falls under the minus or division) are reversed.
-
-If you have different tolerances per report of per data point then you can add keys in the form of regexes in the tolerance dictionary. For example the following tolerance definition would use for all columns that start with an "A" zero decimals and for the rest the default tolerance:
-
-```python
-params = {
-    'tolerance': {
-        "A.*": {
-            (0, np.inf): 0
-        },
-        "default": {
-            (  0, 1e3): 1,
-            (1e3, 1e6): 2, 
-            (1e6, 1e8): 3, 
-            (1e8, np.inf): 4
-        }
-    }
-}
-```
-
 
