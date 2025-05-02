@@ -834,16 +834,6 @@ class RuleParser:
         # a between [c, d] is translated to a > c and a < d
         # we convert [c, d] to (min(c,d),max(c,d)) in case that c > d
         parameters = right_side[0][1:-1]
-        first_param = self.parse(
-            parameters[0],
-            apply_tolerance=apply_tolerance,
-            positive_tolerance=positive_tolerance,
-        )
-        second_param = self.parse(
-            parameters[2],
-            apply_tolerance=apply_tolerance,
-            positive_tolerance=positive_tolerance,
-        )
         if len(parameters) == 5:
             third_parameter = self.parse(
                 parameters[4],
@@ -861,8 +851,8 @@ class RuleParser:
         else:
             # default is "both"
             operators = (">=", "<=")
-        lower_bound = "min(" + first_param + "," + second_param + ")"
-        upper_bound = "max(" + first_param + "," + second_param + ")"
+        lower_bound = ["min", ["(", parameters[0], ",", parameters[2], ")"]]
+        upper_bound = ["max", ["(", parameters[0], ",", parameters[2], ")"]]
         a = self.parse(
             [left_side, operators[0], lower_bound],
             apply_tolerance=apply_tolerance,

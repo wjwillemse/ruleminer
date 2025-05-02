@@ -1,21 +1,19 @@
 # History
 
-### 0.3.11 (2025-5-1)
+### 0.3.12 (2025-5-2)
 
 - Added logging for comparisions without tolerance
 - Fix for bug parsing list comprehensions
 - Added power function to deal with interval arithmetic
 - Changed 'between'-function to a >= lower_bound and a <= upper_bound instead of internal Pandas function
 - Renamed interval functions by removing `_`
+- Updated documentation
 
 ### 0.3.9 (2025-4-25)
 
 - Minor change to 'between'-function: if interval is (a,b) then (min(a,b),max(a,b)) is used
 - Refactoring of comparisons logging (and fix for logging of > operators)
 - Added unittests for these changes
-
-### 0.3.7 (2025-4-22)
-
 - Minor buf fix for 'between'-function
 
 ### 0.3.6 (2025-4-15)

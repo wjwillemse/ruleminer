@@ -36,6 +36,7 @@ nav:
   - General usage: 'usage.md'
   - Rule grammar: 'syntax.md'
   - Interval arithmetics: 'interval_arithmetics.md'
+  - Logging of results: 'logging.md'
   - Contributing: 'contributing.md'
   - History: 'history.md'
   - API documentation: 'api_docs.md'
