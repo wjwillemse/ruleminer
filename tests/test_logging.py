@@ -398,7 +398,7 @@ class TestLogging(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
-    
+
     def test_9(self):
         df = pd.DataFrame(
             [
