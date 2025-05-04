@@ -774,10 +774,6 @@ class CodeEvaluator:
 
         # standard functions based on numpy
         standard_functions = {
-            "MAX": np.maximum,
-            "MIN": np.minimum,
-            "SUM": np.sum,
-            "ABS": np.abs,
             "max": np.maximum,
             "min": np.minimum,
             "sum": np.sum,
@@ -792,13 +788,13 @@ class CodeEvaluator:
         if self.params is not None and STATISTICS in self.params.get(
             "intermediate_results", []
         ):
-            self.globals["MEAN"] = self.globals["mean"] = _mean_with_logging
-            self.globals["STD"] = self.globals["std"] = _std_with_logging
-            self.globals["QUANTILE"] = self.globals["quantile"] = _quantile_with_logging
+            self.globals["mean"] = _mean_with_logging
+            self.globals["std"] = _std_with_logging
+            self.globals["quantile"] = _quantile_with_logging
         else:
-            self.globals["MEAN"] = self.globals["mean"] = np.mean
-            self.globals["STD"] = self.globals["std"] = np.std
-            self.globals["QUANTILE"] = self.globals["quantile"] = np.quantile
+            self.globals["mean"] = np.mean
+            self.globals["std"] = np.std
+            self.globals["quantile"] = np.quantile
 
         # internal functions defined above
         self.globals["_abs"] = _abs

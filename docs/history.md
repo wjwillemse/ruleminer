@@ -1,5 +1,10 @@
 # History
 
+### 0.3.13 (2025-5-4)
+
+- Refactored grammar: infinite nesting, all functions caseless
+- Some refactoring in parser of lists and list comprehensions
+
 ### 0.3.12 (2025-5-2)
 
 - Added logging for comparisions without tolerance

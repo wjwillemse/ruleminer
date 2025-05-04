@@ -185,7 +185,7 @@ class TestRuleminer(unittest.TestCase):
             "THEN",
             [
                 "(",
-                ["SUBSTR", ["(", '{"A"}', ",", "2", ",", "4", ")"]],
+                ["substr", ["(", '{"A"}', ",", "2", ",", "4", ")"]],
                 "in",
                 ["[", '"D1"', ",", '"D3"', "]"],
                 ")",
@@ -213,7 +213,7 @@ class TestRuleminer(unittest.TestCase):
             "THEN",
             [
                 "(",
-                ["SUBSTR", ["(", '{"A"}', ",", "2", ",", "4", ")"]],
+                ["substr", ["(", '{"A"}', ",", "2", ",", "4", ")"]],
                 "not in",
                 ["[", '"D1"', ",", '"D3"', "]"],
                 ")",
@@ -987,7 +987,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_35(self):
         actual = (
-            ruleminer.function_expression()
+            ruleminer.math_expression()
             .parse_string('substr({"Type"}, 0, 3)', parseAll=True)
             .as_list()
         )
@@ -1007,7 +1007,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_37(self):
         actual = (
-            ruleminer.function_expression()
+            ruleminer.math_expression()
             .parse_string('max(substr({"Type"}, 0, 1) in ["d"])', parseAll=True)
             .as_list()
         )
@@ -1053,7 +1053,7 @@ class TestRuleminer(unittest.TestCase):
 
     def test_39(self):
         actual = (
-            ruleminer.function_expression().parse_string('abs({"f"} + {"d"})').as_list()
+            ruleminer.math_expression().parse_string('abs({"f"} + {"d"})').as_list()
         )
         expected = [["abs", ["(", '{"f"}', "+", '{"d"}', ")"]]]
         self.assertTrue(actual == expected)
@@ -1667,29 +1667,29 @@ class TestRuleminer(unittest.TestCase):
             templates=[{"expression": form} for form in formulas],
             params={},
         )
-        self.assertTrue(r.rules.values[0][2] == 'if () then (gt(MAX(0,{"A"}), 0))')
-        self.assertTrue(r.rules.values[1][2] == 'if () then (gt(MAX(0,({"A"})), 0))')
+        self.assertTrue(r.rules.values[0][2] == 'if () then (gt(max(0,{"A"}), 0))')
+        self.assertTrue(r.rules.values[1][2] == 'if () then (gt(max(0,({"A"})), 0))')
         self.assertTrue(
-            r.rules.values[2][2] == 'if () then (gt((MAX(0,({"A"}))), (0)))'
+            r.rules.values[2][2] == 'if () then (gt((max(0,({"A"}))), (0)))'
         )
         self.assertTrue(
-            r.rules.values[3][2] == 'if () then (gt(MAX(0,{"A"}-{"B"}), 0))'
+            r.rules.values[3][2] == 'if () then (gt(max(0,{"A"}-{"B"}), 0))'
         )
         self.assertTrue(
-            r.rules.values[4][2] == 'if () then (gt(MAX(0,({"A"}-{"B"})), 0))'
+            r.rules.values[4][2] == 'if () then (gt(max(0,({"A"}-{"B"})), 0))'
         )
         self.assertTrue(
-            r.rules.values[5][2] == 'if () then (gt((MAX(0,({"A"}-{"B"}))), (0)))'
+            r.rules.values[5][2] == 'if () then (gt((max(0,({"A"}-{"B"}))), (0)))'
         )
         self.assertTrue(
-            r.rules.values[6][2] == 'if () then (gt(MAX(0,({"A"})-{"B"}), 0))'
+            r.rules.values[6][2] == 'if () then (gt(max(0,({"A"})-{"B"}), 0))'
         )
         self.assertTrue(
-            r.rules.values[7][2] == 'if () then (gt((MAX(0,(({"A"})-{"B"}))), (0)))'
+            r.rules.values[7][2] == 'if () then (gt((max(0,(({"A"})-{"B"}))), (0)))'
         )
         self.assertTrue(
             r.rules.values[8][2]
-            == 'if () then (eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))'
+            == 'if () then (eq({"A"}, max(0,max(0,{"A"})-max(0,{"B"}))))'
         )
         df = pd.DataFrame(
             [
@@ -1722,7 +1722,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(max(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1735,7 +1735,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(max(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1748,7 +1748,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 0,
                 0,
-                'if () then (gt(MAX(0,{"A"}), 0))',
+                'if () then (gt(max(0,{"A"}), 0))',
                 2,
                 1,
                 0.6666666666666666,
@@ -1761,7 +1761,7 @@ class TestRuleminer(unittest.TestCase):
             [
                 8,
                 0,
-                'if () then (eq({"A"}, MAX(0,MAX(0,{"A"})-MAX(0,{"B"}))))',
+                'if () then (eq({"A"}, max(0,max(0,{"A"})-max(0,{"B"}))))',
                 1,
                 2,
                 0.3333333333333333,
