@@ -824,6 +824,11 @@ class CodeEvaluator:
     def datatype_not_apply_xbrl_tolerance(self, value):
         return any(
             [
+                isinstance(value, datatype)
+                for datatype in [str, bool, np.datetime64, pd.Timestamp]
+            ]
+        ) or any(
+            [
                 p(value)
                 for p in [
                     pd.api.types.is_string_dtype,
