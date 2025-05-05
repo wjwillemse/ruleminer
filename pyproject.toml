@@ -1,6 +1,6 @@
 [project]
 name = "ruleminer"
-version = "0.3.13"
+version = "0.3.14"
 description = "Python package to mine association rules in datasets"
 authors = [{name = "Willem Jan Willemse", email = "w.j.willemse@freedom.nl"}]
 license = "MIT/X"

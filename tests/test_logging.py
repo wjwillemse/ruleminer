@@ -423,11 +423,10 @@ class TestLogging(unittest.TestCase):
             .values
         )
         expected = [
-            ["Test_1", True, 'if () then (True; {1.0} == {1.0})'],
-            ["Test_2", False, 'if () then (False; {0.0} == {1.0})'],
-            ["Test_3", True, 'if () then (True; {1.0} == {1.0})'],
+            ["Test_1", True, "if () then (True; {1.0} == {1.0})"],
+            ["Test_2", False, "if () then (False; {0.0} == {1.0})"],
+            ["Test_3", True, "if () then (True; {1.0} == {1.0})"],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
- 

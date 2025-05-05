@@ -242,7 +242,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side == right_side)
+                res = left_side == right_side
                 self._log_result(res)
                 return res
             else:
@@ -340,7 +340,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side <= right_side)
+                res = left_side <= right_side
                 self._log_result(res)
                 return res
             else:
@@ -412,7 +412,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side < right_side)
+                res = left_side < right_side
                 self._log_result(res)
                 return res
             else:
@@ -482,7 +482,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side >= right_side)
+                res = left_side >= right_side
                 self._log_result(res)
                 return res
             else:
@@ -554,7 +554,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side > right_side)
+                res = left_side > right_side
                 self._log_result(res)
                 return res
             else:
@@ -598,7 +598,7 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                res = (left_side != right_side)
+                res = left_side != right_side
                 self._log_result(res)
                 return res
             else:
