@@ -1,5 +1,9 @@
 # History
 
+### 0.3.14 (2025-5-5)
+
+- Added logging for strings, bools and datetimes
+
 ### 0.3.13 (2025-5-4)
 
 - Refactored grammar: infinite nesting, all functions caseless
