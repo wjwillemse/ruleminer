@@ -250,7 +250,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "==",
@@ -346,7 +346,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "<=",
@@ -416,7 +416,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "<",
@@ -484,7 +484,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         ">=",
@@ -554,7 +554,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         ">",
@@ -596,7 +596,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "!=",
@@ -838,7 +838,7 @@ class CodeEvaluator:
             ]
         )
 
-    def _log(
+    def _log_float(
         self,
         left_side,
         right_side,
