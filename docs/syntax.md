@@ -42,11 +42,13 @@ The following comparison operators are availabe:
 
 ## Terms: numbers, strings, columns, functions
 
-* a `term` can be a `number` (e.g. +3, -4.1, 2.1e-8 and 0.9e10), `quoted string` (a string with single or double quotes), a `column` or a `function of columns`
+* a `term` can be a `number`, `quoted string` (a string with single or double quotes), a `column` or a `function of columns`
 
-* a `string` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
+* a `number` can be of the form +3, -4.1, 2.1e-8 and 0.9e10
 
-* a `column` is a `string` with braces, so:
+* a `quoted string` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( ) with double parentheses
+
+* a `column` is a `quoted string` with braces, so:
 ```
 {"Type"}
 ```
@@ -116,7 +118,7 @@ or infix operators with one or more columns:
 
 * years
  
-## Full grammar
+# Full grammar in pyparsing
 
 ```
 _lpar = pyparsing.Literal("(")
@@ -199,8 +201,13 @@ _compa_op = (
     | pyparsing.CaselessLiteral("not match")
     | pyparsing.CaselessLiteral("not contains")
 )
-
-base_element = _quoted_string | _column | _number | _empty | _list_comprehension_var
+base_element = (
+    _quoted_string 
+    | _column 
+    | _number 
+    | _empty 
+    | _list_comprehension_var
+)
 math_expression = pyparsing.Forward()
 condition_expression = pyparsing.infixNotation(
     (math_expression + _compa_op + math_expression),
@@ -253,13 +260,10 @@ factor = pyparsing.Group(atom + pyparsing.OneOrMore(_expop + atom)) | atom
 term = pyparsing.Group(factor + pyparsing.OneOrMore(_multop + factor)) | factor
 math_expression <<= term + pyparsing.ZeroOrMore(_addop + term)
 
-_if_then = (
-    "if" + condition_expression + "then" + condition_expression
-    | "IF" + condition_expression + "THEN" + condition_expression
-)
-
+_if = pyparsing.one_of("if", caseless=True)
+_then = pyparsing.one_of("then", caseless=True)
 rule_expression = (
-    _if_then
+    _if + condition_expression + _then + condition_expression
     | "if () then " + condition_expression
     | "IF () THEN " + condition_expression
     | condition_expression
