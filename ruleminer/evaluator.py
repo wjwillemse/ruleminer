@@ -242,12 +242,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    "==",
-                )
-                return left_side == right_side
+                res = (left_side == right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -343,12 +340,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    "<=",
-                )
-                return left_side <= right_side
+                res = (left_side <= right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -418,12 +412,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    "<",
-                )
-                return left_side < right_side
+                res = (left_side < right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -491,12 +482,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    ">=",
-                )
-                return left_side >= right_side
+                res = (left_side >= right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -566,12 +554,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    ">",
-                )
-                return left_side > right_side
+                res = (left_side > right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -613,12 +598,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                self._log_literal(
-                    left_side,
-                    right_side,
-                    "!=",
-                )
-                return left_side != right_side
+                res = (left_side != right_side)
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -868,77 +850,24 @@ class CodeEvaluator:
             ]
         )
 
-    def _log_literal(
+    def _log_result(
         self,
-        left_side,
-        right_side,
-        operator,
+        result,
     ):
         """ """
-        # {left} operator {right}
-        if hasattr(left_side, "__iter__"):
-            # left side is a list
-            if hasattr(right_side, "__iter__"):
-                # right side is a list
-                if len(self._eval_logs) == 0:
-                    for idx in range(len(left_side)):
-                        s = (
-                            '"'
-                            + str(left_side[idx])
-                            + '"'
-                            + operator
-                            + '"'
-                            + str(right_side[idx])
-                            + '"'
-                        )
-                        self._eval_logs.append(s)
-                else:
-                    for idx in range(len(left_side)):
-                        s = (
-                            '"'
-                            + str(left_side[idx])
-                            + '"'
-                            + operator
-                            + '"'
-                            + str(right_side[idx])
-                            + '"'
-                        )
-                        self._eval_logs[idx] += "; " + s
+        if hasattr(result, "__iter__"):
+            # result is a list
+            if len(self._eval_logs) == 0:
+                for idx in range(len(result)):
+                    s = str(result[idx])
+                    self._eval_logs.append(s)
             else:
-                # right side is an item
-                if len(self._eval_logs) == 0:
-                    for idx in range(len(left_side)):
-                        s = '"' + str(left_side[idx]) + '"'
-                        self._eval_logs.append(s)
-                else:
-                    for idx in range(len(left_side)):
-                        s = '"' + str(left_side[idx]) + '"'
-                        self._eval_logs[idx] += "; " + s
-                for idx in range(len(self._eval_logs)):
-                    self._eval_logs[idx] += operator
-                for idx in range(len(left_side)):
-                    self._eval_logs[idx] += '"' + str(right_side) + '"'
+                for idx in range(len(result)):
+                    s = str(result[idx])
+                    self._eval_logs[idx] += "; " + s
         else:
-            # left side is an item
-            if hasattr(right_side, "__iter__"):
-                # right side is a list
-                if len(self._eval_logs) == 0:
-                    for idx in range(len(right_side)):
-                        s = '"' + str(left_side) + '"'
-                        self._eval_logs.append(s)
-                else:
-                    for idx in range(len(right_side)):
-                        s = '"' + str(left_side) + '"'
-                        self._eval_logs[idx] += "; " + s
-                for idx in range(len(self._eval_logs)):
-                    self._eval_logs[idx] += operator
-                for idx in range(len(right_side)):
-                    self._eval_logs[idx] += '"' + str(right_side) + '"'
-            else:
-                # right side is a item
-                self._eval_logs += '"'+str(left_side)+'"'
-                self._eval_logs += operator
-                self._eval_logs += '"'+str(right_side)+'"'
+            # result is an item
+            self._eval_logs += str(result)
 
     def _log_float(
         self,
@@ -1384,35 +1313,35 @@ class CodeEvaluator:
                 elif key == "Y":
                     logs += " then ("
                     logs_added = False
-            # try:
-            variables[key] = eval(expressions[key], self.globals, encodings)
-            if logs is not None:
-                # collect log of statistics
-                log = []
-                if len(self._mean_logs) > 0:
-                    log.append("; ".join(self._mean_logs))
-                if len(self._std_logs) > 0:
-                    log.append("; ".join(self._std_logs))
-                if len(self._quantile_logs) > 0:
-                    log.append("; ".join(self._quantile_logs))
-                # put logs in pd.Series as a strings
-                if len(self._eval_logs) > 0:
-                    if logs_added:
-                        logs += "; "
-                    logs += self._eval_logs
-                    logs_added = True
-                if len(log) > 0:
-                    if logs_added:
-                        logs += "; "
-                    logs += "; ".join(log)
-                    logs_added = True
-                if key != "N":
-                    logs += ")"
-            # except Exception as e:
-            #     self.logger.debug(
-            #         "Error evaluating the code '" + expressions[key] + "': " + repr(e)
-            #     )
-            #     variables[key] = np.nan
+            try:
+                variables[key] = eval(expressions[key], self.globals, encodings)
+                if logs is not None:
+                    # collect log of statistics
+                    log = []
+                    if len(self._mean_logs) > 0:
+                        log.append("; ".join(self._mean_logs))
+                    if len(self._std_logs) > 0:
+                        log.append("; ".join(self._std_logs))
+                    if len(self._quantile_logs) > 0:
+                        log.append("; ".join(self._quantile_logs))
+                    # put logs in pd.Series as a strings
+                    if len(self._eval_logs) > 0:
+                        if logs_added:
+                            logs += "; "
+                        logs += self._eval_logs
+                        logs_added = True
+                    if len(log) > 0:
+                        if logs_added:
+                            logs += "; "
+                        logs += "; ".join(log)
+                        logs_added = True
+                    if key != "N":
+                        logs += ")"
+            except Exception as e:
+                self.logger.debug(
+                    "Error evaluating the code '" + expressions[key] + "': " + repr(e)
+                )
+                variables[key] = np.nan
         return variables, logs
 
     def evaluate_str(

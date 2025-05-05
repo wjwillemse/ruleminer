@@ -2,7 +2,7 @@
 
 ### 0.3.14 (2025-5-5)
 
-- Added logging for strings, bools and datetimes
+- Added logging of results for strings, bools and datetimes
 - Updated docs
 
 ### 0.3.13 (2025-5-4)

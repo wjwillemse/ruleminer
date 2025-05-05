@@ -14,6 +14,7 @@ parameters_tolerance = {
         },
     },
     "intermediate_results": ["comparisons"],
+    "output_not_applicable": True,
 }
 parameters_no_tolerance = {
     "intermediate_results": ["comparisons"],
@@ -422,10 +423,11 @@ class TestLogging(unittest.TestCase):
             .values
         )
         expected = [
-            ["Test_1", True, 'if () then ("a"=="a"; {1.0} == {1.0})'],
-            ["Test_2", False, 'if () then ("nan"=="b"; {0.0} == {1.0})'],
-            ["Test_3", True, 'if () then ("b"=="b"; {1.0} == {1.0})'],
+            ["Test_1", True, 'if () then (True; {1.0} == {1.0})'],
+            ["Test_2", False, 'if () then (False; {0.0} == {1.0})'],
+            ["Test_3", True, 'if () then (True; {1.0} == {1.0})'],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+ 
