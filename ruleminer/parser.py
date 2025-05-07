@@ -13,6 +13,7 @@ from .evaluator import CodeEvaluator
 import regex as re
 import numpy as np
 import logging
+import itertools
 
 
 class RuleParser:
@@ -832,10 +833,15 @@ class RuleParser:
         right_side = expression[idx + 1 :]
         # a between [c, d] is translated to a > c and a < d
         # we convert [c, d] to (min(c,d),max(c,d)) in case that c > d
-        parameters = right_side[0][1:-1]
-        if len(parameters) == 5:
+        # split the parameters-list on commas
+        parameters = [
+            list(x[1])
+            for x in itertools.groupby(right_side[0][1:-1], lambda x: x == ",")
+            if not x[0]
+        ]
+        if len(parameters) == 3:
             third_parameter = self.parse(
-                parameters[4],
+                parameters[2],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             ).lower()
@@ -847,11 +853,13 @@ class RuleParser:
                 operators = (">=", "<")
             elif third_parameter == '"right"':
                 operators = (">", "<=")
+            else:
+                operators = (">=", "<=")
         else:
             # default is "both"
             operators = (">=", "<=")
-        lower_bound = ["min", ["(", parameters[0], ",", parameters[2], ")"]]
-        upper_bound = ["max", ["(", parameters[0], ",", parameters[2], ")"]]
+        lower_bound = ["min", ["(", parameters[0], ",", parameters[1], ")"]]
+        upper_bound = ["max", ["(", parameters[0], ",", parameters[1], ")"]]
         a = self.parse(
             [left_side, operators[0], lower_bound],
             apply_tolerance=apply_tolerance,

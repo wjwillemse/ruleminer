@@ -2346,7 +2346,7 @@ class TestRuleminer(unittest.TestCase):
                 "default": None,
             },
         }
-        formulas = ['({"A"} not between [1, 15, "BOTH"])']
+        formulas = ['({"A"} not between [1+0+0, 15+0+0, "BOTH"])']
         df = pd.DataFrame(
             [
                 ["Test_1", 11.0],
@@ -2360,7 +2360,7 @@ class TestRuleminer(unittest.TestCase):
             params=parameters,
         )
         r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters)
-        expected = 'if () then (~(ge({"A"}, min(1,15), {"A"}, {"A"}, min(1,15), min(1,15)) & le({"A"}, max(1,15), {"A"}, {"A"}, max(1,15), max(1,15))))'
+        expected = 'if () then (~(ge({"A"}, min(1+0+0,15+0+0), {"A"}, {"A"}, min(1+0+0,15+0+0), min(1+0+0,15+0+0)) & le({"A"}, max(1+0+0,15+0+0), {"A"}, {"A"}, max(1+0+0,15+0+0), max(1+0+0,15+0+0))))'
         actual = r.rules.values[0][2]
         self.assertEqual(actual, expected)
         actual = (
