@@ -134,22 +134,8 @@ class CodeEvaluator:
                 # [-3, 1] -> upper limit of abs is 3
                 # [1, 4] -> upper limit of abs is 4
                 # so plain max of abs(pos) and abs(neg)
-                return pd.concat(
-                    [
-                        np.abs(a_pos),
-                        np.abs(a_neg),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
-            elif direction == "-":
-                # [-3, -1] -> lower limit of abs is 1
-                # [-3, 1] -> lower limit of abs is 0
-                # [1, 4] -> lower limit of abs is 1
-                # so min of abs(pos) and abs(neg), except if neg < 0 and pos > 0 (then the result should be 0)
-                return (
-                    pd.concat(
+                if hasattr(a_pos, "__iter__") | hasattr(a_neg, "__iter__"):
+                    return pd.concat(
                         [
                             np.abs(a_pos),
                             np.abs(a_neg),
@@ -157,10 +143,33 @@ class CodeEvaluator:
                         join="inner",
                         ignore_index=True,
                         axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(np.abs(a_pos), np.abs(a_neg))
+            elif direction == "-":
+                # [-3, -1] -> lower limit of abs is 1
+                # [-3, 1] -> lower limit of abs is 0
+                # [1, 4] -> lower limit of abs is 1
+                # so min of abs(pos) and abs(neg), except if neg < 0 and pos > 0 (then the result should be 0)
+                if hasattr(a_pos, "__iter__") | hasattr(a_neg, "__iter__"):
+                    return (
+                        pd.concat(
+                            [
+                                np.abs(a_pos),
+                                np.abs(a_neg),
+                            ],
+                            join="inner",
+                            ignore_index=True,
+                            axis=1,
+                        )
+                        .where(~((a_neg < 0) & (a_pos > 0)), 0)
+                        .min(axis=1)
                     )
-                    .where(~((a_neg < 0) & (a_pos > 0)), 0)
-                    .min(axis=1)
-                )
+                else:
+                    if a_neg < 0 and a_pos > 0:
+                        return 0
+                    else:
+                        return min(np.abs(a_pos), np.abs(a_neg))
 
         def _round(*args):
             """
@@ -667,29 +676,45 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (np.maximum(0, a_neg) ** b_neg),
-                        (np.maximum(0, a_neg) ** b_pos),
-                        (np.maximum(0, a_pos) ** b_neg),
-                        (np.maximum(0, a_pos) ** b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (np.maximum(0, a_neg) ** b_neg),
+                            (np.maximum(0, a_neg) ** b_pos),
+                            (np.maximum(0, a_pos) ** b_neg),
+                            (np.maximum(0, a_pos) ** b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
+                    )
             else:
-                return pd.concat(
-                    [
-                        (np.maximum(0, a_neg) ** b_neg),
-                        (np.maximum(0, a_neg) ** b_pos),
-                        (np.maximum(0, a_pos) ** b_neg),
-                        (np.maximum(0, a_pos) ** b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (np.maximum(0, a_neg) ** b_neg),
+                            (np.maximum(0, a_neg) ** b_pos),
+                            (np.maximum(0, a_pos) ** b_neg),
+                            (np.maximum(0, a_pos) ** b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
+                    )
 
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
@@ -700,29 +725,39 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (a_neg * b_neg),
-                        (a_neg * b_pos),
-                        (a_pos * b_neg),
-                        (a_pos * b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (a_neg * b_neg),
+                            (a_neg * b_pos),
+                            (a_pos * b_neg),
+                            (a_pos * b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        a_neg * b_neg, a_neg * b_pos, a_pos * b_neg, a_pos * b_pos
+                    )
             else:
-                return pd.concat(
-                    [
-                        (a_neg * b_neg),
-                        (a_neg * b_pos),
-                        (a_pos * b_neg),
-                        (a_pos * b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (a_neg * b_neg),
+                            (a_neg * b_pos),
+                            (a_pos * b_neg),
+                            (a_pos * b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        [a_neg * b_neg, a_neg * b_pos, a_pos * b_neg, a_pos * b_pos]
+                    )
 
         def _div(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
@@ -733,29 +768,39 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (a_neg / b_neg),
-                        (a_neg / b_pos),
-                        (a_pos / b_neg),
-                        (a_pos / b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (a_neg / b_neg),
+                            (a_neg / b_pos),
+                            (a_pos / b_neg),
+                            (a_pos / b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        a_neg / b_neg, a_neg / b_pos, a_pos / b_neg, a_pos / b_pos
+                    )
             else:
-                return pd.concat(
-                    [
-                        (a_neg / b_neg),
-                        (a_neg / b_pos),
-                        (a_pos / b_neg),
-                        (a_pos / b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            (a_neg / b_neg),
+                            (a_neg / b_pos),
+                            (a_pos / b_neg),
+                            (a_pos / b_pos),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        a_neg / b_neg, a_neg / b_pos, a_pos / b_neg, a_pos / b_pos
+                    )
 
         def _corr(
             key: str,
@@ -858,12 +903,12 @@ class CodeEvaluator:
         if hasattr(result, "__iter__"):
             # result is a list
             if len(self._eval_logs) == 0:
-                for idx in range(len(result)):
-                    s = str(result[idx])
+                for idx, item in enumerate(result):
+                    s = str(item)
                     self._eval_logs.append(s)
             else:
-                for idx in range(len(result)):
-                    s = str(result[idx])
+                for item in result:
+                    s = str(item)
                     self._eval_logs[idx] += "; " + s
         else:
             # result is an item
