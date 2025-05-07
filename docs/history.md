@@ -1,9 +1,10 @@
 # History
 
-### 0.3.14 (2025-5-5)
+### 0.3.16 (2025-5-7)
 
 - Added logging of results for strings, bools and datetimes
 - Updated docs
+- Minor bug fix for complex expressions
 
 ### 0.3.13 (2025-5-4)
 
