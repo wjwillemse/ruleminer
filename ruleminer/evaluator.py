@@ -995,7 +995,7 @@ class CodeEvaluator:
                     s = str(item)
                     self._eval_logs.append(s)
             else:
-                for item in result:
+                for idx, item in enumerate(result):
                     s = str(item)
                     self._eval_logs[idx] += "; " + s
         else:

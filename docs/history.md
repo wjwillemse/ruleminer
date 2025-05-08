@@ -1,6 +1,6 @@
 # History
 
-### 0.3.16 (2025-5-7)
+### 0.3.17 (2025-5-8)
 
 - Added logging of results for strings, bools and datetimes
 - Updated docs
