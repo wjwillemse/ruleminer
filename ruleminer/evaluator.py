@@ -710,22 +710,10 @@ class CodeEvaluator:
                     ).max(axis=1)
                 else:
                     return max(
-                        pd.Series(
-                            np.maximum(0, a_neg) ** b_neg,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_neg) ** b_pos,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_pos) ** b_neg,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_pos) ** b_pos,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
                     )
             else:
                 if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
@@ -754,22 +742,10 @@ class CodeEvaluator:
                     ).min(axis=1)
                 else:
                     return min(
-                        pd.Series(
-                            np.maximum(0, a_neg) ** b_neg,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_neg) ** b_pos,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_pos) ** b_neg,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
-                        pd.Series(
-                            np.maximum(0, a_pos) ** b_pos,
-                            index=self.globals[DUNDER_DF].index,
-                        ),
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
                     )
 
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):

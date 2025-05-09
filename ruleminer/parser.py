@@ -1212,8 +1212,7 @@ class RuleParser:
                 )
             if item in ["*", "/", "**"]:
                 if apply_tolerance:
-                    # both sides contain at least one column that are multiplied or divided
-                    # so we must use adjusted * and / operators that calculate the
+                    # we must use adjusted * and / operators that calculate the
                     # lower and upper bound correctly
                     right_pos = self.parse(
                         expression=expression[idx + 1],
@@ -1263,18 +1262,6 @@ class RuleParser:
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=False,
                     )
-            # elif item == "**":
-            #     res = (
-            #         "max(0, "
-            #         + res
-            #         + ")"
-            #         + item
-            #         + self.parse(
-            #             expression=expression[idx + 1],
-            #             apply_tolerance=apply_tolerance,
-            #             positive_tolerance=current_positive_tolerance,
-            #         )
-            #     )
             else:
                 # for + and - simply process expression
                 res += item + self.parse(
