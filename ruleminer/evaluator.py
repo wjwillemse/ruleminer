@@ -134,33 +134,50 @@ class CodeEvaluator:
                 # [-3, 1] -> upper limit of abs is 3
                 # [1, 4] -> upper limit of abs is 4
                 # so plain max of abs(pos) and abs(neg)
-                return pd.concat(
-                    [
-                        np.abs(a_pos),
-                        np.abs(a_neg),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_pos, "__iter__") | hasattr(a_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                np.abs(a_pos), index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                np.abs(a_neg), index=self.globals[DUNDER_DF].index
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(np.abs(a_pos), np.abs(a_neg))
             elif direction == "-":
                 # [-3, -1] -> lower limit of abs is 1
                 # [-3, 1] -> lower limit of abs is 0
                 # [1, 4] -> lower limit of abs is 1
                 # so min of abs(pos) and abs(neg), except if neg < 0 and pos > 0 (then the result should be 0)
-                return (
-                    pd.concat(
-                        [
-                            np.abs(a_pos),
-                            np.abs(a_neg),
-                        ],
-                        join="inner",
-                        ignore_index=True,
-                        axis=1,
+                if hasattr(a_pos, "__iter__") | hasattr(a_neg, "__iter__"):
+                    return (
+                        pd.concat(
+                            [
+                                pd.Series(
+                                    np.abs(a_pos), index=self.globals[DUNDER_DF].index
+                                ),
+                                pd.Series(
+                                    np.abs(a_neg), index=self.globals[DUNDER_DF].index
+                                ),
+                            ],
+                            join="inner",
+                            ignore_index=True,
+                            axis=1,
+                        )
+                        .where(~((a_neg < 0) & (a_pos > 0)), 0)
+                        .min(axis=1)
                     )
-                    .where(~((a_neg < 0) & (a_pos > 0)), 0)
-                    .min(axis=1)
-                )
+                else:
+                    if a_neg < 0 and a_pos > 0:
+                        return 0
+                    else:
+                        return min(np.abs(a_pos), np.abs(a_neg))
 
         def _round(*args):
             """
@@ -242,7 +259,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side == right_side
+                res = left_side == right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -250,7 +269,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "==",
@@ -338,7 +357,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side <= right_side
+                res = left_side <= right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -346,7 +367,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "<=",
@@ -408,7 +429,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side < right_side
+                res = left_side < right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -416,7 +439,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "<",
@@ -476,7 +499,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side >= right_side
+                res = left_side >= right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -484,7 +509,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         ">=",
@@ -546,7 +571,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side > right_side
+                res = left_side > right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -554,7 +581,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         ">",
@@ -588,7 +615,9 @@ class CodeEvaluator:
             if (self.datatype_not_apply_xbrl_tolerance(left_side)) or (
                 self.datatype_not_apply_xbrl_tolerance(right_side)
             ):
-                return left_side != right_side
+                res = left_side != right_side
+                self._log_result(res)
+                return res
             else:
                 if (
                     left_side_pos is None
@@ -596,7 +625,7 @@ class CodeEvaluator:
                     and right_side_pos is None
                     and right_side_neg is None
                 ):
-                    self._log(
+                    self._log_float(
                         left_side,
                         right_side,
                         "!=",
@@ -655,29 +684,69 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (np.maximum(0, a_neg) ** b_neg),
-                        (np.maximum(0, a_neg) ** b_pos),
-                        (np.maximum(0, a_pos) ** b_neg),
-                        (np.maximum(0, a_pos) ** b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                np.maximum(0, a_neg) ** b_neg,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_neg) ** b_pos,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_pos) ** b_neg,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_pos) ** b_pos,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
+                    )
             else:
-                return pd.concat(
-                    [
-                        (np.maximum(0, a_neg) ** b_neg),
-                        (np.maximum(0, a_neg) ** b_pos),
-                        (np.maximum(0, a_pos) ** b_neg),
-                        (np.maximum(0, a_pos) ** b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                np.maximum(0, a_neg) ** b_neg,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_neg) ** b_pos,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_pos) ** b_neg,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                            pd.Series(
+                                np.maximum(0, a_pos) ** b_pos,
+                                index=self.globals[DUNDER_DF].index,
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        np.maximum(0, a_neg) ** b_neg,
+                        np.maximum(0, a_neg) ** b_pos,
+                        np.maximum(0, a_pos) ** b_neg,
+                        np.maximum(0, a_pos) ** b_pos,
+                    )
 
         def _mul(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
@@ -688,29 +757,55 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (a_neg * b_neg),
-                        (a_neg * b_pos),
-                        (a_pos * b_neg),
-                        (a_pos * b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                a_neg * b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_neg * b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos * b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos * b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        a_neg * b_neg, a_neg * b_pos, a_pos * b_neg, a_pos * b_pos
+                    )
             else:
-                return pd.concat(
-                    [
-                        (a_neg * b_neg),
-                        (a_neg * b_pos),
-                        (a_pos * b_neg),
-                        (a_pos * b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                a_neg * b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_neg * b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos * b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos * b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        [a_neg * b_neg, a_neg * b_pos, a_pos * b_neg, a_pos * b_pos]
+                    )
 
         def _div(a_pos, a_neg, b_pos, b_neg, direction: str):
             """
@@ -721,29 +816,55 @@ class CodeEvaluator:
 
             """
             if direction == "+":
-                return pd.concat(
-                    [
-                        (a_neg / b_neg),
-                        (a_neg / b_pos),
-                        (a_pos / b_neg),
-                        (a_pos / b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).max(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                a_neg / b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_neg / b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos / b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos / b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).max(axis=1)
+                else:
+                    return max(
+                        a_neg / b_neg, a_neg / b_pos, a_pos / b_neg, a_pos / b_pos
+                    )
             else:
-                return pd.concat(
-                    [
-                        (a_neg / b_neg),
-                        (a_neg / b_pos),
-                        (a_pos / b_neg),
-                        (a_pos / b_pos),
-                    ],
-                    join="inner",
-                    ignore_index=True,
-                    axis=1,
-                ).min(axis=1)
+                if hasattr(a_neg, "__iter__") | hasattr(b_neg, "__iter__"):
+                    return pd.concat(
+                        [
+                            pd.Series(
+                                a_neg / b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_neg / b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos / b_neg, index=self.globals[DUNDER_DF].index
+                            ),
+                            pd.Series(
+                                a_pos / b_pos, index=self.globals[DUNDER_DF].index
+                            ),
+                        ],
+                        join="inner",
+                        ignore_index=True,
+                        axis=1,
+                    ).min(axis=1)
+                else:
+                    return min(
+                        a_neg / b_neg, a_neg / b_pos, a_pos / b_neg, a_pos / b_pos
+                    )
 
         def _corr(
             key: str,
@@ -774,10 +895,6 @@ class CodeEvaluator:
 
         # standard functions based on numpy
         standard_functions = {
-            "MAX": np.maximum,
-            "MIN": np.minimum,
-            "SUM": np.sum,
-            "ABS": np.abs,
             "max": np.maximum,
             "min": np.minimum,
             "sum": np.sum,
@@ -792,13 +909,13 @@ class CodeEvaluator:
         if self.params is not None and STATISTICS in self.params.get(
             "intermediate_results", []
         ):
-            self.globals["MEAN"] = self.globals["mean"] = _mean_with_logging
-            self.globals["STD"] = self.globals["std"] = _std_with_logging
-            self.globals["QUANTILE"] = self.globals["quantile"] = _quantile_with_logging
+            self.globals["mean"] = _mean_with_logging
+            self.globals["std"] = _std_with_logging
+            self.globals["quantile"] = _quantile_with_logging
         else:
-            self.globals["MEAN"] = self.globals["mean"] = np.mean
-            self.globals["STD"] = self.globals["std"] = np.std
-            self.globals["QUANTILE"] = self.globals["quantile"] = np.quantile
+            self.globals["mean"] = np.mean
+            self.globals["std"] = np.std
+            self.globals["quantile"] = np.quantile
 
         # internal functions defined above
         self.globals["_abs"] = _abs
@@ -828,6 +945,11 @@ class CodeEvaluator:
     def datatype_not_apply_xbrl_tolerance(self, value):
         return any(
             [
+                isinstance(value, datatype)
+                for datatype in [str, bool, np.datetime64, pd.Timestamp]
+            ]
+        ) or any(
+            [
                 p(value)
                 for p in [
                     pd.api.types.is_string_dtype,
@@ -837,7 +959,26 @@ class CodeEvaluator:
             ]
         )
 
-    def _log(
+    def _log_result(
+        self,
+        result,
+    ):
+        """ """
+        if hasattr(result, "__iter__"):
+            # result is a list
+            if len(self._eval_logs) == 0:
+                for idx, item in enumerate(result):
+                    s = str(item)
+                    self._eval_logs.append(s)
+            else:
+                for idx, item in enumerate(result):
+                    s = str(item)
+                    self._eval_logs[idx] += "; " + s
+        else:
+            # result is an item
+            self._eval_logs += str(result)
+
+    def _log_float(
         self,
         left_side,
         right_side,

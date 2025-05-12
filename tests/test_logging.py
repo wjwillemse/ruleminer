@@ -14,6 +14,7 @@ parameters_tolerance = {
         },
     },
     "intermediate_results": ["comparisons"],
+    "output_not_applicable": True,
 }
 parameters_no_tolerance = {
     "intermediate_results": ["comparisons"],
@@ -394,6 +395,37 @@ class TestLogging(unittest.TestCase):
             ["Test_1", True, "if () then ({0.0} < {0.5})"],
             ["Test_2", False, "if () then ({1.0} < {0.5})"],
             ["Test_3", False, "if () then ({2.0} < {0.5})"],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_9(self):
+        df = pd.DataFrame(
+            [
+                ["Test_1", "a,a,a", "a"],
+                ["Test_2", "a,a", "b"],
+                ["Test_3", "b,b,b", "b"],
+            ],
+            columns=["Name", "A", "B"],
+        )
+        formulas = ['(SUM([SPLIT({"A"}, ",", 3)==K for K in [{"B"}]])==1)']
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params=parameters_tolerance,
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params=parameters_tolerance)
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result", "log"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", True, "if () then (True; {1.0} == {1.0})"],
+            ["Test_2", False, "if () then (False; {0.0} == {1.0})"],
+            ["Test_3", True, "if () then (True; {1.0} == {1.0})"],
         ]
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
