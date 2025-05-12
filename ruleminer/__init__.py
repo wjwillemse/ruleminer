@@ -18,9 +18,7 @@ from .ruleminer import (
 )
 from .grammar import (
     condition_expression,
-    simple_condition_expression,
     math_expression,
-    function_expression,
     _quoted_string,
     _column,
 )
@@ -45,7 +43,6 @@ __all__ = [
     contains_string,
     rule_expression,
     condition_expression,
-    simple_condition_expression,
     flatten_and_sort,
     RULE_ID,
     RULE_GROUP,
@@ -56,7 +53,6 @@ __all__ = [
     NOT_APPLICABLE,
     ENCODINGS,
     math_expression,
-    function_expression,
     _quoted_string,
     _column,
     tree_to_expressions,

@@ -13,6 +13,7 @@ from .evaluator import CodeEvaluator
 import regex as re
 import numpy as np
 import logging
+import itertools
 
 
 class RuleParser:
@@ -33,18 +34,20 @@ class RuleParser:
     ):
         """ """
         self.keywords_function_mapping = [
+            # first comparison operators
             (set(["==", "!=", "<", "<=", ">", ">="]), self.parse_comparison),
-            (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["for"]), self.parse_list_comprehension),
             (set(["in", "not in"]), self.parse_in),
             (set(["between", "not between"]), self.parse_between),
+            (set(["contains", "not contains"]), self.parse_contains),
+            (set(["match"]), self.parse_match),
+            # second mathematical functions
+            (set(["quantile", "mean", "std"]), self.parse_statistical_functions),
             (set(["substr"]), self.parse_substr),
             (set(["split"]), self.parse_split),
             (set(["sum"]), self.parse_sum),
             (set(["sumif"]), self.parse_sumif),
             (set(["countif"]), self.parse_countif),
-            (set(["match"]), self.parse_match),
-            (set(["contains", "not contains"]), self.parse_contains),
             (set(["exact"]), self.parse_exact),
             (set(["corr"]), self.parse_corr),
             (set(["table"]), self.parse_table),
@@ -187,7 +190,6 @@ class RuleParser:
                                 apply_tolerance=apply_tolerance,
                                 positive_tolerance=positive_tolerance,
                             )
-
             res = "".join(
                 [
                     self.parse(
@@ -536,8 +538,7 @@ class RuleParser:
         # do not apply tolerance on the list of datapoints
         # because we use list comprehension below
         if "for" not in expression[1][1]:
-            sumlist = self.parse_list(
-                0,
+            sumlist = self.parse(
                 expression[1][1],
                 apply_tolerance=False,
                 positive_tolerance=positive_tolerance,
@@ -550,8 +551,7 @@ class RuleParser:
             )
             res = "sum([" + var_k + " for K in " + sumlist + "], axis=0, dtype=float)"
         else:
-            sumlist = self.parse_list(
-                0,
+            sumlist = self.parse(
                 expression[1][1],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
@@ -614,10 +614,10 @@ class RuleParser:
         if isinstance(expression[1][3], str):
             # the sumif conditions a single condition that has to be applied to all item in the sumlist
             condition = self.parse(
-                expression[1][3:],
+                expression[1][3:-1],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
-            )[:-1]
+            )
             # a single condition applied to all columns
             # other=0 is used so that we have zero instead of NaN
             # we then sum so this has no influence on the result
@@ -629,7 +629,7 @@ class RuleParser:
         else:
             # the sumif conditions a list of conditions
             conditionlist = self.parse(
-                expression[1][3][:-1],
+                expression[1][3],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
@@ -708,14 +708,14 @@ class RuleParser:
             )
         if len(expression[1]) == 3:
             # the countif conditions is empty so count the True elements
-            res = "(sum(" + countlist[:-1] + ", axis=0, dtype=float))"
+            res = "(sum(" + countlist + ", axis=0, dtype=float))"
         elif isinstance(expression[1][3], str):
             # the countif conditions a single condition that has to be applied to all item in the sumlist
             condition = self.parse(
                 expression[1][3:],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
-            )[:-1]
+            )
             # a single condition applied to all columns
             # if the condition does not apply, it results in NaN
             # and then we check if it is not NaN
@@ -729,7 +729,7 @@ class RuleParser:
         else:
             # the countif conditions a list of conditions
             conditionlist = self.parse(
-                expression[1][3][:-1],
+                expression[1][3],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             )
@@ -833,10 +833,15 @@ class RuleParser:
         right_side = expression[idx + 1 :]
         # a between [c, d] is translated to a > c and a < d
         # we convert [c, d] to (min(c,d),max(c,d)) in case that c > d
-        parameters = right_side[0][1:-1]
-        if len(parameters) == 5:
+        # split the parameters-list on commas
+        parameters = [
+            list(x[1])
+            for x in itertools.groupby(right_side[0][1:-1], lambda x: x == ",")
+            if not x[0]
+        ]
+        if len(parameters) == 3:
             third_parameter = self.parse(
-                parameters[4],
+                parameters[2],
                 apply_tolerance=apply_tolerance,
                 positive_tolerance=positive_tolerance,
             ).lower()
@@ -848,11 +853,13 @@ class RuleParser:
                 operators = (">=", "<")
             elif third_parameter == '"right"':
                 operators = (">", "<=")
+            else:
+                operators = (">=", "<=")
         else:
             # default is "both"
             operators = (">=", "<=")
-        lower_bound = ["min", ["(", parameters[0], ",", parameters[2], ")"]]
-        upper_bound = ["max", ["(", parameters[0], ",", parameters[2], ")"]]
+        lower_bound = ["min", ["(", parameters[0], ",", parameters[1], ")"]]
+        upper_bound = ["max", ["(", parameters[0], ",", parameters[1], ")"]]
         a = self.parse(
             [left_side, operators[0], lower_bound],
             apply_tolerance=apply_tolerance,
@@ -968,9 +975,8 @@ class RuleParser:
             positive_tolerance=positive_tolerance,
         )
         lc_var = expression[3]
-        lc_iter = self.parse_list(
-            0,
-            expression[5:],
+        lc_iter = self.parse(
+            expression[5:-1],
             apply_tolerance=False,
             positive_tolerance=positive_tolerance,
         )
@@ -1206,8 +1212,7 @@ class RuleParser:
                 )
             if item in ["*", "/", "**"]:
                 if apply_tolerance:
-                    # both sides contain at least one column that are multiplied or divided
-                    # so we must use adjusted * and / operators that calculate the
+                    # we must use adjusted * and / operators that calculate the
                     # lower and upper bound correctly
                     right_pos = self.parse(
                         expression=expression[idx + 1],
@@ -1257,18 +1262,6 @@ class RuleParser:
                         apply_tolerance=apply_tolerance,
                         positive_tolerance=False,
                     )
-            # elif item == "**":
-            #     res = (
-            #         "max(0, "
-            #         + res
-            #         + ")"
-            #         + item
-            #         + self.parse(
-            #             expression=expression[idx + 1],
-            #             apply_tolerance=apply_tolerance,
-            #             positive_tolerance=current_positive_tolerance,
-            #         )
-            #     )
             else:
                 # for + and - simply process expression
                 res += item + self.parse(
@@ -1630,38 +1623,6 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
         return item + res
-
-    def parse_list(
-        self,
-        idx: int,
-        expression: Union[str, list],
-        apply_tolerance: bool = False,
-        positive_tolerance: bool = True,
-    ) -> str:
-        """
-        Process decimal parameter to expression with ==
-
-        Example:
-            expression = ['{"A"}', '==', '{"B"}']
-
-            result = ruleminer.RuleParser().parse_decimal(
-                idx=1,
-                expression=expression
-            )
-            print(result)
-
-                '(abs({"A"}-{"B"}) <= 1.5)'
-        """
-        return "".join(
-            [
-                self.parse(
-                    i,
-                    apply_tolerance=apply_tolerance,
-                    positive_tolerance=positive_tolerance,
-                )
-                for i in expression
-            ]
-        )
 
     def parse_decimal(
         self,
