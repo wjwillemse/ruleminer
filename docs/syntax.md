@@ -1,68 +1,34 @@
 # Rule grammar
 
-The rule template describes the structure of the rule. Columns and quoted strings in the rule template can contain simple regular expressions.
+The rule grammar describes the syntactical requirements of rules that ruleminer can process.
 
-The syntax of the template follows a grammar defined as follows:
+## General rule format
 
-## General rule template format
+The general rule format is `if condition_1 then condition_2` or simply a `condition`.
 
-* a *template* is of the form:
-```
-if cond_1 then cond_2
-```
-  or simply a single:
-```
-cond_1
-```
+A `condition` is a logical expression of `comparisions` with `&`, `|` and `~` and parentheses, for example `cond_1 & (cond_2 | cond_3)`.
 
-* a *condition* is either a combination of *comparisons* with *logical operators* ('&' and '|') and parenthesis:
-```
-( comp_1 & comp_2 | comp_3 )
-```
-
-or simply a single *comparison*:
-```
-comp_1
-```
-
-* a *comparison* consists of a *term*, a *comparison operator* and a *term*, so::
-```
-term_1 > term_2
-```
-
-## Comparison operators
-
-The following comparison operators are availabe:
+A single `comparision` consists of two `mathematical expressions` separated by a `comparison operator`, for example `math_expr_1 > math_expr_2`. The following comparison operators are availabe:
 
 * `>=`, `>`, `<=`, `<`, `!=`, `==` 
-* `in` 
-* `between`
-* `match`
-* `contains` 
 
-## Terms: numbers, strings, columns, functions
+* `in` and `not in`
 
-* a `term` can be a `number`, `quoted string` (a string with single or double quotes), a `column` or a `function of columns`
+* `between` and `not between`
 
-* a `number` can be of the form +3, -4.1, 2.1e-8 and 0.9e10
+* `match` and `not match`
 
-* a `quoted string` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( ) with double parentheses
+* `contains` and `not contains`
 
-* a `column` is a `quoted string` with braces, so:
-```
-{"Type"}
-```
+A `mathematical expression` is an expression with `functions`, `base elements` and `lists` with mathematical operators `+`, `-`, `*`, `/` and `**`. Mathematical expressions can be nested. A `function` is a function name followed by `parameters` separated by commas with parentheses around them. A `parameter` can be a `list`, `condition`, or a `mathematical expression`. Function names can be upper or lower cased.
 
-Here "Type" is the name of the column in the DataFrame with the data
+The base elements are:
 
-* a `function of columns` is either a prefix operator (min, max, quantile, or abs, in lower or uppercase) on one or more *columns*, and of the form, for example:
-```
-min(col_1, col_2, col_3)
-```
-or infix operators with one or more columns:
-```
-(col_1 + col_2 * col_3)
-```
+* `numbers` can be of the form +3, -4.1, 2.1e-8 and 0.9e10
+
+* `quoted strings` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( ) with double parentheses
+
+* `columns` of the dataset, i.e. `quoted string` with braces, for example `{"Type"}`
 
 ## General mathematical functions
 
@@ -90,21 +56,25 @@ or infix operators with one or more columns:
 
 * mean
 
-* corr
-
 * std
+
+* corr
 
 ## String functions
 
-* substr
+* `substr(s, pos, len)` returns the substring of `s` from position `pos` (starting at 1) with length `len`
 
-* split
+* `split(s, sep, n)` returns the `n`-th element (starting at 1) of the list of elements of string `s` separated by `sep` 
 
 ## Conditional functions
 
-* sumif
+* `sumif([a, b, ... ], cond)` returns the sum of list [a, b, ...] given that condition `cond` is satisfied
 
-* countif
+* `sumif([a, b, ... ], [cond_a, cond_b, ... ])` returns the sum of list [a, b, ...] given that the corresponding condition is satisfied. The length of the lists should be equal.
+
+* `countif([a, b, ... ], cond)` returns the count of list [a, b, ...] given that condition `cond` is satisfied
+
+* `countif([a, b, ... ], [cond_a, cond_b, ... ])` returns the count of list [a, b, ...] given that the corresponding condition is satisfied. The length of the lists should be equal.
 
 ## Functions for external data
 
