@@ -1,5 +1,9 @@
 # History
 
+### 1.0.0 (2025-5-23)
+
+- Bump to production version
+
 ### 0.3.18 (2025-5-9)
 
 - Added logging of results for strings, bools and datetimes
