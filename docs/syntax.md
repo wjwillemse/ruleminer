@@ -1,10 +1,8 @@
 # Rule grammar
 
-This guide explains the structure and components of rules used in ruleminer. It covers how to write conditions using logical and comparison operators, how mathematical expressions are formed, and the types of elements (like numbers, strings, and dataset columns) that can be used within those expressions.
+The rule grammar explains the structure and components of rules used in ruleminer. It covers how to write conditions using logical and comparison operators, how mathematical expressions are formed, and the types of elements (like numbers, strings, and dataset columns) that can be used within those expressions.
 
 ## General rule format
-
-### Rule format
 
 Rules follow this format: 
 
@@ -12,25 +10,25 @@ Rules follow this format:
 
 * or simply a `condition`
 
-### Conditions
+## Conditions
 
 A `condition` is a wel-formed logical expression of `comparisions` with `&`, `|` and `~` and parentheses, for example `cond_1 & (cond_2 | cond_3)`.
 
-### Comparisons
+## Comparisons
 
 A single `comparision` consists of two `mathematical expressions` separated by a `comparison operator`, for example `math_expr_1 > math_expr_2`. The following comparison operators are availabe:
 
 * Standard: `>=`, `>`, `<=`, `<`, `!=`, `==` 
 
-* List- or set-based: `in` and `not in`
+* List- and set-based: `in` and `not in`
 
-* Range: `between` and `not between`
+* Range: `between` and `not between`, for example `({"A"} between [2, 30])`.
 
-* Pattern: `match` and `not match`
+* Pattern: `match` and `not match`, for exameple `({"C0450"} match "^C\d+")`.
 
-* Substring: `contains` and `not contains`
+* Substring: `contains` and `not contains`, for example `({"C0450"} contains "type")`.
 
-### Mathematical expressions
+## Mathematical expressions
 
 These include `numbers`, `functions`, `columns`, `lists`, and use `+`, `-`, `*`, `/`, and `**`. They can be nested.
 
@@ -40,25 +38,25 @@ These include `numbers`, `functions`, `columns`, `lists`, and use `+`, `-`, `*`,
 
 The base elements are:
 
+* Columns: quoted string in braces, e.g. `{"Type"}`
+
 * Numbers: examples +3, -4.1, 2.1e-8 and 0.9e10
 
-* Quoted strings: text in double quotes, including letter, numbers, symbol (a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( ))
-
-* Columns: quoted string in braces, e.g. `{"Type"}`
+* Quoted strings: text in double quotes, including letter, numbers, symbol: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
 
 ## General mathematical functions
 
-* `min(expr_1, expr_2, ... )` returns the minimum of the parameters
+* `min(expr_1, expr_2, ... )` returns the minimum of the parameters.
 
-* `max(expr_1, expr_2, ... )` returns the maximum of the parameters
+* `max(expr_1, expr_2, ... )` returns the maximum of the parameters.
 
-* `abs(expr)` returns the absolute value of the expression `expr`
+* `abs(expression)` returns the absolute value of the expression.
 
-* `sum([expr_1, expr_2, ... ])` returns the sum of the list
+* `sum([expr_1, expr_2, ... ])` returns the sum of the list of expressions.
 
 ## Rounding functions
  
-* exact
+* `exact(expression)` returns the expression without applying interval mathematics.
 
 * `round(expression, p)` return the rounded values of the rows in the expression given precision `p`
 
@@ -68,11 +66,11 @@ The base elements are:
 
 ## Statistical functions
 
-* `quantile(expression, p)` returns the quantile `p` of the row values in the expression.
+* `quantile(expression, p)` returns the quantile `p` of the expression.
 
-* `mean(expression)` returns the mean of the row values in the expression.
+* `mean(expression)` returns the mean of the expression.
 
-* `std(expression)` returns the standard deviation of the row values in the expressions.
+* `std(expression)` returns the standard deviation of the expressions.
 
 * `corr("matrix", expr_1, expr_2, ... )` returns the sum of correlations given coefficient matrix `matrix` and the list of expressions.
 
@@ -84,7 +82,7 @@ The base elements are:
 
 ## Conditional functions
 
-* `sumif([a, b, ... ], cond)` returns the sum of list [a, b, ...] given that condition `cond` is satisfied
+* `sumif([a, b, ... ], cond)` returns the sum of list [a, b, ...] given that condition `cond` is satisfied, for example `(sumif([{"Assets"}, {"Own_funds"}], {"Type"}=="life_insurer") > 0)`
 
 * `sumif([a, b, ... ], [cond_a, cond_b, ... ])` returns the sum of list [a, b, ...] given that the corresponding condition is satisfied. The length of the lists should be equal.
 
@@ -100,7 +98,7 @@ Example: `[{"A"}, {"B"}] in table("external_data", ["a", "b"])` checks whether t
 
 ## Date and time functions
 
-* `days(expression)` returns the number of days of each value in expression, e.g. `days({"C"}- {"D"})` return the numbers of days between (datetime) columns `{"C"}` and `{"D"}`
+* `days(expression)` returns the number of days of the expression, e.g. `days({"C"}- {"D"})` return the numbers of days between (date) columns `{"C"}` and `{"D"}`
 
 * `months(expression)` return the number of months
 
