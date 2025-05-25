@@ -1,64 +1,78 @@
 # Rule grammar
 
-The rule grammar describes the syntactical requirements of rules that ruleminer can process.
+The rule grammar explains the structure and components of rules used in ruleminer. It covers how to write conditions using logical and comparison operators, how mathematical expressions are formed, and the types of elements (like numbers, strings, and dataset columns) that can be used within those expressions.
 
 ## General rule format
 
-The general rule format is `if condition_1 then condition_2` or simply a `condition`.
+Rules follow this format: 
 
-A `condition` is a logical expression of `comparisions` with `&`, `|` and `~` and parentheses, for example `cond_1 & (cond_2 | cond_3)`.
+* `if condition_1 then condition_2`
+
+* or simply a `condition`
+
+## Conditions
+
+A `condition` is a wel-formed logical expression of `comparisions` with `&`, `|` and `~` and parentheses, for example `cond_1 & (cond_2 | cond_3)`.
+
+## Comparisons
 
 A single `comparision` consists of two `mathematical expressions` separated by a `comparison operator`, for example `math_expr_1 > math_expr_2`. The following comparison operators are availabe:
 
-* `>=`, `>`, `<=`, `<`, `!=`, `==` 
+* Standard: `>=`, `>`, `<=`, `<`, `!=`, `==` 
 
-* `in` and `not in`
+* List- and set-based: `in` and `not in`
 
-* `between` and `not between`
+* Range: `between` and `not between`, for example `({"A"} between [2, 30])`.
 
-* `match` and `not match`
+* Pattern: `match` and `not match`, for exameple `({"C0450"} match "^C\d+")`.
 
-* `contains` and `not contains`
+* Substring: `contains` and `not contains`, for example `({"C0450"} contains "type")`.
 
-A `mathematical expression` is an expression with `functions`, `base elements` and `lists` with mathematical operators `+`, `-`, `*`, `/` and `**`. Mathematical expressions can be nested. A `function` is a function name followed by `parameters` separated by commas with parentheses around them. A `parameter` can be a `list`, `condition`, or a `mathematical expression`. Function names can be upper or lower cased.
+## Mathematical expressions
+
+These include `numbers`, `functions`, `columns`, `lists`, and use `+`, `-`, `*`, `/`, and `**`. They can be nested.
+
+* Functions: name (any case) followed by parameters in parentheses, e.g. `func(param1, param2)`
+
+* Parameter: can be a `list`, `condition`, or another expression
 
 The base elements are:
 
-* `numbers` can be of the form +3, -4.1, 2.1e-8 and 0.9e10
+* Columns: quoted string in braces, e.g. `{"Type"}`
 
-* `quoted strings` consists of the following characters: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( ) with double parentheses
+* Numbers: examples +3, -4.1, 2.1e-8 and 0.9e10
 
-* `columns` of the dataset, i.e. `quoted string` with braces, for example `{"Type"}`
+* Quoted strings: text in double quotes, including letter, numbers, symbol: a-z A-Z 0-9 _ . , ; ; < > * = + - / \ ? | @ # $ % ^ & ( )
 
 ## General mathematical functions
 
-* min
+* `min(expr_1, expr_2, ... )` returns the minimum of the parameters.
 
-* max
+* `max(expr_1, expr_2, ... )` returns the maximum of the parameters.
 
-* abs
+* `abs(expression)` returns the absolute value of the expression.
 
-* sum
+* `sum([expr_1, expr_2, ... ])` returns the sum of the list of expressions.
 
 ## Rounding functions
  
-* exact
+* `exact(expression)` returns the expression without applying interval mathematics.
 
-* round
+* `round(expression, p)` return the rounded values of the rows in the expression given precision `p`
 
-* floor
+* `floor(expression, p)` return the truncated values of the rows in the expression given precision `p`
 
-* ceil
+* `ceil(expression, p)` return the values rounded up of the rows in the expression given precision `p`
 
 ## Statistical functions
 
-* quantile
+* `quantile(expression, p)` returns the quantile `p` of the expression.
 
-* mean
+* `mean(expression)` returns the mean of the expression.
 
-* std
+* `std(expression)` returns the standard deviation of the expressions.
 
-* corr
+* `corr("matrix", expr_1, expr_2, ... )` returns the sum of correlations given coefficient matrix `matrix` and the list of expressions.
 
 ## String functions
 
@@ -68,7 +82,7 @@ The base elements are:
 
 ## Conditional functions
 
-* `sumif([a, b, ... ], cond)` returns the sum of list [a, b, ...] given that condition `cond` is satisfied
+* `sumif([a, b, ... ], cond)` returns the sum of list [a, b, ...] given that condition `cond` is satisfied, for example `(sumif([{"Assets"}, {"Own_funds"}], {"Type"}=="life_insurer") > 0)`
 
 * `sumif([a, b, ... ], [cond_a, cond_b, ... ])` returns the sum of list [a, b, ...] given that the corresponding condition is satisfied. The length of the lists should be equal.
 
@@ -78,15 +92,17 @@ The base elements are:
 
 ## Functions for external data
 
-* table
+* `table("table name", ["a", "b"])`, returns a list of tuples from an external table.
+You can use it to check if a row or a set of column values exists in that table.
+Example: `[{"A"}, {"B"}] in table("external_data", ["a", "b"])` checks whether the values in columns A and B match any row in the external table.
 
 ## Date and time functions
 
-* days
+* `days(expression)` returns the number of days of the expression, e.g. `days({"C"}- {"D"})` return the numbers of days between (date) columns `{"C"}` and `{"D"}`
 
-* months
+* `months(expression)` return the number of months
 
-* years
+* `years(expression)` returns the number of years
  
 # Full grammar in pyparsing
 
