@@ -1,9 +1,9 @@
 [project]
 name = "ruleminer"
-version = "1.0.0"
+version = "1.0.1"
 description = "Python package to mine association rules in datasets"
 authors = [{name = "Willem Jan Willemse", email = "w.j.willemse@freedom.nl"}]
-license = "MIT/X"
+license = "MIT"
 readme = "README.md"
 dynamic = ["dependencies", "requires-python"]
 keywords = ["association rules", "pandas"]

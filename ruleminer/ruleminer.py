@@ -664,9 +664,19 @@ class RuleMiner:
                             rule_id += 1
 
         if self.rules_datatype == pd.DataFrame:
-            self.rules = pd.DataFrame.from_dict(rules)
+            if self.rules is not None:
+                self.rules = pd.concat(
+                    [self.rules, pd.DataFrame.from_dict(rules)], ignore_index=True
+                )
+            else:
+                self.rules = pd.DataFrame.from_dict(rules)
         elif self.rules_datatype == pl.DataFrame:
-            self.rules = pl.DataFrame(rules)
+            if self.rules is not None:
+                self.rules = pl.concat(
+                    [self.rules, pl.DataFrame(rules)], how="vertical"
+                )
+            else:
+                self.rules = pl.DataFrame(rules)
 
         if self.params.get("apply_rules_on_indices", True):
             # remove temporarily added index columns
