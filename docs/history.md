@@ -1,5 +1,9 @@
 # History
 
+### 1.0.1 (2026-2-10)
+
+- Bug fix for issue #67
+
 ### 1.0.0 (2025-5-23)
 
 - Bump to production version
