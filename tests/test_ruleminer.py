@@ -2439,6 +2439,131 @@ class TestRuleminer(unittest.TestCase):
         assert not ruleminer.contains_string(expression)
         assert ruleminer.contains_column(expression)
 
+    def test_multiple_templates(self):
+        templates = [
+            {
+                "expression": 'if ({"age"} > 30) then ({"revenue"} > 1000)',
+                "encodings": {"excel_id": "R1"},
+            },
+            {
+                "expression": 'if ({"zip"} == {"zip"}) then ({"state"} == {"state"})',
+                "encodings": {"excel_id": "R2"},
+            },
+        ]
+
+        df = pd.DataFrame(
+            {
+                "customer": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                "revenue": [
+                    200,
+                    350,
+                    400,
+                    2121,
+                    4000,
+                    2100,
+                    2300,
+                    400,
+                    50,
+                    300,
+                    950,
+                    5000,
+                    6000,
+                    7000,
+                    8000,
+                ],
+                "age": [22, 20, 21, 41, 50, 45, 62, 20, 18, 21, 35, 11, 11, 29, 29],
+                "gender": [
+                    "male",
+                    "female",
+                    "male",
+                    "female",
+                    "male",
+                    "female",
+                    "male",
+                    "female",
+                    "male",
+                    "female",
+                    "female",
+                    "female",
+                    "female",
+                    "male",
+                    "male",
+                ],
+                "state": [
+                    "CA",
+                    "NY",
+                    "NY",
+                    "CA",
+                    "CA",
+                    "NY",
+                    "NY",
+                    "CA",
+                    "NY",
+                    None,
+                    "CA",
+                    "CA",
+                    "CA",
+                    "NY",
+                    "NY",
+                ],
+                "zip": [
+                    90210,
+                    10025,
+                    10025,
+                    90210,
+                    90210,
+                    90210,
+                    10025,
+                    90210,
+                    10025,
+                    90210,
+                    90210,
+                    90210,
+                    90210,
+                    10025,
+                    10025,
+                ],
+                "incoming_orders": [
+                    100,
+                    350,
+                    400,
+                    2500,
+                    4000,
+                    2100,
+                    2300,
+                    500,
+                    60,
+                    300,
+                    800,
+                    5000,
+                    6000,
+                    7000,
+                    8000,
+                ],
+            }
+        ).set_index("customer", verify_integrity=True)
+
+        parameters = {
+            "filter": {"confidence": 0.0, "abs support": 0.0},
+        }
+        rules1 = None
+        for t in templates:
+            r1 = ruleminer.RuleMiner(templates=[t], data=df, params=parameters)
+            if rules1 is None:
+                rules1 = r1.rules
+            else:
+                rules1 = pd.concat([rules1, r1.rules], ignore_index=True)
+
+        r2 = ruleminer.RuleMiner(templates=templates, data=df, params=parameters)
+        rules2 = r2.rules
+        self.assertListEqual(list(rules1.index), list(rules2.index))
+        self.assertListEqual(
+            list(list(rules1.values)[0])[1:], list(list(rules2.values)[0])[1:]
+        )
+        self.assertListEqual(
+            list(list(rules1.values)[1])[1:], list(list(rules2.values)[1])[1:]
+        )
+
     # def setUp_templates(self):
     #     """Set up test fixtures, if any."""
     #     templates = ["template"]
