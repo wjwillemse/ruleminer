@@ -487,13 +487,14 @@ class RuleParser:
                 '(({"C"}.str.slice("C",2)).isin("D"))'
         """
         _, string, _, separator, _, position, _ = expression[idx + 1]
-        if not position.isdigit():
-            logging.error(
-                "Third parameter of split function is not a digit, taking first position"
-            )
-            position = "0"
-        else:
-            position = str(int(position) - 1)
+        if position[1:-1].lower() not in ["all", "any"]:
+            if not position.isdigit():
+                logging.error(
+                    "Third parameter of split function is not a digit, 'all' or 'any', taking first position"
+                )
+                position = "0"
+            else:
+                position = str(int(position) - 1)
         res = (
             self.parse(
                 string,
@@ -502,10 +503,10 @@ class RuleParser:
             )
             + ".str.split("
             + separator
-            + ").str["
-            + position
-            + "]"
+            + ")"
         )
+        if position[1:-1].lower() not in ["all", "any"]:
+            res += ".str[" + position + "]"
         return res
 
     def parse_sum(
@@ -792,6 +793,17 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
             res = "pd.concat(" + left_side_list + ", axis=1).apply(tuple, axis=1)"
+        if left_side[0][0].lower() == "split" and left_side[0][1][5][1:-1].lower() in [
+            "all",
+            "any",
+        ]:
+            # if the left side is a split function and the third parameter is 'all'
+            left_side_split = self.parse(
+                left_side[0],
+                apply_tolerance=apply_tolerance,
+                positive_tolerance=positive_tolerance,
+            )
+            res = left_side_split + ".explode()"
         res += ".isin("
         for i in right_side:
             res += self.parse(
@@ -800,6 +812,14 @@ class RuleParser:
                 positive_tolerance=positive_tolerance,
             )
         res += ")"
+        if left_side[0][0].lower() == "split" and left_side[0][1][5][1:-1].lower() in [
+            "all",
+            "any",
+        ]:
+            if left_side[0][1][5][1:-1].lower() == "all":
+                res += ".groupby(level=0).all()"
+            else:
+                res += ".groupby(level=0).any()"
         return res
 
     def parse_between(

@@ -988,7 +988,7 @@ class TestRuleminer(unittest.TestCase):
     def test_35(self):
         actual = (
             ruleminer.math_expression()
-            .parse_string('substr({"Type"}, 0, 3)', parseAll=True)
+            .parse_string('substr({"Type"}, 0, 3)', parse_all=True)
             .as_list()
         )
         expected = [["substr", ["(", '{"Type"}', ",", "0", ",", "3", ")"]]]
@@ -997,7 +997,7 @@ class TestRuleminer(unittest.TestCase):
     def test_36(self):
         actual = (
             ruleminer.rule_expression()
-            .parse_string('(substr({"Type"}, 0, 3) > 0)', parseAll=True)
+            .parse_string('(substr({"Type"}, 0, 3) > 0)', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1008,7 +1008,7 @@ class TestRuleminer(unittest.TestCase):
     def test_37(self):
         actual = (
             ruleminer.math_expression()
-            .parse_string('max(substr({"Type"}, 0, 1) in ["d"])', parseAll=True)
+            .parse_string('max(substr({"Type"}, 0, 1) in ["d"])', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1028,7 +1028,7 @@ class TestRuleminer(unittest.TestCase):
     def test_38(self):
         actual = (
             ruleminer.rule_expression()
-            .parse_string('(max(substr({"Type"}, 0, 1) in ["d"]) > 0)', parseAll=True)
+            .parse_string('(max(substr({"Type"}, 0, 1) in ["d"]) > 0)', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1062,7 +1062,7 @@ class TestRuleminer(unittest.TestCase):
         actual = (
             ruleminer.rule_expression()
             .parse_string(
-                '({"Own funds"} <= quantile({"Own funds"}, 0.95))', parseAll=True
+                '({"Own funds"} <= quantile({"Own funds"}, 0.95))', parse_all=True
             )
             .as_list()
         )
@@ -1523,6 +1523,48 @@ class TestRuleminer(unittest.TestCase):
         self.assertListEqual(list(actual[0]), expected[0])
         self.assertListEqual(list(actual[1]), expected[1])
         self.assertListEqual(list(actual[2]), expected[2])
+
+    def test_50c(self):
+        formulas = [
+            '(SPLIT({"C"}, ",", "all") in ["AB", "C", "D"])',
+        ]
+        df = pd.DataFrame(
+            [
+                ["Test_1", 0.25, 1.0, "AB,C,D"],
+                [
+                    "Test_2",
+                    1.0,
+                    1.0,
+                    "C,D,E",
+                ],
+                ["Test_3", 0.0, 0.0, "A"],
+                ["Test_3", 0.0, 0.0, "AB"],
+            ],
+            columns=["Name", "A", "B", "C"],
+        )
+        r = ruleminer.RuleMiner(
+            templates=[{"expression": form} for form in formulas],
+            params={},
+        )
+        r = ruleminer.RuleMiner(rules=r.rules, data=df, params={})
+        r.evaluate()
+        actual = (
+            r.results.sort_values(by=["indices"], ignore_index=True)
+            .merge(df, how="left", left_on=["indices"], right_index=True)[
+                ["Name", "result"]
+            ]
+            .values
+        )
+        expected = [
+            ["Test_1", True],
+            ["Test_2", False],
+            ["Test_3", False],
+            ["Test_3", True],
+        ]
+        self.assertListEqual(list(actual[0]), expected[0])
+        self.assertListEqual(list(actual[1]), expected[1])
+        self.assertListEqual(list(actual[2]), expected[2])
+        self.assertListEqual(list(actual[3]), expected[3])
 
     def test_51a(self):
         # Specify tolerance input parameters for ruleminer
@@ -2541,7 +2583,7 @@ class TestRuleminer(unittest.TestCase):
                     8000,
                 ],
             }
-        ).set_index("customer", verify_integrity=True)
+        ).set_index("customer")
 
         parameters = {
             "filter": {"confidence": 0.0, "abs support": 0.0},

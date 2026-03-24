@@ -447,7 +447,7 @@ class RuleMiner:
                     template_expression = "if () then " + template_expression
                 parsed = (
                     rule_expression()
-                    .parse_string(template_expression, parseAll=True)
+                    .parse_string(template_expression, parse_all=True)
                     .as_list()
                 )
             except Exception as e:
@@ -824,23 +824,23 @@ class RuleMiner:
             if rule_parts.group(1).strip() != "()":
                 if_part = (
                     rule_expression()
-                    .parse_string(rule_parts.group(1), parseAll=True)
+                    .parse_string(rule_parts.group(1), parse_all=True)
                     .as_list()
                 )
             else:
                 if_part = ""
             then_part = (
                 rule_expression()
-                .parse_string(rule_parts.group(2), parseAll=True)
+                .parse_string(rule_parts.group(2), parse_all=True)
                 .as_list()
             )
         else:
             expression = "if () then " + expression
             if_part = ""
             then_part = (
-                rule_expression().parse_string(expression, parseAll=True).as_list()
+                rule_expression().parse_string(expression, parse_all=True).as_list()
             )
-        parsed = rule_expression().parse_string(expression, parseAll=True).as_list()
+        parsed = rule_expression().parse_string(expression, parse_all=True).as_list()
         return parsed, if_part, then_part
 
     def substitute_list(

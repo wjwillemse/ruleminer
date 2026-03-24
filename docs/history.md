@@ -1,5 +1,10 @@
 # History
 
+### 1.0.2 (2026-3-24)
+
+- Implemented split-function with all/any instead of position to check whether all or any comma separated elements are in a list
+- updated to new version of pyparsing
+
 ### 1.0.1 (2026-2-10)
 
 - Bug fix for issue #67
