@@ -988,7 +988,7 @@ class TestRuleminer(unittest.TestCase):
     def test_35(self):
         actual = (
             ruleminer.math_expression()
-            .parse_string('substr({"Type"}, 0, 3)', parseAll=True)
+            .parse_string('substr({"Type"}, 0, 3)', parse_all=True)
             .as_list()
         )
         expected = [["substr", ["(", '{"Type"}', ",", "0", ",", "3", ")"]]]
@@ -997,7 +997,7 @@ class TestRuleminer(unittest.TestCase):
     def test_36(self):
         actual = (
             ruleminer.rule_expression()
-            .parse_string('(substr({"Type"}, 0, 3) > 0)', parseAll=True)
+            .parse_string('(substr({"Type"}, 0, 3) > 0)', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1008,7 +1008,7 @@ class TestRuleminer(unittest.TestCase):
     def test_37(self):
         actual = (
             ruleminer.math_expression()
-            .parse_string('max(substr({"Type"}, 0, 1) in ["d"])', parseAll=True)
+            .parse_string('max(substr({"Type"}, 0, 1) in ["d"])', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1028,7 +1028,7 @@ class TestRuleminer(unittest.TestCase):
     def test_38(self):
         actual = (
             ruleminer.rule_expression()
-            .parse_string('(max(substr({"Type"}, 0, 1) in ["d"]) > 0)', parseAll=True)
+            .parse_string('(max(substr({"Type"}, 0, 1) in ["d"]) > 0)', parse_all=True)
             .as_list()
         )
         expected = [
@@ -1062,7 +1062,7 @@ class TestRuleminer(unittest.TestCase):
         actual = (
             ruleminer.rule_expression()
             .parse_string(
-                '({"Own funds"} <= quantile({"Own funds"}, 0.95))', parseAll=True
+                '({"Own funds"} <= quantile({"Own funds"}, 0.95))', parse_all=True
             )
             .as_list()
         )
@@ -2541,7 +2541,7 @@ class TestRuleminer(unittest.TestCase):
                     8000,
                 ],
             }
-        ).set_index("customer", verify_integrity=True)
+        ).set_index("customer")
 
         parameters = {
             "filter": {"confidence": 0.0, "abs support": 0.0},
