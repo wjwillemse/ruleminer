@@ -487,10 +487,10 @@ class RuleParser:
                 '(({"C"}.str.slice("C",2)).isin("D"))'
         """
         _, string, _, separator, _, position, _ = expression[idx + 1]
-        if not position[1:-1].lower in ["all", "any"]:
+        if position[1:-1].lower() not in ["all", "any"]:
             if not position.isdigit():
                 logging.error(
-                    "Third parameter of split function is not a digit or 'all', taking first position"
+                    "Third parameter of split function is not a digit, 'all' or 'any', taking first position"
                 )
                 position = "0"
             else:
@@ -505,7 +505,7 @@ class RuleParser:
             + separator
             + ")"
         )
-        if not position[1:-1].lower in ["all", "any"]:
+        if position[1:-1].lower() not in ["all", "any"]:
             res += ".str[" + position + "]"
         return res
 
